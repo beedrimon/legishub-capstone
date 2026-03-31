@@ -13,7 +13,7 @@ def login_view(request):
         return redirect('dashboard') # Replace 'dashboard' with your home URL name
 
     if request.method == 'POST':
-        email = request.POST.get('email')
+        """email = request.POST.get('email')
         password = request.POST.get('password')
 
         try:
@@ -32,6 +32,8 @@ def login_view(request):
         else:
             # If authentication fails, send an error message to the template
             messages.error(request, 'Invalid email or password. Please try again.')
+    """
+        return redirect('dashboard')
 
     return render(request, 'index.html')
 
