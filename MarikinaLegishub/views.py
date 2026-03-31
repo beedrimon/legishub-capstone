@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 def login_view(request):
     # If the user is already logged in, send them to the dashboard
     if request.user.is_authenticated:
-        return redirect('dashboard.html') # Replace 'dashboard' with your home URL name
+        return redirect('dashboard') # Replace 'dashboard' with your home URL name
 
     if request.method == 'POST':
         email = request.POST.get('email')
@@ -28,12 +28,12 @@ def login_view(request):
 
         if user is not None:
             auth_login(request, user)
-            return redirect('dashboard.html') # Replace 'dashboard' with your home URL name
+            return redirect('dashboard') # Replace 'dashboard' with your home URL name
         else:
             # If authentication fails, send an error message to the template
             messages.error(request, 'Invalid email or password. Please try again.')
 
-    return render(request, 'login.html')
+    return render(request, 'index.html')
 
 # ==========================================
 # 2. DASHBOARD VIEW

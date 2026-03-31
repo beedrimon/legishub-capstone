@@ -108,7 +108,7 @@
                 </ul>
             {% endif %}
 
-            <form method="POST" action="{% url 'index' %}">
+            <form method="POST" action="{% url 'login' %}">
                 {% csrf_token %}
                 <div class="form-group">
                     <label for="email">Email</label>
