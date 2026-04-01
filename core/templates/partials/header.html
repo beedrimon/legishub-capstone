@@ -1,0 +1,40 @@
+<header class="top-header">
+
+    <div class="search-bar">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" placeholder="Search...">
+    </div>
+
+    <div class="header-actions">
+        <button class="btn-upload">
+            <i class="fa-solid fa-plus"></i> Upload Document
+        </button>
+
+        <i id="notifBell" class="fa-regular fa-bell" onclick="toggleNotif()"></i>
+
+        <div class="profile">
+            <i class="fa-regular fa-circle-user"></i>
+            {{ request.user.username }}
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div id="notifModal" class="notif-modal">
+        <div class="notif-header">Notifications</div>
+
+        {% for notif in notifications %}
+        <div class="notif-item">
+            <p><strong>{{ notif.sender }}</strong> {{ notif.message }}</p>
+            <span>{{ notif.time }}</span>
+        </div>
+        {% endfor %}
+    </div>
+
+</header>
+
+<script>
+function toggleNotif() {
+    const modal = document.getElementById("notifModal");
+    modal.style.display = modal.style.display === "block" ? "none" : "block";
+}
+</script>

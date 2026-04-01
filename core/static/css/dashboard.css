@@ -1,0 +1,87 @@
+/* core/static/css/dashboard.css */
+
+:root {
+    --legis-brown: #7A5C33;
+    --legis-light-bg: #F8F7F4;
+    --legis-dark-text: #4A3A26;
+    --success-green: #0F5132;
+    --success-bg: #D1E7DD;
+    --warning-yellow: #856404;
+    --warning-bg: #FFF3CD;
+}
+
+body {
+    background-color: var(--legis-light-bg);
+    color: var(--legis-dark-text);
+}
+
+/* Stats Card */
+.card-stat {
+    border: none;
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.btn-archive-download {
+    background-color: var(--legis-brown);
+    color: white;
+    border-radius: 8px;
+    border: none;
+    transition: background 0.3s ease;
+}
+
+.btn-archive-download:hover {
+    background-color: #5d4627;
+    color: white;
+}
+
+/* Category Folders */
+.archive-category-card {
+    border: none;
+    border-radius: 12px;
+    background: #ffffff;
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.archive-category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.archive-category-card i {
+    color: var(--legis-brown);
+}
+
+/* Table Styling */
+.table-header-custom {
+    background-color: var(--legis-brown);
+    color: white;
+}
+
+.table-header-custom th {
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.05rem;
+}
+
+.table-container {
+    border-radius: 12px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+/* Badges */
+.badge-permanent {
+    background-color: var(--success-bg);
+    color: var(--success-green);
+}
+
+.badge-retention {
+    background-color: var(--warning-bg);
+    color: var(--warning-yellow);
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
