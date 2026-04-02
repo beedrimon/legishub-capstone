@@ -2,7 +2,7 @@ from django.shortcuts import render
 
 # Create your views here.
 from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login as auth_login
+from django.contrib.auth import authenticate, login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
@@ -16,7 +16,7 @@ def login_view(request):
         return redirect('dashboard') # Replace 'dashboard' with your home URL name
 
     if request.method == 'POST':
-        """email = request.POST.get('email')
+        email = request.POST.get('email')
         password = request.POST.get('password')
 
         try:
@@ -35,15 +35,25 @@ def login_view(request):
         else:
             # If authentication fails, send an error message to the template
             messages.error(request, 'Invalid email or password. Please try again.')
-    """
+
         return redirect('dashboard')
 
     return render(request, 'index.html')
 
 # ==========================================
-# 2. DASHBOARD VIEW
+# 2. LOGOUT VIEW
 # ==========================================
-# @login_required(login_url='login')  <-- Uncomment this to force users to log in first!
+def logout_view(request):
+    # This built-in Django function destroys the user's session and securely logs them out
+    auth_logout(request)
+    
+    # Send them back to the login page (Remember: we named this 'login' in urls.py!)
+    return redirect('login')
+
+# ==========================================
+# 3. DASHBOARD VIEW
+# ==========================================
+@login_required(login_url='login')  #<-- Uncomment this to force users to log in first!
 def dashboard_view(request):
     
     # Dummy data for the frontend
