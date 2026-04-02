@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - Marikina LegisHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/user_management.css' %}">
 </head>
 <body>
     <nav class="sidebar">
@@ -26,5 +26,116 @@
             <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
         </ul>
     </nav>
+    
+   <main class="main-content">
+        <header class="top-header">
+            <div class="header-title">Identity & Access Management (IAM)</div>
+            <div class="header-actions">
+                <i class="fa-regular fa-bell" style="font-size: 1.2rem; cursor: pointer;"></i>
+                <i class="fa-regular fa-circle-question" style="font-size: 1.2rem; cursor: pointer;"></i>
+                <div class="profile">
+                    <i class="fa-regular fa-circle-user" style="font-size: 1.5rem;"></i> {{ request.user.username|default:"Name" }}
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-body">
+            <div class="dashboard-header">
+                <div>
+                    <h1>User Management</h1>
+                    <p>Control access levels and manage legislative staff accounts.</p>
+                </div>
+                <button class="btn-create">
+                    <i class="fa-solid fa-user-plus"></i> Create New Account
+                </button>
+            </div>
+
+            <section class="iam-grid">
+                <div class="iam-card">
+                    <div class="user-badge-header">
+                        <div class="avatar-info">
+                            <span class="initials">GS</span>
+                            <div>
+                                <strong>Gerald Sy</strong><br>
+                                <small>gerald@marikina.gov</small>
+                            </div>
+                        </div>
+                        <span class="role-badge sys-admin">SYSTEM ADMIN</span>
+                    </div>
+                    <div class="permission-list">
+                        <div class="permission-row">Full System Access <span class="toggle on"></span></div>
+                        <div class="permission-row">Audit Log Deletion <span class="toggle off"></span></div>
+                        <div class="permission-row">Archive Management <span class="toggle on"></span></div>
+                    </div>
+                </div>
+
+                <div class="iam-card">
+                    <div class="user-badge-header">
+                        <div class="avatar-info">
+                            <span class="initials">JM</span>
+                            <div>
+                                <strong>Jayvee Moral</strong><br>
+                                <small>jayvee@marikina.gov</small>
+                            </div>
+                        </div>
+                        <span class="role-badge staff">LEGISLATIVE STAFF</span>
+                    </div>
+                    <div class="permission-list">
+                        <div class="permission-row">Document Upload <span class="toggle on"></span></div>
+                        <div class="permission-row">Edit Metadata <span class="toggle on"></span></div>
+                        <div class="permission-row">User Management <span class="toggle off"></span></div>
+                    </div>
+                </div>
+
+                <div class="iam-card">
+                    <div class="user-badge-header">
+                        <div class="avatar-info">
+                            <span class="initials">ME</span>
+                            <div>
+                                <strong>Mylene Esquilona</strong><br>
+                                <small>mylene@marikina.gov</small>
+                            </div>
+                        </div>
+                        <span class="role-badge staff">LEGISLATIVE STAFF</span>
+                    </div>
+                    <div class="permission-list">
+                        <div class="permission-row">Document Upload <span class="toggle on"></span></div>
+                        <div class="permission-row">Edit Metadata <span class="toggle on"></span></div>
+                        <div class="permission-row">Delete Records <span class="toggle off"></span></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="table-card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>USER NAME</th>
+                            <th>DESIGNATION</th>
+                            <th>LAST ACTIVITY</th>
+                            <th>STATUS</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Jake Hasley Hafalla</strong></td>
+                            <td>Technical Support</td>
+                            <td>2 mins ago</td>
+                            <td><span class="status-active">Active</span></td>
+                            <td><i class="fa-solid fa-ellipsis"></i></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Myra Luna Gaurino</strong></td>
+                            <td>Clerk II</td>
+                            <td>Yesterday, 4:00 PM</td>
+                            <td><span class="status-active">Active</span></td>
+                            <td><i class="fa-solid fa-ellipsis"></i></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </main>
 </body>
 </html>

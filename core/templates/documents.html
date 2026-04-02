@@ -5,11 +5,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document - Marikina LegisHub</title>
+    <title>Documents - Marikina LegisHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/documents.css' %}">
 </head>
+
 <body>
+
     <nav class="sidebar">
         <div class="sidebar-logo">
             <img src="{% static 'images/legishub-logo-light.png' %}" alt="Logo">
@@ -18,7 +20,7 @@
         </div>
         <ul class="nav-links">
             <li><a href="{% url 'dashboard' %}"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a></li>
-            <li><a href="" class="active"><i class="fa-regular fa-file-lines"></i> Documents</a></li>
+            <li><a href="{% url 'documents' %}" class="active"><i class="fa-regular fa-file-lines"></i> Documents</a></li>
             <li><a href="{% url 'archive' %}"><i class="fa-solid fa-box-archive"></i> Archive</a></li>
             <li><a href="{% url 'audit_logs' %}"><i class="fa-solid fa-chart-line"></i> Audit Logs</a></li>
             <li><a href="{% url 'user_management' %}"><i class="fa-solid fa-users"></i> User Management</a></li>
@@ -26,5 +28,96 @@
             <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
         </ul>
     </nav>
+
+   <main class="main-content">
+        <header class="top-header">
+            <div class="search-bar">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" placeholder="Quick search by Title or Tracking Number...">
+            </div>
+            <div class="header-actions">
+                <button class="btn-upload">
+                    <i class="fa-solid fa-circle-plus"></i> Upload Document
+                </button>
+                <i class="fa-regular fa-bell notification-icon"></i>
+                <div class="profile">
+                    <i class="fa-regular fa-circle-user"></i>
+                    <span>{{ request.user.username|default:"Name" }}</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-body">
+            <div class="repository-header">
+                <div class="header-text">
+                    <h1>Legislative Repository</h1>
+                    <p>Manage and retrieve city ordinances and resolutions efficiently.</p>
+                </div>
+                <div class="total-records">Total Records: <strong>2,104</strong></div>
+            </div>
+
+            <section class="filter-card">
+                <div class="filter-group">
+                    <label>DOCUMENT TYPE</label>
+                    <select><option>All Types</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>YEAR</label>
+                    <select><option>2024</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>STATUS</label>
+                    <select><option>Active</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>AUTHOR</label>
+                    <select><option>All Authors</option></select>
+                </div>
+                <button class="btn-reset">Reset Filters</button>
+            </section>
+
+            <section class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>TITLE & TRACKING NO.</th>
+                            <th>CATEGORY</th>
+                            <th>DATE FILED</th>
+                            <th>STATUS</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong>Ord. No. 2024-001: Green City Initiative</strong><br>
+                                <small>TRK-2024-001 | Marikina Environmental Bureau</small>
+                            </td>
+                            <td>Ordinance</td>
+                            <td>Jan 12, 2025</td>
+                            <td><span class="status-tag active">ACTIVE</span></td>
+                            <td class="action-icons">
+                                <i class="fa-regular fa-eye"></i>
+                                <i class="fa-regular fa-pen-to-square"></i>
+                                <i class="fa-solid fa-download"></i>
+                            </td>
+                        </tr>
+                        </tbody>
+                </table>
+                
+                <div class="pagination">
+                    <span>Showing 1 to 3 of 2,104 results</span>
+                    <div class="page-numbers">
+                        <button class="active">1</button>
+                        <button>2</button>
+                        <button>3</button>
+                        <span>...</span>
+                        <button>15</button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
 </body>
 </html>

@@ -19,11 +19,11 @@
             <p>Legislative Document Management System</p>
         </div>
         <ul class="nav-links">
-            <li><a href="" class="active"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a></li>
+            <li><a href="{% url 'dashboard' %}" class="active"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a></li>
             <li><a href="{% url 'documents' %}"><i class="fa-regular fa-file-lines"></i> Documents</a></li>
-            <li><a href="#"><i class="fa-solid fa-box-archive"></i> Archive</a></li>
-            <li><a href="#"><i class="fa-solid fa-chart-line"></i> Audit Logs</a></li>
-            <li><a href="#"><i class="fa-solid fa-users"></i> User Management</a></li>
+            <li><a href="{% url 'archive' %}"><i class="fa-solid fa-box-archive"></i> Archive</a></li>
+            <li><a href="{% url 'audit_logs' %}"><i class="fa-solid fa-chart-line"></i> Audit Logs</a></li>
+            <li><a href="{% url 'user_management' %}"><i class="fa-solid fa-users"></i> User Management</a></li>
             <li class="settings-link"><a href="#"><i class="fa-solid fa-gear"></i> Settings</a></li>
             <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
         </ul>
@@ -39,8 +39,7 @@
                 <button class="btn-upload"><i class="fa-solid fa-plus"></i> Upload Document</button>
                 <i class="fa-regular fa-bell" style="font-size: 1.2rem; cursor: pointer;"></i>
                 <div class="profile">
-                    <i class="fa-regular fa-circle-user" style="font-size: 1.5rem;"></i> {{
-                    request.user.username|default:"Name" }}
+                    <i class="fa-regular fa-circle-user" style="font-size: 1.5rem;"></i> {{request.user.username|default:"Name" }}
                 </div>
             </div>
         </header>

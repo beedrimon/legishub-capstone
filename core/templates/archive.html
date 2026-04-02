@@ -7,8 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Archive - Marikina LegisHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/archive.css' %}">
 </head>
+
 <body>
     <nav class="sidebar">
         <div class="sidebar-logo">  
@@ -26,5 +27,98 @@
             <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
         </ul>
     </nav>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="search-bar">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" placeholder="Search Archived Documents by Title, ID, or Keywords...">
+            </div>
+            <div class="header-actions">
+                <i class="fa-regular fa-bell" style="font-size: 1.2rem; cursor: pointer;"></i>
+                <div class="profile">
+                    <i class="fa-regular fa-circle-user" style="font-size: 1.5rem;"></i> {{request.user.username|default:"Name" }}
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-body">
+            <nav class="breadcrumb">
+                System / Repository / <span>Archives</span>
+            </nav>
+
+            <div class="dashboard-header">
+                <h1>Digital Archives</h1>
+            </div>
+
+            <section class="storage-card">
+                <div class="storage-info">
+                    <div class="info-group">
+                        <label>ARCHIVE STORAGE</label>
+                        <h3>3.25 GB / 5.0 GB</h3>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 65%;"></div>
+                        </div>
+                    </div>
+                    <div class="info-group">
+                        <label>LAST BACKUP</label>
+                        <h3 class="status-green">Today, 04:30 AM</h3>
+                    </div>
+                    <button class="btn-download-all">
+                        <i class="fa-solid fa-cloud-arrow-down"></i> Download All Archives
+                    </button>
+                </div>
+            </section>
+
+            <section class="folder-grid">
+                <div class="folder-card">
+                    <i class="fa-regular fa-folder"></i>
+                    <p>1990 - 1999</p>
+                </div>
+                <div class="folder-card">
+                    <i class="fa-regular fa-folder"></i>
+                    <p>2000 - 2009</p>
+                </div>
+                <div class="folder-card">
+                    <i class="fa-regular fa-folder"></i>
+                    <p>2010 - 2019</p>
+                </div>
+                <div class="folder-card">
+                    <i class="fa-solid fa-folder-lock"></i>
+                    <p>Confidential</p>
+                </div>
+            </section>
+
+            <section class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>DOCUMENT TITLE</th>
+                            <th>ARCHIVE ID</th>
+                            <th>ORIGINAL DATE</th>
+                            <th>RETENTION</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Res 1995-01:</strong> River Rehabilitation</td>
+                            <td>ARC-95-001</td>
+                            <td>June 12, 1995</td>
+                            <td><span class="badge-permanent">PERMANENT</span></td>
+                            <td><i class="fa-solid fa-ellipsis-vertical"></i></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Ord 2002-45:</strong> Public Market Cleanliness</td>
+                            <td>ARC-02-045</td>
+                            <td>Feb 20, 2002</td>
+                            <td><span class="badge-retention">10 YEARS LEFT</span></td>
+                            <td><i class="fa-solid fa-ellipsis-vertical"></i></td>
+                        </tr>
+                        </tbody>
+                </table>
+            </section>
+        </div>
+    </main>
 </body>
 </html>

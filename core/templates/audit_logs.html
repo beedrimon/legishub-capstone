@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Audit Logs - Marikina LegisHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/audit_logs.css' %}">
 </head>
 <body>
     <nav class="sidebar">
@@ -26,5 +26,119 @@
             <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
         </ul>
     </nav>
+
+
+    <body>
+    <nav class="sidebar">
+        <div class="sidebar-logo">  
+            <img src="{% static 'images/legishub-logo-light.png' %}" alt="Logo">
+            <h2>MARIKINA LEGISHUB</h2>
+            <p>Legislative Document Management System</p>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{% url 'dashboard' %}"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a></li>
+            <li><a href="{% url 'documents' %}"><i class="fa-regular fa-file-lines"></i> Documents</a></li>
+            <li><a href="{% url 'archive' %}"><i class="fa-solid fa-box-archive"></i> Archive</a></li>  
+            <li><a href="" class="active"><i class="fa-solid fa-chart-line"></i> Audit Logs</a></li>
+            <li><a href="{% url 'user_management' %}"><i class="fa-solid fa-users"></i> User Management</a></li>
+            <li class="settings-link"><a href="#"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-content">
+        <header class="top-header">
+            <div class="security-status">
+                <i class="fa-solid fa-shield-check" style="color: #2E7D32;"></i>
+                <span>System Security: <strong>Active</strong></span>
+            </div>
+            <div class="header-actions">
+                <button class="btn-export"><i class="fa-solid fa-file-pdf"></i> Export Log (PDF)</button>
+            </div>
+        </header>
+
+        <div class="dashboard-body">
+            <div class="dashboard-header">
+                <h1>Audit Logs</h1>
+                <p>Real-time tracking of all user activities and system changes.</p>
+            </div>
+
+            <section class="filter-section">
+                <div class="filter-group">
+                    <label>USER ROLE</label>
+                    <select><option>All Users</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>ACTION TYPE</label>
+                    <select><option>All Actions</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>DATE RANGE</label>
+                    <input type="date" value="2025-10-25">
+                </div>
+                <button class="btn-apply">Apply Filters</button>
+            </section>
+
+            <section class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>TIMESTAMP</th>
+                            <th>USER</th>
+                            <th>ACTION</th>
+                            <th>TARGET DOCUMENT / RESOURCE</th>
+                            <th>IP ADDRESS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>2025-10-25 14:32:01</td>
+                            <td>
+                                <div class="user-cell">
+                                    <span class="avatar purple">JH</span> <strong>Jake Hafalla</strong>
+                                </div>
+                            </td>
+                            <td><span class="action-tag update">UPDATE</span></td>
+                            <td>Ordinance No. 2024-05 (Metadata Change)</td>
+                            <td class="ip-addr">192.168.1.45</td>
+                        </tr>
+                        <tr>
+                            <td>2025-10-25 13:15:22</td>
+                            <td>
+                                <div class="user-cell">
+                                    <span class="avatar green">LG</span> <strong>Luna Gaurino</strong>
+                                </div>
+                            </td>
+                            <td><span class="action-tag create">CREATE</span></td>
+                            <td>Uploaded: Reso-2024-102.pdf</td>
+                            <td class="ip-addr">192.168.1.12</td>
+                        </tr>
+                        <tr>
+                            <td>2025-10-25 10:05:44</td>
+                            <td>
+                                <div class="user-cell">
+                                    <span class="avatar orange">ME</span> <strong>Mylene Esquilona</strong>
+                                </div>
+                            </td>
+                            <td><span class="action-tag login">LOGIN</span></td>
+                            <td>System Session Started</td>
+                            <td class="ip-addr">192.168.1.88</td>
+                        </tr>
+                        <tr>
+                            <td>2025-10-24 16:50:12</td>
+                            <td>
+                                <div class="user-cell">
+                                    <span class="avatar red">JM</span> <strong>Jayvee Moralitea</strong>
+                                </div>
+                            </td>
+                            <td><span class="action-tag delete">DELETE</span></td>
+                            <td>Archived Record: ARC-95-002 (Purged)</td>
+                            <td class="ip-addr">127.0.0.1</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+        </div>
+    </main>
 </body>
 </html>
