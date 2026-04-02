@@ -1,0 +1,30 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document - Marikina LegisHub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{% static 'images/legishub-logo-light.png' %}" alt="Logo">
+            <h2>MARIKINA LEGISHUB</h2>
+            <p>Legislative Document Management System</p>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{% url 'dashboard' %}"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a></li>
+            <li><a href="" class="active"><i class="fa-regular fa-file-lines"></i> Documents</a></li>
+            <li><a href="{% url 'archive' %}"><i class="fa-solid fa-box-archive"></i> Archive</a></li>
+            <li><a href="{% url 'audit_logs' %}"><i class="fa-solid fa-chart-line"></i> Audit Logs</a></li>
+            <li><a href="{% url 'user_management' %}"><i class="fa-solid fa-users"></i> User Management</a></li>
+            <li class="settings-link"><a href="#"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+        </ul>
+    </nav>
+</body>
+</html>

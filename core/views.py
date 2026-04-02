@@ -77,3 +77,28 @@ def dashboard_view(request):
     }
 
     return render(request, 'dashboard.html', context)
+
+# ==========================================
+# 4. DOCUMENTS VIEW
+# ==========================================
+def documents_view(request):
+    return render(request, 'documents.html')
+
+# ==========================================
+# 4. ARCHIVE VIEW
+# ==========================================
+def archive_view(request):
+    return render(request, 'archive.html')
+
+
+# ==========================================
+# 5. AUDIT LOGS VIEW
+# ==========================================
+def audit_logs_view(request):
+    return render(request, 'audit_logs.html')
+
+# ==========================================
+# 6. USER MANAGEMENT VIEW
+# ==========================================
+def user_management_view(request):
+    return render(request, 'user_management.html')
