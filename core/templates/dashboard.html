@@ -7,10 +7,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Marikina LegisHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
 </head>
 
-<body>
+<body class="page-dashboard">
 
     <nav class="sidebar">
         <div class="sidebar-logo">
@@ -37,9 +37,9 @@
             </div>
             <div class="header-actions">
                 <button class="btn-upload"><i class="fa-solid fa-plus"></i> Upload Document</button>
-                <i class="fa-regular fa-bell" style="font-size: 1.2rem; cursor: pointer;"></i>
+                <i class="fa-regular fa-bell"></i>
                 <div class="profile">
-                    <i class="fa-regular fa-circle-user" style="font-size: 1.5rem;"></i> {{request.user.username|default:"Name" }}
+                    <i class="fa-regular fa-circle-user"></i> {{request.user.username|default:"Name" }}
                 </div>
             </div>
         </header>
@@ -49,6 +49,7 @@
                 <h1>Dashboard</h1>
                 <p>Monitoring efficiency and data integrity for Marikina City Council.</p>
             </div>
+
 
             <div class="stats-grid">
                 <div class="stat-card">

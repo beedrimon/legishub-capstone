@@ -60,6 +60,9 @@ def dashboard_view(request):
     recent_documents = [
         {'title': 'Ord. 2024-05: Waste Management Act', 'category': 'Ordinance', 'date_filed': 'Oct 24, 2025', 'status': 'Active'},
         {'title': 'Res. 102: Flood Mitigation Plan', 'category': 'Resolution', 'date_filed': 'Oct 22, 2025', 'status': 'Active'},
+        {'title': 'Res. 911: Act of Jake Hasley', 'category': 'Resolution', 'date_filed': 'Jun 26, 2005', 'status': 'Inactive'},
+        {'title': 'Res. 911: Act of Gerald Sy', 'category': 'Ordinance', 'date_filed': 'Mar 24, 2005', 'status': 'Active'},
+        {'title': 'Res. 911: Act of Jayveet G.', 'category': 'Resolution', 'date_filed': 'Mar 19, 2005', 'status': 'Inactive'},
     ]
 
     audit_logs = [
