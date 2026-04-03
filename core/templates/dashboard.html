@@ -36,7 +36,7 @@
                 <input type="text" placeholder="Search for Ordinances, Resolutions, or Keywords...">
             </div>
             <div class="header-actions">
-                <button class="btn-upload"><i class="fa-solid fa-plus"></i> Upload Document</button>
+                <button class="btn-upload trigger-modal"><i class="fa-solid fa-plus"></i> Upload Document</button>
                 <i class="fa-regular fa-bell"></i>
                 <div class="profile">
                     <i class="fa-regular fa-circle-user"></i> {{request.user.username|default:"Name" }}
@@ -145,9 +145,9 @@
                             ALL LOGS →</a>
                     </div>
 
-                    <div class="widget quick-actions">
+                   <div class="widget quick-actions">
                         <h3>Quick Actions</h3>
-                        <button class="btn-light">Upload New Document</button>
+                        <button class="btn-upload trigger-modal">Upload New Document</button>
                         <button class="btn-tan">View Review Queue</button>
                         <button class="btn-tan">Generate Report</button>
                     </div>
@@ -157,6 +157,121 @@
         </div>
     </main>
 
+
+<div id="uploadModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2>NEW LEGISLATIVE ENTRY</h2>
+            <button class="close-modal" id="closeModal">&times;</button>
+        </div>
+        <form class="modal-body" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label>DOCUMENT TITLE / SUBJECT</label>
+                    <input type="text" placeholder="Complete title of the Ordinance or Resolution" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>LEGIS NUMBER (REF NO.)</label>
+                    <input type="text" placeholder="e.g., ORD-2026-001">
+                </div>
+                <div class="form-group">
+                    <label>DOCUMENT TYPE</label>
+                    <select>
+                        <option>Ordinance</option>
+                        <option>Resolution</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>SERIES YEAR</label>
+                    <input type="number" value="2026">
+                </div>
+                <div class="form-group">
+                    <label>DATE ENACTED / APPROVED</label>
+                    <input type="date">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>PRIMARY SPONSOR / AUTHOR</label>
+                    <input type="text" placeholder="Hon. Name of Sponsor">
+                </div>
+                <div class="form-group">
+                    <label>VISIBILITY / PRIVACY</label>
+                    <select>
+                        <option>Public Access</option>
+                        <option>Internal Only</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>KEYWORDS / TAGS</label>
+                    <input type="text" placeholder="e.g., Environment, Baha, Business">
+                </div>
+                <div class="form-group">
+                    <label>PHYSICAL STORAGE REF (OPTIONAL)</label>
+                    <input type="text" placeholder="e.g., Cabinet A, Shelf 2">
+                </div>
+            </div>
+
+            <div class="upload-area">
+                <i class="fa-regular fa-file-pdf"></i>
+                <p>Upload Certified PDF Copy</p>
+                <span>Drag and drop or browse files (Max 20MB)</span>
+                <input type="file" hidden id="fileInput" accept=".pdf">
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-discard" id="discardBtn">Discard</button>
+                <button type="submit" class="btn-add">Add Document</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('uploadModal');
+            const closeBtn = document.getElementById('closeModal');
+            const discardBtn = document.getElementById('discardBtn');
+            
+            // Fix: Select ALL buttons with the 'trigger-modal' class
+            const openButtons = document.querySelectorAll('.trigger-modal');
+
+            // Loop through buttons and add click event to each
+            openButtons.forEach(btn => {
+                btn.onclick = (e) => {
+                    e.preventDefault(); // Prevent page refresh
+                    modal.style.display = 'flex';
+                };
+            });
+
+            const hideModal = () => {
+                modal.style.display = 'none';
+            };
+
+            closeBtn.onclick = hideModal;
+            discardBtn.onclick = hideModal;
+
+            window.onclick = (event) => {
+                if (event.target == modal) hideModal();
+            };
+        });
+    </script>
+
+
 </body>
 
 </html>
+
