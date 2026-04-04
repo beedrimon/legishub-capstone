@@ -1115,3 +1115,50 @@ body.page-dashboard .right-column {
     font-weight: 600;
     cursor: pointer;
 }
+
+
+.notif-dropdown {
+    position: absolute;
+    top: 70px; /* Adjust based on your header height */
+    right: 20px;
+    width: 350px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    z-index: 1000;
+    overflow: hidden;
+    border: 1px solid #ddd;
+}
+
+.notif-header {
+    background: #7d6339; /* Matches your image theme */
+    color: white;
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notif-header h3 { font-size: 0.9rem; margin: 0; }
+.mark-read { color: #ccc; font-size: 0.7rem; text-decoration: none; }
+
+.notif-item {
+    padding: 15px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    gap: 10px;
+    font-size: 0.85rem;
+}
+
+.notif-item.unread { background-color: #fffaf0; }
+.notif-dot { 
+    width: 8px; height: 8px; 
+    background: #d9534f; 
+    border-radius: 50%; 
+    margin-top: 5px; 
+    flex-shrink: 0;
+}
+
+.notif-time { color: #888; font-size: 0.75rem; display: block; margin-top: 5px; }
+.notif-footer { text-align: center; padding: 10px; background: #f9f9f9; }
+.notif-footer a { color: #7d6339; font-weight: bold; text-decoration: none; font-size: 0.85rem; }
