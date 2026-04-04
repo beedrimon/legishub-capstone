@@ -1,39 +1,55 @@
 /**
- * Marikina LegisHub - UI Interactions
- * Handles Upload Modals and Notification Dropdowns
+ Upload, View, Edit, and Notifications
  */
+
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Elements
-    const modal = document.getElementById('uploadModal');
-    const notifDropdown = document.getElementById('notificationDropdown');
     const bell = document.getElementById('notifBell');
-    const openModalButtons = document.querySelectorAll('.trigger-modal');
-    const closeBtn = document.getElementById('closeModal');
-    const discardBtn = document.getElementById('discardBtn');
+    const notifDropdown = document.getElementById('notificationDropdown');
+    
+    // Select all potential modals
+    const modals = {
+        upload: document.getElementById('uploadModal'),
+        view: document.getElementById('viewModal'),
+        edit: document.getElementById('editModal')
+    };
 
     // 2. Helper to close all UI overlays
     const closeAllOverlays = () => {
-        if (modal) modal.style.display = 'none';
+        Object.values(modals).forEach(m => { if (m) m.style.display = 'none'; });
         if (notifDropdown) notifDropdown.style.display = 'none';
     };
 
-    // 3. Modal Logic
-    if (openModalButtons.length > 0) {
-        openModalButtons.forEach(btn => {
+    // 3. Generic Modal Trigger Logic
+    // This looks for specific classes and opens the matching modal ID
+    const setupTrigger = (selector, modalKey) => {
+        const buttons = document.querySelectorAll(selector);
+        buttons.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 closeAllOverlays();
-                if (modal) modal.style.display = 'flex';
+                if (modals[modalKey]) modals[modalKey].style.display = 'flex';
             });
         });
-    }
+    };
 
-    // Close Modal buttons
-    if (closeBtn) closeBtn.onclick = closeAllOverlays;
-    if (discardBtn) discardBtn.onclick = closeAllOverlays;
+    setupTrigger('.trigger-modal', 'upload');
+    setupTrigger('.trigger-view', 'view');
+    setupTrigger('.trigger-edit', 'edit');
 
-    // 4. Notification Logic
+    // 4. Close Buttons Logic
+    // Handles any button with class 'close-modal' or 'btn-discard' inside any modal
+    document.addEventListener('click', (e) => {
+        if (e.target.classList.contains('close-modal') || 
+            e.target.classList.contains('btn-discard') || 
+            e.target.id === 'discardBtn' || 
+            e.target.id === 'closeModal') {
+            closeAllOverlays();
+        }
+    });
+
+    // 5. Notification Logic
     if (bell && notifDropdown) {
         bell.addEventListener('click', (e) => {
             e.preventDefault();
@@ -44,13 +60,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 5. Global Click Listener (Close when clicking outside)
+    // 6. Global Click Listener (Close when clicking outside)
     window.addEventListener('click', (event) => {
-        // If clicking the modal background
-        if (event.target === modal) {
+        // Close modal if clicking the background overlay
+        if (event.target.classList.contains('modal-overlay')) {
             closeAllOverlays();
         }
-        // If clicking outside the notification dropdown and not the bell
+        
+        // Close notification if clicking outside
         if (notifDropdown && 
             !notifDropdown.contains(event.target) && 
             event.target !== bell) {
