@@ -35,14 +35,14 @@
                 <i class="fa-solid fa-magnifying-glass"></i>
                 <input type="text" placeholder="Quick search by Title or Tracking Number...">
             </div>
-            <div class="header-actions">
-                <button class="btn-upload">
-                    <i class="fa-solid fa-circle-plus"></i> Upload Document
-                </button>
-                <i class="fa-regular fa-bell"></i>
+           <div class="header-actions">
+                <button class="btn-upload trigger-modal"><i class="fa-solid fa-plus"></i> Upload Document</button>
+                <div class="notification-wrapper">
+                  <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer; font-size: 1.2rem;"></i>
+                  <span class="notif-badge"></span> 
+                </div>
                 <div class="profile">
-                    <i class="fa-regular fa-circle-user"></i>
-                    {{ request.user.username|default:"Name" }}
+                    <i class="fa-regular fa-circle-user"></i> {{request.user.username|default:"Name" }}
                 </div>
             </div>
         </header>
@@ -63,11 +63,22 @@
                 </div>
                 <div class="filter-group">
                     <label>YEAR</label>
-                    <select><option>2024</option></select>
+                    <select>
+                        <option>2024</option>
+                        <option>2023</option>
+                        <option>2022</option>
+                        <option>2021</option>
+                        <option>2020</option>
+                    </select>
                 </div>
                 <div class="filter-group">
                     <label>STATUS</label>
-                    <select><option>Active</option></select>
+                    <select>
+                        <option>Active</option>
+                        <option>Inactive</option>
+                        <option>Pending</option>
+                        
+                    </select>
                 </div>
                 <div class="filter-group">
                     <label>AUTHOR</label>
@@ -97,9 +108,11 @@
                             <td>Jan 12, 2025</td>
                             <td><span class="status-tag active">ACTIVE</span></td>
                             <td class="action-icons">
-                                <i class="fa-regular fa-eye"></i>
-                                <i class="fa-regular fa-pen-to-square"></i>
-                                <i class="fa-solid fa-download"></i>
+                                <i class="fa-regular fa-eye trigger-view" title="View Document" style="cursor: pointer;"></i>
+                                <i class="fa-regular fa-pen-to-square trigger-edit" title="Edit Record" style="cursor: pointer;"></i>
+                                <a href="{% static 'path/to/document.pdf' %}" download style="text-decoration: none; color: inherit;">
+                                    <i class="fa-solid fa-download" title="Download PDF"></i>
+                                </a>
                             </td>
                         </tr>
                         </tbody>
@@ -118,6 +131,250 @@
             </section>
         </div>
     </main>
+
+
+      
+<!-- ===========================
+     MODALS
+     =========================== -->
+
+<div id="uploadModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2>NEW LEGISLATIVE ENTRY</h2>
+            <button class="close-modal" id="closeModal">&times;</button>
+        </div>
+        <form class="modal-body" method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label>DOCUMENT TITLE / SUBJECT</label>
+                    <input type="text" placeholder="Complete title of the Ordinance or Resolution" required>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>LEGIS NUMBER (REF NO.)</label>
+                    <input type="text" placeholder="e.g., ORD-2026-001">
+                </div>
+                <div class="form-group">
+                    <label>DOCUMENT TYPE</label>
+                    <select>
+                        <option>Ordinance</option>
+                        <option>Resolution</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>SERIES YEAR</label>
+                    <input type="number" value="2026">
+                </div>
+                <div class="form-group">
+                    <label>DATE ENACTED / APPROVED</label>
+                    <input type="date">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>PRIMARY SPONSOR / AUTHOR</label>
+                    <input type="text" placeholder="Hon. Name of Sponsor">
+                </div>
+                <div class="form-group">
+                    <label>VISIBILITY / PRIVACY</label>
+                    <select>
+                        <option>Public Access</option>
+                        <option>Internal Only</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>KEYWORDS / TAGS</label>
+                    <input type="text" placeholder="e.g., Environment, Baha, Business">
+                </div>
+                <div class="form-group">
+                    <label>PHYSICAL STORAGE REF (OPTIONAL)</label>
+                    <input type="text" placeholder="e.g., Cabinet A, Shelf 2">
+                </div>
+            </div>
+
+            <div class="upload-area">
+                <i class="fa-regular fa-file-pdf"></i>
+                <p>Upload Certified PDF Copy</p>
+                <span>Drag and drop or browse files (Max 20MB)</span>
+                <input type="file" hidden id="fileInput" accept=".pdf">
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-discard" id="discardBtn">Discard</button>
+                <button type="submit" class="btn-add">Add Document</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<div id="notificationDropdown" class="notif-dropdown" style="display: none;">
+    <div class="notif-header">
+        <h3>NOTIFICATIONS</h3>
+        <a href="#" class="mark-read">Mark all as read</a>
+    </div>
+    <div class="notif-body">
+        <div class="notif-item unread">
+            <span class="notif-dot"></span>
+            <div class="notif-content">
+                <p><strong>New Document:</strong> Ordinance No. 2026-005 has been uploaded by <strong>M. Esquilona</strong>.</p>
+                <span class="notif-time">2 minutes ago</span>
+            </div>
+        </div>
+        <div class="notif-item">
+            <div class="notif-content">
+                <p><strong>Pending Review:</strong> Resolution 102 (Flood Mitigation) requires your signature.</p>
+                <span class="notif-time">1 hour ago</span>
+            </div>
+        </div>
+        <div class="notif-item">
+            <div class="notif-content">
+                <p><strong>System Update:</strong> Cloud Backup was successful at 10:00 AM.</p>
+                <span class="notif-time">3 hours ago</span>
+            </div>
+        </div>
+        <div class="notif-item border-none">
+            <div class="notif-content">
+                <p><strong>Security Alert:</strong> New login detected from IP 192.168.1.45 (Admin PC).</p>
+                <span class="notif-time">Yesterday</span>
+            </div>
+        </div>
+    </div>
+    <div class="notif-footer">
+        <a href="#">See All Notifications</a>
+    </div>
+</div>
+
+<div id="viewModal" class="modal-overlay">
+    <div class="modal-container detail-view-container">
+        <div class="modal-header">
+            <h2>DOCUMENT DETAILED VIEW</h2>
+            <button class="close-modal" onclick="closeModal('viewModal')">&times;</button>
+        </div>
+        <div class="modal-body detail-view-body">
+            <div class="meta-sidebar">
+                <div class="meta-group">
+                    <label>TRACKING NUMBER</label>
+                    <p class="meta-val highlight">TRK-2024-001</p>
+                </div>
+                <div class="meta-group">
+                    <label>DOCUMENT TITLE / SUBJECT</label>
+                    <p class="meta-val"><strong>Green Marikina Initiative:</strong> An Ordinance Regulating Single-Use Plastics within City Limits.</p>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-group">
+                        <label>CATEGORY</label>
+                        <p class="meta-val">Ordinance</p>
+                    </div>
+                    <div class="meta-group">
+                        <label>REF NO.</label>
+                        <p class="meta-val">No. 2024-045</p>
+                    </div>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-group">
+                        <label>SERIES YEAR</label>
+                        <p class="meta-val">2024</p>
+                    </div>
+                    <div class="meta-group">
+                        <label>DATE FILED</label>
+                        <p class="meta-val">Jan 12, 2025</p>
+                    </div>
+                </div>
+                <div class="meta-group">
+                    <label>PRIMARY AUTHOR / SPONSOR</label>
+                    <p class="meta-val">Hon. Teodoro (4th District)</p>
+                </div>
+                <div class="meta-group">
+                    <label>HANDLING COMMITTEE</label>
+                    <span class="badge-committee">Bureau of Environmental Affairs</span>
+                </div>
+                <div class="meta-group">
+                    <label>SYNOPSIS / ABSTRACT</label>
+                    <p class="meta-val abstract">This legislative measure mandates all business establishments within Marikina City to reduce plastic waste...</p>
+                </div>
+            </div>
+
+            <div class="pdf-preview-container">
+                <div class="pdf-controls">
+                    <span><i class="fa-solid fa-chevron-left"></i> Page 1 / 15 <i class="fa-solid fa-chevron-right"></i></span>
+                    <div class="zoom-controls">
+                        <span><i class="fa-solid fa-magnifying-glass-plus"></i> Zoom In</span>
+                        <span><i class="fa-solid fa-magnifying-glass-minus"></i> Zoom Out</span>
+                    </div>
+                </div>
+                <div class="pdf-placeholder">
+                    <img src="{% static 'images/sample-ordinance.png' %}" alt="Document Preview">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-discard" onclick="closeModal('viewModal')">Close View</button>
+            <button class="btn-tan trigger-edit">Edit Details</button>
+            <button class="btn-add">Download Original PDF</button>
+        </div>
+    </div>
+</div>
+
+<div id="editModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2>EDIT LEGISLATIVE RECORD</h2>
+            <button class="close-modal" onclick="closeModal('editModal')">&times;</button>
+        </div>
+        <form class="modal-body">
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label>DOCUMENT TITLE / SUBJECT</label>
+                    <input type="text" value="Green City Initiative: An Ordinance Regulating Single-Use Plastics">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>LEGIS NUMBER (REF NO.)</label>
+                    <input type="text" value="ORD-2024-001">
+                </div>
+                <div class="form-group">
+                    <label>DOCUMENT TYPE</label>
+                    <select><option selected>Ordinance</option><option>Resolution</option></select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>SERIES YEAR</label>
+                    <input type="number" value="2024">
+                </div>
+                <div class="form-group">
+                    <label>DATE ENACTED / APPROVED</label>
+                    <input type="date" value="2025-01-12">
+                </div>
+            </div>
+            <div class="upload-area edit-mode">
+                <i class="fa-regular fa-file-pdf"></i>
+                <p>Current File: <strong>green_city_v1_final.pdf</strong></p>
+                <span>Click to replace the current certified PDF copy</span>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-discard" onclick="closeModal('editModal')">Discard Changes</button>
+                <button type="submit" class="btn-add">Update Document</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+
+<script src="{% static 'js/modals.js' %}"></script>
 
 </body>
 </html>
