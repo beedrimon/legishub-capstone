@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Elements
     const bell = document.getElementById('notifBell');
     const notifDropdown = document.getElementById('notificationDropdown');
-    
+
     // Select all potential modals
     const modals = {
         upload: document.getElementById('uploadModal'),
@@ -41,9 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 4. Close Buttons Logic
     // Handles any button with class 'close-modal' or 'btn-discard' inside any modal
     document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('close-modal') || 
-            e.target.classList.contains('btn-discard') || 
-            e.target.id === 'discardBtn' || 
+        if (e.target.classList.contains('close-modal') ||
+            e.target.classList.contains('btn-discard') ||
+            e.target.id === 'discardBtn' ||
             e.target.id === 'closeModal') {
             closeAllOverlays();
         }
@@ -66,12 +66,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event.target.classList.contains('modal-overlay')) {
             closeAllOverlays();
         }
-        
+
         // Close notification if clicking outside
-        if (notifDropdown && 
-            !notifDropdown.contains(event.target) && 
+        if (notifDropdown &&
+            !notifDropdown.contains(event.target) &&
             event.target !== bell) {
             notifDropdown.style.display = 'none';
         }
     });
+
+    // Add to modals.js
+    const fileInput = document.getElementById('fileInput');
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            const uploadText = this.parentElement.querySelector('p');
+            if (this.files && this.files.length > 0) {
+                // Change the text to the name of the file!
+                uploadText.innerText = 'File selected: ' + this.files[0].name;
+                uploadText.style.color = '#22C55E'; // Make it green
+            }
+        });
+    }
 });

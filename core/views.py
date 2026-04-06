@@ -6,6 +6,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
+from .models import LegislativeDocument, AuditLog # <-- Add this line near your other imports
 
 # ==========================================
 # 1. LOGIN VIEW
@@ -53,30 +54,38 @@ def logout_view(request):
 # ==========================================
 # 3. DASHBOARD VIEW
 # ==========================================
-@login_required(login_url='login')  #<-- Uncomment this to force users to log in first!
+@login_required(login_url='login')
 def dashboard_view(request):
     
-    # Dummy data for the frontend
-    recent_documents = [
-        {'title': 'Ord. 2024-05: Waste Management Act', 'category': 'Ordinance', 'date_filed': 'Oct 24, 2025', 'status': 'Active'},
-        {'title': 'Res. 102: Flood Mitigation Plan', 'category': 'Resolution', 'date_filed': 'Oct 22, 2025', 'status': 'Active'},
-        {'title': 'Res. 911: Act of Jake Hasley', 'category': 'Resolution', 'date_filed': 'Jun 26, 2005', 'status': 'Inactive'},
-        {'title': 'Res. 911: Act of Gerald Sy', 'category': 'Ordinance', 'date_filed': 'Mar 24, 2005', 'status': 'Active'},
-        {'title': 'Res. 911: Act of Jayveet G.', 'category': 'Resolution', 'date_filed': 'Mar 19, 2005', 'status': 'Inactive'},
-    ]
+    # 1. CALCULATE REAL STATISTICS
+    # Count how many of each document type exist
+    total_ordinances = LegislativeDocument.objects.filter(doc_type='Ordinance').count()
+    total_resolutions = LegislativeDocument.objects.filter(doc_type='Resolution').count()
+    
+    # Count how many are currently 'Pending'
+    pending_review = LegislativeDocument.objects.filter(status='Pending').count()
+    
+    # 2. FETCH RECENT DOCUMENTS
+    # Get all documents, order them by newest first (the minus sign means descending), and grab the top 5
+    recent_documents = LegislativeDocument.objects.all().order_by('-date_filed')[:5]
 
-    audit_logs = [
-        {'time': '10:15 AM', 'user': 'J. Moral', 'action': 'uploaded', 'target': 'Ord-2024-06'},
-    ]
+    # 3. FETCH RECENT AUDIT LOGS
+    # Get the 5 most recent actions taken by users
+    recent_logs = AuditLog.objects.all().order_by('-timestamp')[:5]
 
+    # 4. PASS THE REAL DATA TO THE TEMPLATE
     context = {
-        'total_ordinances': '1,248',
-        'total_resolutions': '856',
-        'pending_review': '12',
-        'recent_uploads_count': '42',
+        'total_ordinances': total_ordinances,
+        'total_resolutions': total_resolutions,
+        'pending_review': pending_review,
+        
+        # You can calculate recent uploads by grabbing everything from this month, 
+        # but for now, we'll just show the total count of everything as an example.
+        'recent_uploads_count': LegislativeDocument.objects.all().count(), 
+        
         'recent_documents': recent_documents,
-        'audit_logs': audit_logs,
-        'last_backup_date': 'March 06, 10:00 AM',
+        'audit_logs': recent_logs,
+        'last_backup_date': 'Live DB Sync Active', # You can update this later when you add cloud backups
     }
 
     return render(request, 'dashboard.html', context)
@@ -84,12 +93,14 @@ def dashboard_view(request):
 # ==========================================
 # 4. DOCUMENTS VIEW
 # ==========================================
+@login_required(login_url='login')
 def documents_view(request):
     return render(request, 'documents.html')
 
 # ==========================================
 # 4. ARCHIVE VIEW
 # ==========================================
+@login_required(login_url='login')
 def archive_view(request):
     return render(request, 'archive.html')
 
@@ -97,11 +108,62 @@ def archive_view(request):
 # ==========================================
 # 5. AUDIT LOGS VIEW
 # ==========================================
+@login_required(login_url='login')
 def audit_logs_view(request):
     return render(request, 'audit_logs.html')
 
 # ==========================================
 # 6. USER MANAGEMENT VIEW
 # ==========================================
+@login_required(login_url='login')
 def user_management_view(request):
     return render(request, 'user_management.html')
+
+# ==========================================
+# 7. UPLOAD DOCUMENT VIEW
+# ==========================================
+@login_required(login_url='login')
+def upload_document(request):
+    if request.method == 'POST':
+        # 1. Grab all text data from the HTML form
+        title = request.POST.get('title')
+        document_number = request.POST.get('document_number')
+        doc_type = request.POST.get('doc_type')
+        year = request.POST.get('year')
+        
+        # New fields from your modal
+        date_enacted = request.POST.get('date_enacted')
+        sponsor = request.POST.get('sponsor')
+        visibility = request.POST.get('visibility')
+        keywords = request.POST.get('keywords')
+        physical_storage = request.POST.get('physical_storage')
+        
+        # 2. Grab the file
+        file_attachment = request.FILES.get('file_attachment')
+
+        # 3. Save the document to the database
+        new_doc = LegislativeDocument.objects.create(
+            title=title,
+            document_number=document_number,
+            doc_type=doc_type,
+            year=year,
+            date_enacted=date_enacted if date_enacted else None, # Handles empty dates safely
+            sponsor=sponsor,
+            visibility=visibility,
+            keywords=keywords,
+            physical_storage=physical_storage,
+            file_attachment=file_attachment,
+            uploaded_by=request.user,
+            status='Pending'
+        )
+
+        # 4. Save an Audit Log entry
+        AuditLog.objects.create(
+            user=request.user,
+            action='Upload',
+            document=new_doc
+        )
+
+        messages.success(request, 'Document successfully uploaded!')
+        
+    return redirect('dashboard')

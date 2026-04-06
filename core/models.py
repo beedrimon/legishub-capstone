@@ -2,7 +2,6 @@ from django.db import models
 from django.contrib.auth.models import User # Using Django's built-in secure User table
 
 class LegislativeDocument(models.Model):
-    # Dropdown choices for the Admin panel
     DOCUMENT_TYPES = [
         ('Ordinance', 'Ordinance'),
         ('Resolution', 'Resolution'),
@@ -12,21 +11,33 @@ class LegislativeDocument(models.Model):
         ('Pending', 'Pending'),
         ('Archived', 'Archived'),
     ]
+    # New dropdown choices for your modal
+    VISIBILITY_CHOICES = [
+        ('Public Access', 'Public Access'),
+        ('Internal Only', 'Internal Only'),
+    ]
 
-    # Django automatically creates a Primary Key column named 'id'
     title = models.CharField(max_length=255)
     document_number = models.CharField(max_length=100, unique=True)
     doc_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES)
     year = models.IntegerField()
-    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Pending')
     
-    # --- Suggested Additions ---
-    date_filed = models.DateField(auto_now_add=True) # Automatically saves the date it was created
+    # ==========================================
+    # NEW COLUMNS ADDED TO MATCH YOUR MODAL
+    # ==========================================
+    date_enacted = models.DateField(null=True, blank=True)
+    sponsor = models.CharField(max_length=255, null=True, blank=True)
+    visibility = models.CharField(max_length=50, choices=VISIBILITY_CHOICES, default='Public Access')
+    keywords = models.CharField(max_length=255, null=True, blank=True)
+    physical_storage = models.CharField(max_length=255, null=True, blank=True)
+    
+    # Original system columns
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Pending')
+    date_filed = models.DateField(auto_now_add=True)
     file_attachment = models.FileField(upload_to='documents/', null=True, blank=True)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='documents')
 
     def __str__(self):
-        # This makes the document look nice in the admin panel
         return f"{self.document_number}: {self.title}"
 
 
