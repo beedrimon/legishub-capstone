@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management - Marikina LegisHub</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/user_management.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
 </head>
 <body>
     <nav class="sidebar">
@@ -31,17 +31,17 @@
         <header class="top-header">
             <div class="header-title">Identity & Access Management (IAM)</div>
             <div class="header-actions">
-                <i class="fa-regular fa-bell" style="font-size: 1.2rem; cursor: pointer;"></i>
-                <i class="fa-regular fa-circle-question" style="font-size: 1.2rem; cursor: pointer;"></i>
+                <i class="fa-regular fa-bell"></i>
+                <i class="fa-regular fa-circle-question"></i>
                 <div class="profile">
-                    <i class="fa-regular fa-circle-user" style="font-size: 1.5rem;"></i> {{ request.user.username|default:"Name" }}
+                    <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
                 </div>
             </div>
         </header>
 
         <div class="dashboard-body">
-            <div class="dashboard-header">
-                <div>
+            <div class="dashboard-header-row">
+                <div class="header-text">
                     <h1>User Management</h1>
                     <p>Control access levels and manage legislative staff accounts.</p>
                 </div>

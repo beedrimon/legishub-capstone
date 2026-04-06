@@ -17,10 +17,14 @@
         /* Left Panel (Background Image) */
         .left-panel {
             flex: 5.5;
-            /* Takes up slightly more than half to match the design */
-            background: url('../images/your-background-image.jpg') no-repeat center center;
-            background-size: cover;
-            border-top-right-radius: 80px;
+            /* Remove the background: url(...) line from here */
+            background-repeat: no-repeat;
+            background-position: center center;
+            background-size: cover; 
+            
+            border-top-right-radius: 80px; 
+            overflow: hidden; 
+            
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -39,7 +43,8 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0, 0, 0, 0.2);
+            /* Increase 0.2 to 0.4 or 0.5 if the text is still hard to read */
+            background: rgba(0, 0, 0, 0.3); 
             border-top-right-radius: 80px;
             z-index: 1;
         }
