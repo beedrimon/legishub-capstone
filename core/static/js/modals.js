@@ -87,4 +87,61 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // ==========================================
+    // POPULATE DETAILED VIEW MODAL
+    // ==========================================
+    const viewButtons = document.querySelectorAll('.trigger-view');
+
+    viewButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
+            // 1. Read the data from the icon we clicked
+            const docNumber = this.getAttribute('data-number');
+            const docTitle = this.getAttribute('data-title');
+            const docType = this.getAttribute('data-type');
+            const docYear = this.getAttribute('data-year');
+            const docDate = this.getAttribute('data-date');
+            const docSponsor = this.getAttribute('data-sponsor');
+            const docKeywords = this.getAttribute('data-keywords');
+            const fileUrl = this.getAttribute('data-file');
+
+            // 2. Inject the data into the modal's HTML
+            document.getElementById('view-number').innerText = docNumber;
+            document.getElementById('view-title').innerHTML = `<strong>${docTitle}</strong>`;
+            document.getElementById('view-type').innerText = docType;
+            document.getElementById('view-year').innerText = docYear;
+            document.getElementById('view-date').innerText = docDate;
+            document.getElementById('view-sponsor').innerText = docSponsor;
+            document.getElementById('view-keywords').innerText = docKeywords;
+
+            // 3. Update the Download Button
+            const downloadBtn = document.getElementById('view-download-btn');
+            if (fileUrl) {
+                downloadBtn.style.display = 'inline-block';
+                // If they click it, open the PDF in a new tab!
+                downloadBtn.onclick = function () { window.open(fileUrl, '_blank'); };
+            } else {
+                // Hide the button if there is no PDF uploaded
+                downloadBtn.style.display = 'none';
+            }
+
+            // ==========================================
+            // 4. Update the PDF Preview Iframe
+            // ==========================================
+            const pdfIframe = document.getElementById('view-pdf-iframe');
+            const pdfMissing = document.getElementById('view-pdf-missing');
+
+            if (fileUrl) {
+                // If there is a file, set the iframe source to the file URL and show it
+                pdfIframe.src = fileUrl;
+                pdfIframe.style.display = 'block';
+                pdfMissing.style.display = 'none';
+            } else {
+                // If there is no file, hide the iframe and show the "missing" message
+                pdfIframe.src = '';
+                pdfIframe.style.display = 'none';
+                pdfMissing.style.display = 'block';
+            }
+        });
+    });
 });

@@ -95,7 +95,18 @@ def dashboard_view(request):
 # ==========================================
 @login_required(login_url='login')
 def documents_view(request):
-    return render(request, 'documents.html')
+    # Fetch ALL documents, ordered by newest first
+    documents = LegislativeDocument.objects.all().order_by('-date_filed')
+    
+    # Get the exact count of all documents
+    total_records = documents.count()
+    
+    # Pass them to the template
+    context = {
+        'documents': documents,
+        'total_records': total_records
+    }
+    return render(request, 'documents.html', context)
 
 # ==========================================
 # 4. ARCHIVE VIEW
