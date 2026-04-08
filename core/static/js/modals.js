@@ -144,4 +144,51 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // ==========================================
+    // POPULATE EDIT MODAL
+    // ==========================================
+    const editButtons = document.querySelectorAll('.trigger-edit');
+
+    editButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
+            // 1. Read data from the pencil icon
+            const docId = this.getAttribute('data-id');
+            const docNumber = this.getAttribute('data-number');
+            const docTitle = this.getAttribute('data-title');
+            const docType = this.getAttribute('data-type');
+            const docYear = this.getAttribute('data-year');
+            const docDate = this.getAttribute('data-date');
+            const fileName = this.getAttribute('data-file');
+
+            // 2. Inject data into the Edit form inputs
+            document.getElementById('edit-doc-id').value = docId;
+            document.getElementById('edit-number').value = docNumber;
+            document.getElementById('edit-title').value = docTitle;
+            document.getElementById('edit-type').value = docType;
+            document.getElementById('edit-year').value = docYear;
+            document.getElementById('edit-date').value = docDate;
+
+            // 3. Update the File Text UI
+            const fileText = document.getElementById('edit-file-text');
+            if (fileName) {
+                // Extract just the filename from the folder path
+                const cleanName = fileName.split('/').pop();
+                fileText.innerHTML = `Current File: <strong>${cleanName}</strong>`;
+            } else {
+                fileText.innerHTML = `Current File: <strong style="color: #888;">No file attached</strong>`;
+            }
+        });
+    });
+
+    // 4. Change UI text when a new file is selected during edit
+    const editFileInput = document.getElementById('editFileInput');
+    if (editFileInput) {
+        editFileInput.addEventListener('change', function () {
+            const uploadText = document.getElementById('edit-file-text');
+            if (this.files && this.files.length > 0) {
+                uploadText.innerHTML = `New file selected: <strong style="color: #22C55E;">${this.files[0].name}</strong>`;
+            }
+        });
+    }
 });

@@ -6,7 +6,9 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from .models import LegislativeDocument, AuditLog # <-- Add this line near your other imports
+from .models import LegislativeDocument, AuditLog
+from django.core.paginator import Paginator
+from django.db.models import Q
 
 # ==========================================
 # 1. LOGIN VIEW
@@ -95,16 +97,54 @@ def dashboard_view(request):
 # ==========================================
 @login_required(login_url='login')
 def documents_view(request):
-    # Fetch ALL documents, ordered by newest first
-    documents = LegislativeDocument.objects.all().order_by('-date_filed')
+    # 1. Start with ALL documents
+    doc_list = LegislativeDocument.objects.all().order_by('-date_filed')
     
-    # Get the exact count of all documents
-    total_records = documents.count()
+    # 2. Grab the search and filter terms from the URL
+    search_query = request.GET.get('q', '')
+    doc_type = request.GET.get('doc_type', '')
+    year = request.GET.get('year', '')
+    status = request.GET.get('status', '')
+    author = request.GET.get('author', '')
+
+    # 3. Apply the filters to our database query
+    if search_query:
+        # Search inside BOTH the Title and the Document Number
+        doc_list = doc_list.filter(
+            Q(title__icontains=search_query) | 
+            Q(document_number__icontains=search_query)
+        )
     
-    # Pass them to the template
+    if doc_type:
+        doc_list = doc_list.filter(doc_type=doc_type)
+        
+    if year:
+        doc_list = doc_list.filter(year=year)
+        
+    if status:
+        doc_list = doc_list.filter(status=status)
+        
+    if author:
+        doc_list = doc_list.filter(sponsor__icontains=author)
+
+    # 4. Fetch dynamic dropdown choices straight from the database
+    # This ensures your "Years" and "Authors" dropdowns are always accurate
+    available_years = LegislativeDocument.objects.values_list('year', flat=True).distinct().order_by('-year')
+    available_authors = LegislativeDocument.objects.exclude(sponsor__isnull=True).exclude(sponsor__exact='').values_list('sponsor', flat=True).distinct().order_by('sponsor')
+
+    total_records = doc_list.count()
+    
+    # Pagination
+    paginator = Paginator(doc_list, 10) 
+    page_number = request.GET.get('page')
+    documents = paginator.get_page(page_number)
+    
     context = {
-        'documents': documents,
-        'total_records': total_records
+        'documents': documents, 
+        'total_records': total_records,
+        'available_years': available_years,
+        'available_authors': available_authors,
+        'current_filters': request.GET, # Pass the current URL parameters back to the HTML
     }
     return render(request, 'documents.html', context)
 
@@ -178,3 +218,42 @@ def upload_document(request):
         messages.success(request, 'Document successfully uploaded!')
         
     return redirect('dashboard')
+
+# ==========================================
+# 8. EDIT DOCUMENT VIEW
+# ==========================================
+@login_required(login_url='login')
+def edit_document(request):
+    if request.method == 'POST':
+        # Grab the hidden ID so we know which document to update
+        doc_id = request.POST.get('doc_id')
+        
+        # Fetch the exact document from the database
+        doc = LegislativeDocument.objects.get(id=doc_id)
+
+        # Update the fields
+        doc.title = request.POST.get('title')
+        doc.document_number = request.POST.get('document_number')
+        doc.doc_type = request.POST.get('doc_type')
+        doc.year = request.POST.get('year')
+        
+        date_enacted = request.POST.get('date_enacted')
+        doc.date_enacted = date_enacted if date_enacted else None
+
+        # Only overwrite the file if they uploaded a new one!
+        new_file = request.FILES.get('file_attachment')
+        if new_file:
+            doc.file_attachment = new_file
+
+        doc.save()
+
+        # Log the edit action
+        AuditLog.objects.create(
+            user=request.user,
+            action='Edit',
+            document=doc
+        )
+
+        messages.success(request, 'Document successfully updated!')
+        
+    return redirect('documents') # Bounce them back to the documents page

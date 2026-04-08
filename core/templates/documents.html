@@ -32,128 +32,166 @@
     </nav>
 
     <main class="main-content">
-        <header class="top-header">
-            <div class="search-bar">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" placeholder="Quick search by Title or Tracking Number...">
-            </div>
-            <div class="header-actions">
-                <button class="btn-upload trigger-modal"><i class="fa-solid fa-plus"></i> Upload Document</button>
-                <div class="notification-wrapper">
-                    <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer; font-size: 1.2rem;"></i>
-                    <span class="notif-badge"></span>
-                </div>
-                <div class="profile">
-                    <i class="fa-regular fa-circle-user"></i> {{request.user.username|default:"Name" }}
-                </div>
-            </div>
-        </header>
+        <form id="filterForm" method="GET" action="{% url 'documents' %}">
+            <input type="hidden" name="page" id="pageInput" value="{{ current_filters.page|default:'1' }}">
 
-        <div class="dashboard-body">
-            <div class="repository-header">
-                <div class="header-text">
-                    <h1>Legislative Repository</h1>
-                    <p>Manage and retrieve city ordinances and resolutions efficiently.</p>
+            <header class="top-header">
+                <div class="search-bar">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" name="q" value="{{ current_filters.q }}"
+                        placeholder="Quick search by Title or Tracking...">
+                    <button type="submit" style="display: none;"></button>
                 </div>
-                <div class="total-records">Total Records: <strong>{{ total_records }}</strong></div>
-            </div>
+                <div class="header-actions">
+                    <button type="button" class="btn-upload trigger-modal"><i class="fa-solid fa-plus"></i> Upload
+                        Document</button>
 
-            <section class="filter-card">
-                <div class="filter-group">
-                    <label>DOCUMENT TYPE</label>
-                    <select>
-                        <option>All Types</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>YEAR</label>
-                    <select>
-                        <option>2024</option>
-                        <option>2023</option>
-                        <option>2022</option>
-                        <option>2021</option>
-                        <option>2020</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>STATUS</label>
-                    <select>
-                        <option>Active</option>
-                        <option>Inactive</option>
-                        <option>Pending</option>
+                    <div class="notification-wrapper">
+                        <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer; font-size: 1.2rem;"></i>
+                        <span class="notif-badge"></span>
+                    </div>
 
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label>AUTHOR</label>
-                    <select>
-                        <option>All Authors</option>
-                    </select>
-                </div>
-                <button class="btn-reset">Reset Filters</button>
-            </section>
-
-            <section class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>TITLE & TRACKING NO.</th>
-                            <th>CATEGORY</th>
-                            <th>DATE FILED</th>
-                            <th>STATUS</th>
-                            <th>ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for doc in documents %}
-                        <tr>
-                            <td>
-                                <strong>{{ doc.document_number }}: {{ doc.title }}</strong><br>
-                                <small>{{ doc.sponsor|default:"No Sponsor Listed" }}</small>
-                            </td>
-                            <td>{{ doc.doc_type }}</td>
-                            <td>{{ doc.date_filed|date:"M d, Y" }}</td>
-                            <td><span class="badge {{ doc.status|lower }}">{{ doc.status|upper }}</span></td>
-                            <td class="action-icons">
-                                <i class="fa-regular fa-eye trigger-view" title="View Document" style="cursor: pointer;"
-                                    data-number="{{ doc.document_number }}" data-title="{{ doc.title }}"
-                                    data-type="{{ doc.doc_type }}" data-year="{{ doc.year }}"
-                                    data-date="{{ doc.date_filed|date:'M d, Y' }}"
-                                    data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
-                                    data-keywords="{{ doc.keywords|default:'None' }}" {% if doc.file_attachment %}
-                                    data-file="{{ doc.file_attachment.url }}"></i> {% endif %}
-                                <i class="fa-regular fa-pen-to-square trigger-edit" title="Edit Record"
-                                    style="cursor: pointer;"></i>
-
-                                {% if doc.file_attachment %}
-                                <a href="{{ doc.file_attachment.url }}" download
-                                    style="text-decoration: none; color: inherit;">
-                                    <i class="fa-solid fa-download" title="Download PDF"></i>
-                                </a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" style="text-align: center; padding: 20px;">No legislative documents found in
-                                the repository.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-
-                <div class="pagination">
-                    <span>Showing 1 to 3 of 2,104 results</span>
-                    <div class="page-numbers">
-                        <button class="active">1</button>
-                        <button>2</button>
-                        <button>3</button>
-                        <span>...</span>
-                        <button>15</button>
+                    <div class="profile">
+                        <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
                     </div>
                 </div>
-            </section>
-        </div>
+            </header>
+
+            <div class="dashboard-body">
+                <section class="filter-card">
+                    <div class="filter-group">
+                        <label>DOCUMENT TYPE</label>
+                        <select name="doc_type" onchange="document.getElementById('filterForm').submit();">
+                            <option value="">All Types</option>
+                            <option value="Ordinance" {% if current_filters.doc_type == 'Ordinance' %}selected{% endif %}>
+                                Ordinance</option>
+                            <option value="Resolution" {% if current_filters.doc_type == 'Resolution' %}selected{% endif %}>
+                                Resolution</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>YEAR</label>
+                        <select name="year" onchange="document.getElementById('filterForm').submit();">
+                            <option value="">All Years</option>
+                            {% for y in available_years %}
+                            <option value="{{ y }}" {% if current_filters.year == y|stringformat:"s" %}selected{% endif %}>
+                                {{ y }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>STATUS</label>
+                        <select name="status" onchange="document.getElementById('filterForm').submit();">
+                            <option value="">All Statuses</option>
+                            <option value="Active" {% if current_filters.status == 'Active' %}selected{% endif %}>Active
+                            </option>
+                            <option value="Pending" {% if current_filters.status == 'Pending' %}selected{% endif %}>
+                                Pending</option>
+                            <option value="Archived" {% if current_filters.status == 'Archived' %}selected{% endif %}>
+                                Archived</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>AUTHOR</label>
+                        <select name="author" onchange="document.getElementById('filterForm').submit();">
+                            <option value="">All Authors</option>
+                            {% for a in available_authors %}
+                            <option value="{{ a }}" {% if current_filters.author == a %}selected{% endif %}>{{ a }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <a href="{% url 'documents' %}" class="btn-reset"
+                        style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Reset
+                        Filters</a>
+                </section>
+
+                <section class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>TITLE & TRACKING NO.</th>
+                                <th>CATEGORY</th>
+                                <th>DATE FILED</th>
+                                <th>STATUS</th>
+                                <th>ACTIONS</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for doc in documents %}
+                            <tr>
+                                <td>
+                                    <strong>{{ doc.document_number }}: {{ doc.title }}</strong><br>
+                                    <small>{{ doc.sponsor|default:"No Sponsor Listed" }}</small>
+                                </td>
+                                <td>{{ doc.doc_type }}</td>
+                                <td>{{ doc.date_filed|date:"M d, Y" }}</td>
+                                <td><span class="badge {{ doc.status|lower }}">{{ doc.status|upper }}</span></td>
+                                <td class="action-icons">
+                                    <i class="fa-regular fa-eye trigger-view" title="View Document"
+                                        style="cursor: pointer;" data-number="{{ doc.document_number }}"
+                                        data-title="{{ doc.title }}" data-type="{{ doc.doc_type }}"
+                                        data-year="{{ doc.year }}" data-date="{{ doc.date_filed|date:'M d, Y' }}"
+                                        data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
+                                        data-keywords="{{ doc.keywords|default:'None' }}" {% if doc.file_attachment %}
+                                        data-file="{{ doc.file_attachment.url }}" {% endif %}></i>
+                                    <i class="fa-regular fa-pen-to-square trigger-edit" title="Edit Record"
+                                        style="cursor: pointer;" data-id="{{ doc.id }}"
+                                        data-number="{{ doc.document_number }}" data-title="{{ doc.title }}"
+                                        data-type="{{ doc.doc_type }}" data-year="{{ doc.year }}"
+                                        data-date="{% if doc.date_enacted %}{{ doc.date_enacted|date:'Y-m-d' }}{% endif %}"
+                                        {% if doc.file_attachment %}data-file="{{ doc.file_attachment.name }}" {% endif %}></i>
+
+                                    {% if doc.file_attachment %}
+                                    <a href="{{ doc.file_attachment.url }}" download
+                                        style="text-decoration: none; color: inherit;">
+                                        <i class="fa-solid fa-download" title="Download PDF"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" style="text-align: center; padding: 20px;">No legislative documents
+                                    found in
+                                    the repository.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                    <div class="pagination">
+                        <span>
+                            {% if total_records > 0 %}
+                            Showing {{ documents.start_index }} to {{ documents.end_index }} of {{ total_records }}
+                            results
+                            {% else %}
+                            No results to display
+                            {% endif %}
+                        </span>
+
+                        <div class="page-numbers">
+                            {% if documents.has_previous %}
+                            <button type="button" onclick="goToPage('{{ documents.previous_page_number }}')">&laquo;
+                                Prev</button>
+                            {% endif %}
+
+                            {% for num in documents.paginator.page_range %}
+                            {% if documents.number == num %}
+                            <button type="button" class="active">{{ num }}</button>
+                            {% else %}
+                            <button type="button" onclick="goToPage('{{ num }}')">{{ num }}</button>
+                            {% endif %}
+                            {% endfor %}
+
+                            {% if documents.has_next %}
+                            <button type="button" onclick="goToPage('{{ documents.next_page_number }}')">Next
+                                &raquo;</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </section>
+            </div>
     </main>
 
 
@@ -347,51 +385,64 @@
                 <h2>EDIT LEGISLATIVE RECORD</h2>
                 <button class="close-modal" onclick="closeModal('editModal')">&times;</button>
             </div>
-            <form class="modal-body">
+            <form class="modal-body" method="POST" action="{% url 'edit_document' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="doc_id" id="edit-doc-id">
+
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label>DOCUMENT TITLE / SUBJECT</label>
-                        <input type="text" value="Green City Initiative: An Ordinance Regulating Single-Use Plastics">
+                        <input type="text" name="title" id="edit-title" required>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>LEGIS NUMBER (REF NO.)</label>
-                        <input type="text" value="ORD-2024-001">
+                        <input type="text" name="document_number" id="edit-number" required>
                     </div>
                     <div class="form-group">
                         <label>DOCUMENT TYPE</label>
-                        <select>
-                            <option selected>Ordinance</option>
-                            <option>Resolution</option>
+                        <select name="doc_type" id="edit-type" required>
+                            <option value="Ordinance">Ordinance</option>
+                            <option value="Resolution">Resolution</option>
                         </select>
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>SERIES YEAR</label>
-                        <input type="number" value="2024">
+                        <input type="number" name="year" id="edit-year" required>
                     </div>
                     <div class="form-group">
                         <label>DATE ENACTED / APPROVED</label>
-                        <input type="date" value="2025-01-12">
+                        <input type="date" name="date_enacted" id="edit-date">
                     </div>
                 </div>
-                <div class="upload-area edit-mode">
+
+                <label for="editFileInput" class="upload-area edit-mode" style="cursor: pointer; display: block;">
                     <i class="fa-regular fa-file-pdf"></i>
-                    <p>Current File: <strong>green_city_v1_final.pdf</strong></p>
-                    <span>Click to replace the current certified PDF copy</span>
-                </div>
+                    <p id="edit-file-text">Current File: <strong>None</strong></p>
+                    <span style="font-size: 0.8rem;">Click to upload a new PDF (Leave blank to keep existing
+                        file)</span>
+                    <input type="file" name="file_attachment" hidden id="editFileInput" accept=".pdf">
+                </label>
+
                 <div class="modal-footer">
-                    <button type="button" class="btn-discard" onclick="closeModal('editModal')">Discard Changes</button>
+                    <button type="button" class="btn-discard">Discard Changes</button>
                     <button type="submit" class="btn-add">Update Document</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <script>
+        function goToPage(pageNum) {
+            document.getElementById('pageInput').value = pageNum;
+            document.getElementById('filterForm').submit();
+        }
+    </script>
 
-    <script src="{% static 'js/modals.js' %}?v=1"></script>
+    <script src="{% static 'js/modals.js' %}?v=3"></script>
 </body>
 
 </html>

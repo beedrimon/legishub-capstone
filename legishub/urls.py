@@ -29,4 +29,5 @@ urlpatterns = [
     path('audit_logs/', views.audit_logs_view, name='audit_logs'),
     path('user_management/', views.user_management_view, name='user_management'),
     path('upload/', views.upload_document, name='upload_document'),
+    path('edit-doc/', views.edit_document, name='edit_document'),
 ]
