@@ -1,0 +1,125 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - General Information - Marikina LegisHub</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/settings.css' %}">
+</head>
+<body>
+    <nav class="sidebar">
+        <div class="sidebar-logo">
+            <img src="{% static 'images/legishub-logo-light.png' %}" alt="Logo">
+            <h2>MARIKINA LEGISHUB</h2>
+            <p>Legislative Document Management System</p>
+        </div>
+        <ul class="nav-links">
+            <li><a href="{% url 'dashboard' %}"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a></li>
+            <li><a href="{% url 'documents' %}" ><i class="fa-regular fa-file-lines"></i> Documents</a></li>
+            <li><a href="{% url 'archive' %}"><i class="fa-solid fa-box-archive"></i> Archive</a></li>
+            <li><a href="{% url 'audit_logs' %}"><i class="fa-solid fa-chart-line"></i> Audit Logs</a></li>
+            <li><a href="{% url 'user_management' %}"><i class="fa-solid fa-users"></i> User Management</a></li>
+            <li class="settings-link"><a href="{% url 'general_info' %}"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+        </ul>
+    </nav>
+    
+   <main class="main-content">
+        <header class="top-header">
+            <div class="header-title">System Configuration v.1.0</div>
+            <div class="header-actions">
+                <i class="fa-regular fa-bell"></i>
+                <i class="fa-regular fa-circle-question"></i>
+                <div class="profile">
+                    <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
+                </div>
+            </div>
+        </header>
+
+<div class="dashboard-body">
+            <div class="breadcrumb">Settings / <span>General Info</span></div>
+            
+            <div class="settings-container">
+                <div class="settings-nav">
+                    <a href="{% url 'general_info' %}" class="settings-nav-item active">
+                        <i class="fa-solid fa-building"></i> General Info
+                    </a>
+                    <a href="{% url 'backup_cloud' %}" class="settings-nav-item">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> Backup & Cloud
+                    </a>
+                    <a href="{% url 'metadata_tags' %}" class="settings-nav-item">
+                        <i class="fa-solid fa-tags"></i> Metadata Tags
+                    </a>
+                    <a href="{% url 'security_policy' %}" class="settings-nav-item">
+                        <i class="fa-solid fa-shield-halved"></i> Security Policy
+                    </a>
+                    <a href="{% url 'notifications' %}" class="settings-nav-item">
+                        <i class="fa-solid fa-bell"></i> Notifications
+                    </a>
+                </div>
+
+                <div class="settings-card">
+                    <h4>General Organization Profile</h4>
+                    
+                    <div style="display: flex; gap: 30px; margin-bottom: 30px;">
+                        <div style="flex: 2;">
+                            <div class="config-group">
+                                <label>LGU Office Name</label>
+                                <input type="text" class="config-control marikina-input" value="Marikina City Council - Office of the Secretary">
+                            </div>
+
+                            <div class="config-group">
+                                <label>Current Secretary</label>
+                                <input type="text" class="config-control marikina-input" value="Atty. Jake Hafalla">
+                            </div>
+                        </div>
+
+                        <div style="flex: 1; text-align: center;">
+                            <label class="config-group" style="display:block; margin-bottom:8px;">
+                                <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Official Seal</span>
+                            </label>
+                            <div class="seal-upload-container">
+                                <i class="bi bi-image"></i>
+                                <p style="font-size: 0.85rem; margin-bottom: 0;">Update Seal</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr style="border: none; border-top: 1px solid var(--border-color); margin: 40px 0;">
+
+                    <h4>Backup & Disaster Recovery</h4>
+                    <div class="config-group">
+                        <label>Automated Backup Frequency</label>
+                        <select class="config-control">
+                            <option>Daily (12:00 AM)</option>
+                            <option>Weekly</option>
+                        </select>
+                        <span class="italic-hint">All legislative records will be encrypted and synced to the Marikina Secure Cloud.</span>
+                    </div>
+
+                    <div class="danger-zone">
+                        <h5>Danger Zone</h5>
+                        <div class="danger-card">
+                            <div>
+                                <strong class="text-danger">Purge Archived Logs</strong>
+                                <p style="margin: 0; font-size: 0.82rem; color: var(--text-light);">Permanently delete audit logs older than 5 years.</p>
+                            </div>
+                            <button class="btn-reset" style="border-color: #dc3545; color: #dc3545;">Run Purge</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-actions">
+                        <button class="btn-discard">Discard Changes</button>
+                        <button class="btn-apply px-5">Save Configurations</button>
+                    </div>
+                </div> 
+            </div> 
+        </div> 
+    </main>
+</body>
+
+</html>

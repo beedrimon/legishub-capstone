@@ -1,0 +1,175 @@
+/* ============================================================
+   MARIKINA LEGISHUB — SETTINGS STYLESHEET
+   Reference: main.css v2
+   ============================================================ */
+
+/* --- 1. SETTINGS LAYOUT CONTAINER --- */
+.settings-container {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 30px;
+    align-items: start;
+}
+
+/* --- 2. SETTINGS NAVIGATION (SIDEBAR INSIDE CONTENT) --- */
+.settings-nav {
+    background: var(--card-bg);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+}
+
+.settings-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    color: var(--text-main);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+}
+
+.settings-nav-item i {
+    width: 20px;
+    text-align: center;
+    color: var(--text-light);
+    font-size: 1rem;
+}
+
+.settings-nav-item:hover {
+    background-color: var(--bg-color);
+    color: var(--sidebar-bg);
+}
+
+.settings-nav-item.active {
+    background-color: #fdfaf5;
+    color: var(--sidebar-bg);
+    border-left-color: var(--sidebar-bg);
+}
+
+.settings-nav-item.active i {
+    color: var(--sidebar-bg);
+}
+
+/* --- 3. SETTINGS CONTENT CARD --- */
+.settings-card {
+    background: var(--card-bg);
+    padding: 32px;
+    border-radius: 15px;
+    box-shadow: var(--shadow-md);
+}
+
+.settings-card h4 {
+    color: var(--text-main);
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* --- 4. CONFIGURATION FORMS --- */
+.config-group {
+    margin-bottom: 24px;
+}
+
+.config-group label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+}
+
+.config-control {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    background-color: #FAFAFA;
+    font-family: inherit;
+    font-size: 0.92rem;
+    transition: border-color 0.2s, background-color 0.2s;
+}
+
+.config-control:focus {
+    outline: none;
+    border-color: var(--sidebar-active);
+    background-color: #fff;
+}
+
+/* Specific background for Marikina theme inputs */
+.config-control.marikina-input {
+    background-color: #FDF9F3;
+}
+
+/* --- 5. IMAGE/SEAL UPLOAD BOX --- */
+.seal-upload-container {
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    padding: 30px 20px;
+    text-align: center;
+    transition: border-color 0.2s;
+    cursor: pointer;
+    background: #FAFAFA;
+}
+
+.seal-upload-container:hover {
+    border-color: var(--sidebar-active);
+}
+
+.seal-upload-container i {
+    font-size: 2.5rem;
+    color: var(--sidebar-active);
+    margin-bottom: 12px;
+}
+
+/* --- 6. DANGER ZONE --- */
+.danger-zone {
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 1px solid var(--border-color);
+}
+
+.danger-zone h5 {
+    color: #dc3545;
+    font-weight: 700;
+    margin-bottom: 15px;
+}
+
+.danger-card {
+    background: rgba(220, 53, 69, 0.03);
+    border: 1px solid rgba(220, 53, 69, 0.15);
+    padding: 20px;
+    border-radius: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.danger-card .text-danger {
+    font-weight: 700;
+    display: block;
+}
+
+/* --- 7. UTILITIES --- */
+.italic-hint {
+    font-style: italic;
+    color: var(--text-light);
+    font-size: 0.82rem;
+    margin-top: 8px;
+    display: block;
+}
+
+.settings-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 40px;
+}

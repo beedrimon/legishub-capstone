@@ -28,6 +28,14 @@ urlpatterns = [
     path('archive/', views.archive_view, name='archive'),
     path('audit_logs/', views.audit_logs_view, name='audit_logs'),
     path('user_management/', views.user_management_view, name='user_management'),
+
+    # USER SETTINGS/GENERAL INFO VIEW
+    path('general_info/', views.general_info_view, name='general_info'),
+    path('backup_cloud/', views.backup_cloud_view, name='backup_cloud'),
+    path('metadata_tags/', views.metadata_tags_view, name='metadata_tags'),
+    path('security_policy/', views.security_policy_view, name='security_policy'),
+    path('notifications/', views.notifications_view, name='notifications'),
+
     path('upload/', views.upload_document, name='upload_document'),
     path('edit-doc/', views.edit_document, name='edit_document'),
 ]

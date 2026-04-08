@@ -171,7 +171,37 @@ def user_management_view(request):
     return render(request, 'user_management.html')
 
 # ==========================================
-# 7. UPLOAD DOCUMENT VIEW
+# 7. USER SETTINGS VIEW
+# ==========================================
+
+#GENERAL INFO VIEW
+@login_required(login_url='login')
+def general_info_view(request):
+    return render(request, 'settings_page/general_info.html')
+
+#BACKUP & CLOUD VIEW
+@login_required(login_url='login')
+def backup_cloud_view(request):
+    return render(request, 'settings_page/backup_cloud.html')
+
+#METADATA TAGS VIEW
+@login_required(login_url='login')
+def metadata_tags_view(request):
+    return render(request, 'settings_page/metadata_tags.html')
+
+#SECURITY POLICY VIEW
+@login_required(login_url='login')
+def security_policy_view(request):
+    return render(request, 'settings_page/security_policy.html')
+
+#NOTIFICATIONS VIEW
+@login_required(login_url='login')
+def notifications_view(request):
+    return render(request, 'settings_page/notifications.html')
+
+
+# ==========================================
+# 8. UPLOAD DOCUMENT VIEW
 # ==========================================
 @login_required(login_url='login')
 def upload_document(request):
@@ -220,7 +250,7 @@ def upload_document(request):
     return redirect('dashboard')
 
 # ==========================================
-# 8. EDIT DOCUMENT VIEW
+# 9. EDIT DOCUMENT VIEW
 # ==========================================
 @login_required(login_url='login')
 def edit_document(request):
