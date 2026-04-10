@@ -65,15 +65,39 @@
                 
                 <div class="settings-card">
                     <h4>Legislative Metadata Tags</h4>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 25px;">Define and manage keywords for document indexing and advanced search filtering.</p>
 
+                    <div class="config-group">
+                        <label>Create New Label / Tag</label>
+                        <div class="tag-input-container">
+                            <input type="text" class="config-control" placeholder="e.g. Environmental, Budget 2024, Health Act..." style="flex: 1;">
+                            <button class="btn-apply" style="width: auto; padding: 0 25px; height: 45px; display: flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-plus"></i> Add Tag
+                            </button>
+                        </div>
+                    </div>
 
-                   
+                    <div class="config-group" style="margin-top: 30px;">
+                        <label>Active Document Categories</label>
+                        <div class="tag-cloud">
+                            <div class="tag-item">Ordinance <i class="fa-solid fa-circle-xmark"></i></div>
+                            <div class="tag-item">Resolution <i class="fa-solid fa-circle-xmark"></i></div>
+                            <div class="tag-item">City Council <i class="fa-solid fa-circle-xmark"></i></div>
+                            <div class="tag-item">Executive Order <i class="fa-solid fa-circle-xmark"></i></div>
+                            <div class="tag-item">Public Consultation <i class="fa-solid fa-circle-xmark"></i></div>
+                            <div class="tag-item">Social Welfare <i class="fa-solid fa-circle-xmark"></i></div>
+                            <div class="tag-item">Taxation <i class="fa-solid fa-circle-xmark"></i></div>
+                            <div class="tag-item">Infrastructure <i class="fa-solid fa-circle-xmark"></i></div>
+                        </div>
+                        <span class="tag-hint">These tags appear during the document upload process for easier categorization.</span>
+                    </div>
 
-
-                  
-                </div> 
-            </div> 
-        </div> 
+                    <div class="settings-actions" style="margin-top: 50px;">
+                        <button class="btn-discard">Discard Changes</button>
+                        <button class="btn-apply" style="width: 280px;">Update Metadata Registry</button>
+                    </div>
+                </div> </div>
+        </div>
     </main>
 </body>
 

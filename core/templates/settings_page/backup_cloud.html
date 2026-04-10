@@ -66,11 +66,59 @@
                 <div class="settings-card">
                     <h4>Disaster Recovery & Cloud Connectivity</h4>
 
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px;">
+                        
+                        <div class="config-group">
+                            <label>Automated Backup Frequency</label>
+                            <select class="config-control">
+                                <option>Daily (12:00 AM)</option>
+                                <option>Weekly</option>
+                                <option>Monthly</option>
+                            </select>
+                            <span class="italic-hint">All legislative records will be encrypted and mirrored to the Marikina Secure Cloud.</span>
+                        </div>
 
-                   
+                        <div class="config-group">
+                            <label>Retention Policy</label>
+                            <select class="config-control">
+                                <option>Permanent (NAP Compliant)</option>
+                                <option>10 Years</option>
+                                <option>5 Years</option>
+                            </select>
+                            <span class="italic-hint">Duration of record storage before archival transition.</span>
+                        </div>
 
+                        <div class="config-group">
+                            <label>Cloud Storage Provider</label>
+                            <input type="text" class="config-control" value="Marikina Gov-Cloud (AWS S3 Instance)" readonly>
+                        </div>
 
-                  
+                        <div class="config-group">
+                            <label>Encryption Standard</label>
+                            <div class="config-control" style="background-color: #f8fff9; border: 1px solid #d4edda; color: #155724; display: flex; align-items: center; font-weight: 600;">
+                                AES-256 Bit Secure Encryption
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background-color: #FFF5E6; border-radius: 8px; padding: 20px; margin-top: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <strong style="font-size: 0.9rem; color: #5D4037;">Cloud Sync Integrity Health</strong>
+                            <span style="background-color: #D4EDDA; color: #155724; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Active & Secured</span>
+                        </div>
+                        
+                        <div style="width: 100%; height: 8px; background-color: #E0E0E0; border-radius: 10px; overflow: hidden; margin-bottom: 10px;">
+                            <div style="width: 92%; height: 100%; background-color: #B08D57;"></div>
+                        </div>
+                        
+                        <span style="font-size: 0.75rem; color: #8D6E63;">Last successful handshake: Today, 04:30:01 AM (GMT+8)</span>
+                    </div>
+
+                    <div class="settings-actions" style="margin-top: 40px;">
+                        <button class="btn-discard">Discard Changes</button>
+                        <button class="btn-apply" style="width: 250px;">Save Cloud Configuration</button>
+                    </div>
+
                 </div> 
             </div> 
         </div> 

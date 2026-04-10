@@ -64,15 +64,60 @@
 
                 <div class="settings-card">
                     <h4>Security & Access Control</h4>
+                    <p style="color: #888; font-size: 0.85rem; margin-top: -10px; margin-bottom: 30px;">Manage system-wide security protocols and authentication requirements.</p>
 
-                   
+                    <div class="security-item">
+                        <div class="security-text">
+                            <h5>Two-Factor Authentication (2FA)</h5>
+                            <p>Require a secondary verification code for all administrator logins to enhance account security.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
 
+                    <div class="security-item">
+                        <div class="security-text">
+                            <h5>Password Complexity Requirement</h5>
+                            <p>Enforce passwords to include symbols, numbers, and uppercase characters for all staff members.</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
 
-                  
-                </div> 
-            </div> 
-        </div> 
+                    <div class="security-item">
+                        <div class="security-text">
+                            <h5>Inactivity Session Timeout</h5>
+                            <p>Automatically log out the user after a specified period of inactivity to prevent unauthorized access.</p>
+                        </div>
+                        <select class="timeout-dropdown">
+                            <option value="15">15 Minutes</option>
+                            <option value="30" selected>30 Minutes</option>
+                            <option value="60">60 Minutes</option>
+                        </select>
+                    </div>
+
+                    <div class="security-item">
+                        <div class="security-text">
+                            <h5>Geo-fencing & IP Restriction</h5>
+                            <p>Restrict system access only within the Marikina City Hall local network (Intranet).</p>
+                        </div>
+                        <label class="switch">
+                            <input type="checkbox">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="settings-footer">
+                        <a href="#" class="discard-link">Discard Changes</a>
+                        <button class="btn-apply">Apply Security Policies</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 </body>
-
 </html>
