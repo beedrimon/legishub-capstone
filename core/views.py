@@ -69,7 +69,7 @@ def dashboard_view(request):
     
     # 2. FETCH RECENT DOCUMENTS
     # Get all documents, order them by newest first (the minus sign means descending), and grab the top 5
-    recent_documents = LegislativeDocument.objects.all().order_by('-date_filed')[:5]
+    recent_documents = LegislativeDocument.objects.all().order_by('-id')[:5]
 
     # 3. FETCH RECENT AUDIT LOGS
     # Get the 5 most recent actions taken by users
@@ -209,6 +209,15 @@ def upload_document(request):
         # 1. Grab all text data from the HTML form
         title = request.POST.get('title')
         document_number = request.POST.get('document_number')
+        
+        # --- NEW SAFETY CHECK FOR UPLOADS ---
+        # Check if a document with this number already exists
+        if LegislativeDocument.objects.filter(document_number=document_number).exists():
+            messages.error(request, f'Upload failed: The Legis Number "{document_number}" is already in use!')
+            # Bounce them back to the exact page they were on (Dashboard or Documents)
+            return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+        # ------------------------------------
+
         doc_type = request.POST.get('doc_type')
         year = request.POST.get('year')
         
@@ -247,7 +256,7 @@ def upload_document(request):
 
         messages.success(request, 'Document successfully uploaded!')
         
-    return redirect('dashboard')
+    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
 # ==========================================
 # 9. EDIT DOCUMENT VIEW
@@ -257,13 +266,21 @@ def edit_document(request):
     if request.method == 'POST':
         # Grab the hidden ID so we know which document to update
         doc_id = request.POST.get('doc_id')
+        new_document_number = request.POST.get('document_number')
+        
+        # --- NEW SAFETY CHECK FOR EDITS ---
+        # Check if the number exists AND belongs to a DIFFERENT document
+        if LegislativeDocument.objects.filter(document_number=new_document_number).exclude(id=doc_id).exists():
+            messages.error(request, f'Update failed: The Legis Number "{new_document_number}" is already in use by another document!')
+            return redirect('documents')
+        # ----------------------------------
         
         # Fetch the exact document from the database
         doc = LegislativeDocument.objects.get(id=doc_id)
 
         # Update the fields
         doc.title = request.POST.get('title')
-        doc.document_number = request.POST.get('document_number')
+        doc.document_number = new_document_number
         doc.doc_type = request.POST.get('doc_type')
         doc.year = request.POST.get('year')
         
