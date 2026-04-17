@@ -14,9 +14,11 @@
 
     <nav class="sidebar">
         <div class="sidebar-logo">
+            <a href="{% url 'dashboard' %}" style="text-decoration: none; color: inherit;">
             <img src="{% static 'images/legishub-logo-light.png' %}" alt="Logo">
             <h2>MARIKINA LEGISHUB</h2>
             <p>Legislative Document Management System</p>
+            </a>
         </div>
         <ul class="nav-links">
             <li><a href="{% url 'dashboard' %}" class="active"><i class="fa-solid fa-table-cells-large"></i>
@@ -32,16 +34,19 @@
 
     <main class="main-content">
         <header class="top-header">
-            <div class="search-bar">
+            <form method="GET" action="{% url 'dashboard' %}" class="search-bar">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" placeholder="Search for Ordinances, Resolutions, or Keywords...">
-            </div>
+                 <input type="text" name="q" value="{{ request.GET.q }}" 
+                   placeholder="Search across documents, logs, and users...">
+                <button type="submit" style="display: none;"></button>
+            </form>
             <div class="header-actions">
-                <button class="btn-upload trigger-modal"><i class="fa-solid fa-plus"></i> Upload Document</button>
+                <button type="button" class="btn-upload trigger-modal"><i class="fa-solid fa-plus"></i> Upload Document</button>
                 <div class="notification-wrapper">
                     <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer; font-size: 1.2rem;"></i>
                     <span class="notif-badge"></span>
                 </div>
+                <i class="fa-regular fa-circle-question" title="Help"></i>
                 <div class="profile">
                     <i class="fa-regular fa-circle-user"></i> {{request.user.username|default:"Name" }}
                 </div>
@@ -49,6 +54,7 @@
         </header>
 
         <div class="dashboard-body">
+                
             <div class="dashboard-header">
                 <h1>Dashboard</h1>
                 <p>Monitoring efficiency and data integrity for Marikina City Council.</p>
@@ -117,6 +123,14 @@
                 </div>
 
                 <div class="right-column">
+
+                    <div class="widget quick-actions">
+                        <h3>Quick Actions</h3>
+                        <button class="btn-upload trigger-modal">Upload New Document</button>
+                        <button class="btn-tan">View Review Queue</button>
+                        <button class="btn-tan">Generate Report</button>
+                    </div>
+
                     <div class="widget">
                         <h3><i class="fa-solid fa-cloud-arrow-up"></i> Cloud Sync</h3>
                         <div class="sync-status">
@@ -144,17 +158,11 @@
                             </li>
                             {% endfor %}
                         </ul>
-                        <a href="#"
+                        <a href="{% url 'audit_logs' %}"
                             style="font-size: 0.8rem; color: var(--sidebar-bg); font-weight: bold; text-decoration: none; display: block; margin-top: 10px;">VIEW
                             ALL LOGS →</a>
                     </div>
 
-                    <div class="widget quick-actions">
-                        <h3>Quick Actions</h3>
-                        <button class="btn-upload trigger-modal">Upload New Document</button>
-                        <button class="btn-tan">View Review Queue</button>
-                        <button class="btn-tan">Generate Report</button>
-                    </div>
                 </div>
 
             </div>

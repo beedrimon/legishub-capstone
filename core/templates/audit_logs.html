@@ -12,9 +12,11 @@
 <body>
     <nav class="sidebar">
         <div class="sidebar-logo">
+            <a href="{% url 'dashboard' %}" style="text-decoration: none; color: inherit;">
             <img src="{% static 'images/legishub-logo-light.png' %}" alt="Logo">
             <h2>MARIKINA LEGISHUB</h2>
             <p>Legislative Document Management System</p>
+            </a>
         </div>
         <ul class="nav-links">
             <li><a href="{% url 'dashboard' %}"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a></li>
@@ -28,15 +30,25 @@
     </nav>
 
     <main class="main-content">
-        <header class="top-header">
-            <div class="security-status">
-                <i class="fa-solid fa-shield-check" style="color: #2E7D32;"></i>
-                <span>System Security: <strong>Active</strong></span>
-            </div>
-            <div class="header-actions">
-                <button class="btn-export"><i class="fa-solid fa-file-pdf"></i> Export Log (PDF)</button>
-            </div>
-        </header>
+
+      <header class="top-header">
+                <form method="GET" action="{% url 'audit_logs' %}" class="search-bar">
+                     <i class="fa-solid fa-magnifying-glass"></i>
+                      <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Quick search...">
+                      <button type="submit" style="display: none;"></button>
+                </form>
+                <div class="header-actions">
+                    <button type="button" class="btn-upload trigger-modal"><i class="fa-solid fa-plus"></i> Upload Document</button>
+                    <div class="notification-wrapper">
+                        <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer; font-size: 1.2rem;"></i>
+                        <span class="notif-badge"></span>
+                    </div>
+
+                    <div class="profile">
+                        <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
+                    </div>
+                </div>
+            </header>
 
         <div class="dashboard-body">
             <div class="dashboard-header">
@@ -66,60 +78,274 @@
                         <tr>
                             <th>TIMESTAMP</th>
                             <th>USER</th>
-                            <th>ACTION</th>
+                            <th>ACTIONS</th>
                             <th>TARGET DOCUMENT / RESOURCE</th>
                             <th>IP ADDRESS</th>
                         </tr>
                     </thead>
                     <tbody>
+                        {% for log in audit_logs %}
                         <tr>
-                            <td>2025-10-25 14:32:01</td>
-                            <td>
-                                <div class="user-cell">
-                                    <span class="avatar purple">JH</span> <strong>Jake Hafalla</strong>
-                                </div>
-                            </td>
-                            <td><span class="action-tag update">UPDATE</span></td>
-                            <td>Ordinance No. 2024-05 (Metadata Change)</td>
-                            <td class="ip-addr">192.168.1.45</td>
+                            <td>{{ log.timestamp|date:"h:i a, M d, Y " }}</td>
+                            <td>{{ log.user.username }}</td>
+                            <td>{{ log.action }}</td>
+                            <td>{{ log.document.document_number }}</td>
                         </tr>
-                        <tr>
-                            <td>2025-10-25 13:15:22</td>
-                            <td>
-                                <div class="user-cell">
-                                    <span class="avatar green">LG</span> <strong>Luna Gaurino</strong>
-                                </div>
-                            </td>
-                            <td><span class="action-tag create">CREATE</span></td>
-                            <td>Uploaded: Reso-2024-102.pdf</td>
-                            <td class="ip-addr">192.168.1.12</td>
-                        </tr>
-                        <tr>
-                            <td>2025-10-25 10:05:44</td>
-                            <td>
-                                <div class="user-cell">
-                                    <span class="avatar orange">ME</span> <strong>Mylene Esquilona</strong>
-                                </div>
-                            </td>
-                            <td><span class="action-tag login">LOGIN</span></td>
-                            <td>System Session Started</td>
-                            <td class="ip-addr">192.168.1.88</td>
-                        </tr>
-                        <tr>
-                            <td>2025-10-24 16:50:12</td>
-                            <td>
-                                <div class="user-cell">
-                                    <span class="avatar red">JM</span> <strong>Jayvee Moralitea</strong>
-                                </div>
-                            </td>
-                            <td><span class="action-tag delete">DELETE</span></td>
-                            <td>Archived Record: ARC-95-002 (Purged)</td>
-                            <td class="ip-addr">127.0.0.1</td>
-                        </tr>
+                        {% endfor %}
+                   
                     </tbody>
                 </table>
             </section>
         </div>
     </main>
+
+    
+    <!-- ===========================
+     MODALS
+     =========================== -->
+    <div id="uploadModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>NEW LEGISLATIVE ENTRY</h2>
+                <button class="close-modal" id="closeModal">&times;</button>
+            </div>
+            <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>DOCUMENT TITLE / SUBJECT</label>
+                        <input type="text" name="title" placeholder="Complete title of the Ordinance or Resolution" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>LEGIS NUMBER (REF NO.)</label>
+                        <input type="text" name="document_number" placeholder="e.g., ORD-2026-001" required>
+                    </div>
+                    <div class="form-group">
+                        <label>DOCUMENT TYPE</label>
+                        <select name="doc_type" required>
+                            <option value="Ordinance">Ordinance</option>
+                            <option value="Resolution">Resolution</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>SERIES YEAR</label>
+                        <input type="number" name="year" value="2026" required>
+                    </div>
+                    <div class="form-group">
+                        <label>DATE ENACTED / APPROVED</label>
+                        <input type="date" name="date_enacted">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>PRIMARY SPONSOR / AUTHOR</label>
+                        <input type="text" name="sponsor" placeholder="Hon. Name of Sponsor">
+                    </div>
+                    <div class="form-group">
+                        <label>VISIBILITY / PRIVACY</label>
+                        <select name="visibility">
+                            <option value="Public Access">Public Access</option>
+                            <option value="Internal Only">Internal Only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>KEYWORDS / TAGS</label>
+                        <input type="text" name="keywords" placeholder="e.g., Environment, Baha, Business">
+                    </div>
+                    <div class="form-group">
+                        <label>PHYSICAL STORAGE REF (OPTIONAL)</label>
+                        <input type="text" name="physical_storage" placeholder="e.g., Cabinet A, Shelf 2">
+                    </div>
+                </div>
+
+                <label for="fileInputDocPage" class="upload-area" style="cursor: pointer; display: block;">
+                    <i class="fa-regular fa-file-pdf"></i>
+                    <p>Upload Certified PDF Copy</p>
+                    <span>Click here to browse files (Max 20MB)</span>
+                    <input type="file" name="file_attachment" hidden id="fileInputDocPage" accept=".pdf">
+                </label>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-discard" id="discardBtn">Discard</button>
+                    <button type="submit" class="btn-add">Add Document</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <div id="notificationDropdown" class="notif-dropdown" style="display: none;">
+        <div class="notif-header">
+            <h3>NOTIFICATIONS</h3>
+            <a href="#" class="mark-read">Mark all as read</a>
+        </div>
+        <div class="notif-body">
+            <div class="notif-item unread">
+                <span class="notif-dot"></span>
+                <div class="notif-content">
+                    <p><strong>New Document:</strong> Ordinance No. 2026-005 has been uploaded by <strong>M.
+                            Esquilona</strong>.</p>
+                    <span class="notif-time">2 minutes ago</span>
+                </div>
+            </div>
+            <div class="notif-item">
+                <div class="notif-content">
+                    <p><strong>Pending Review:</strong> Resolution 102 (Flood Mitigation) requires your signature.</p>
+                    <span class="notif-time">1 hour ago</span>
+                </div>
+            </div>
+            <div class="notif-item">
+                <div class="notif-content">
+                    <p><strong>System Update:</strong> Cloud Backup was successful at 10:00 AM.</p>
+                    <span class="notif-time">3 hours ago</span>
+                </div>
+            </div>
+            <div class="notif-item border-none">
+                <div class="notif-content">
+                    <p><strong>Security Alert:</strong> New login detected from IP 192.168.1.45 (Admin PC).</p>
+                    <span class="notif-time">Yesterday</span>
+                </div>
+            </div>
+        </div>
+        <div class="notif-footer">
+            <a href="#">See All Notifications</a>
+        </div>
+    </div>
+
+    <div id="viewModal" class="modal-overlay">
+        <div class="modal-container detail-view-container">
+            <div class="modal-header">
+                <h2>DOCUMENT DETAILED VIEW</h2>
+                <button class="close-modal" onclick="closeModal('viewModal')">&times;</button>
+            </div>
+            <div class="modal-body detail-view-body">
+                <div class="meta-sidebar">
+                    <div class="meta-group">
+                        <label>LEGIS NUMBER (REF NO.)</label>
+                        <p class="meta-val highlight" id="view-number"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>DOCUMENT TITLE / SUBJECT</label>
+                        <p class="meta-val" id="view-title"></p>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-group">
+                            <label>CATEGORY</label>
+                            <p class="meta-val" id="view-type"></p>
+                        </div>
+                        <div class="meta-group">
+                            <label>SERIES YEAR</label>
+                            <p class="meta-val" id="view-year"></p>
+                        </div>
+                    </div>
+                    <div class="meta-group">
+                        <label>DATE FILED</label>
+                        <p class="meta-val" id="view-date"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>PRIMARY AUTHOR / SPONSOR</label>
+                        <p class="meta-val" id="view-sponsor"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>KEYWORDS</label>
+                        <p class="meta-val abstract" id="view-keywords"></p>
+                    </div>
+                </div>
+
+                <div class="pdf-preview-container"
+                    style="padding: 0; background-color: #525659; border-radius: 0 8px 8px 0; overflow: hidden;">
+                    <iframe id="view-pdf-iframe" src="" width="100%" height="100%"
+                        style="border: none; display: none; min-height: 600px;"></iframe>
+
+                    <div id="view-pdf-missing"
+                        style="display: none; text-align: center; padding-top: 200px; color: #ccc;">
+                        <i class="fa-regular fa-file-pdf" style="font-size: 4rem; margin-bottom: 15px;"></i>
+                        <p>No PDF document attached to this record.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-discard" onclick="closeModal('viewModal')">Close View</button>
+                <button class="btn-tan trigger-edit">Edit Details</button>
+                <button class="btn-add" id="view-download-btn">Download Original PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>EDIT LEGISLATIVE RECORD</h2>
+                <button class="close-modal" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <form class="modal-body" method="POST" action="{% url 'edit_document' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="doc_id" id="edit-doc-id">
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>DOCUMENT TITLE / SUBJECT</label>
+                        <input type="text" name="title" id="edit-title" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>LEGIS NUMBER (REF NO.)</label>
+                        <input type="text" name="document_number" id="edit-number" required>
+                    </div>
+                    <div class="form-group">
+                        <label>DOCUMENT TYPE</label>
+                        <select name="doc_type" id="edit-type" required>
+                            <option value="Ordinance">Ordinance</option>
+                            <option value="Resolution">Resolution</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>SERIES YEAR</label>
+                        <input type="number" name="year" id="edit-year" required>
+                    </div>
+                    <div class="form-group">
+                        <label>DATE ENACTED / APPROVED</label>
+                        <input type="date" name="date_enacted" id="edit-date">
+                    </div>
+                </div>
+
+                <label for="editFileInput" class="upload-area edit-mode" style="cursor: pointer; display: block;">
+                    <i class="fa-regular fa-file-pdf"></i>
+                    <p id="edit-file-text">Current File: <strong>None</strong></p>
+                    <span style="font-size: 0.8rem;">Click to upload a new PDF (Leave blank to keep existing
+                        file)</span>
+                    <input type="file" name="file_attachment" hidden id="editFileInput" accept=".pdf">
+                </label>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-discard">Discard Changes</button>
+                    <button type="submit" class="btn-add">Update Document</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function goToPage(pageNum) {
+            document.getElementById('pageInput').value = pageNum;
+            document.getElementById('filterForm').submit();
+        }
+    </script>
+
+    <script src="{% static 'js/modals.js' %}?v=3"></script>
 </body>
+
 </html>

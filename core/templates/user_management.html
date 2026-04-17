@@ -12,9 +12,11 @@
 <body>
     <nav class="sidebar">
         <div class="sidebar-logo">
+            <a href="{% url 'dashboard' %}" style="text-decoration: none; color: inherit;">
             <img src="{% static 'images/legishub-logo-light.png' %}" alt="Logo">
             <h2>MARIKINA LEGISHUB</h2>
             <p>Legislative Document Management System</p>
+            </a>
         </div>
         <ul class="nav-links">
             <li><a href="{% url 'dashboard' %}"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a></li>

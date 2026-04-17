@@ -161,7 +161,21 @@ def archive_view(request):
 # ==========================================
 @login_required(login_url='login')
 def audit_logs_view(request):
-    return render(request, 'audit_logs.html')
+    # Fetch all logs from the database
+    logs = AuditLog.objects.all().select_related('user', 'document')
+    
+    # Optional: Basic Search logic (matches your search bar input name="q")
+    query = request.GET.get('q')
+    if query:
+        logs = logs.filter(
+            Q(user__username__icontains=query) | 
+            Q(document__document_number__icontains=query)
+        )
+
+    context = {
+        'audit_logs': logs,
+    }
+    return render(request, 'audit_logs.html', context)
 
 # ==========================================
 # 6. USER MANAGEMENT VIEW
