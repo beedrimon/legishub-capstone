@@ -182,7 +182,18 @@ def audit_logs_view(request):
 # ==========================================
 @login_required(login_url='login')
 def user_management_view(request):
-    return render(request, 'user_management.html')
+    # 1. Fetch all users from the database
+    # We order them by date_joined so the newest accounts appear first
+    all_users = User.objects.all().order_by('-date_joined')
+    
+    # 2. Put the users in the context dictionary
+    # The key 'users' MUST match the name used in your {% for user in users %} loop
+    context = {
+        'users': all_users,
+    }
+    
+    # 3. Send the data to the template
+    return render(request, 'user_management.html', context)
 
 # ==========================================
 # 7. USER SETTINGS VIEW
