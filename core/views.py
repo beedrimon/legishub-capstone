@@ -161,19 +161,46 @@ def archive_view(request):
 # ==========================================
 @login_required(login_url='login')
 def audit_logs_view(request):
-    # Fetch all logs from the database
-    logs = AuditLog.objects.all().select_related('user', 'document')
+    # Fetch all logs from the database, ordered by newest first
+    logs = AuditLog.objects.all().select_related('user', 'document').order_by('-timestamp')
     
-    # Optional: Basic Search logic (matches your search bar input name="q")
-    query = request.GET.get('q')
+    # 1. Grab search and filter terms from the URL
+    query = request.GET.get('q', '')
+    user_filter = request.GET.get('user', '')
+    action_filter = request.GET.get('action', '')
+    date_filter = request.GET.get('date', '')
+
+    # 2. Apply Search
     if query:
         logs = logs.filter(
             Q(user__username__icontains=query) | 
-            Q(document__document_number__icontains=query)
+            Q(document__document_number__icontains=query) |
+            Q(action__icontains=query)
         )
+
+    # 3. Apply Dropdown & Date Filters
+    if user_filter:
+        logs = logs.filter(user__username=user_filter)
+        
+    if action_filter:
+        logs = logs.filter(action=action_filter)
+        
+    if date_filter:
+        # __date allows Django to check just the Year-Month-Day part of the timestamp
+        logs = logs.filter(timestamp__date=date_filter)
+
+    # 4. Fetch dynamic data for the dropdowns
+    # Gets unique usernames of users who actually have logs
+    available_users = User.objects.filter(auditlog__isnull=False).values_list('username', flat=True).distinct().order_by('username')
+    
+    # Gets the exact actions ('Upload', 'Edit', etc.) straight from your models.py
+    available_actions = [choice[0] for choice in AuditLog.ACTION_CHOICES]
 
     context = {
         'audit_logs': logs,
+        'available_users': available_users,
+        'available_actions': available_actions,
+        'current_filters': request.GET, # Passes selections back to HTML
     }
     return render(request, 'audit_logs.html', context)
 

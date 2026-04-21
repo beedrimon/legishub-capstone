@@ -56,21 +56,35 @@
                 <p>Real-time tracking of all user activities and system changes.</p>
             </div>
 
-            <section class="filter-section">
+            <form method="GET" action="{% url 'audit_logs' %}" id="auditFilterForm" class="filter-section">
+                
+                <input type="hidden" name="q" value="{{ current_filters.q }}">
+                
                 <div class="filter-group">
-                    <label>USER ROLE</label>
-                    <select><option>All Users</option></select>
+                    <label>USER</label>
+                    <select name="user" onchange="document.getElementById('auditFilterForm').submit();">
+                        <option value="">All Users</option>
+                        {% for u in available_users %}
+                            <option value="{{ u }}" {% if current_filters.user == u %}selected{% endif %}>{{ u }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="filter-group">
                     <label>ACTION TYPE</label>
-                    <select><option>All Actions</option></select>
+                    <select name="action" onchange="document.getElementById('auditFilterForm').submit();">
+                        <option value="">All Actions</option>
+                        {% for a in available_actions %}
+                            <option value="{{ a }}" {% if current_filters.action == a %}selected{% endif %}>{{ a }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div class="filter-group">
-                    <label>DATE RANGE</label>
-                    <input type="date" value="2025-10-25">
+                    <label>DATE</label>
+                    <input type="date" name="date" value="{{ current_filters.date }}" onchange="document.getElementById('auditFilterForm').submit();">
                 </div>
-                <button class="btn-apply">Apply Filters</button>
-            </section>
+                
+                <a href="{% url 'audit_logs' %}" class="btn-apply" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; background-color: #eee; color: #333;">Reset Filters</a>
+            </form>
 
             <section class="table-container">
                 <table>
