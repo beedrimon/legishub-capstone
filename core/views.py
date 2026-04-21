@@ -16,7 +16,10 @@ from django.db.models import Q
 def login_view(request):
     # If the user is already logged in, send them to the dashboard
     if request.user.is_authenticated:
-        return redirect('dashboard') # Replace 'dashboard' with your home URL name
+        if request.user.is_superuser:
+            return redirect('dashboard')
+        else:
+            return redirect('documents') # Send staff to documents, or change to a staff dashboard URL
 
     if request.method == 'POST':
         email = request.POST.get('email')
@@ -34,12 +37,15 @@ def login_view(request):
 
         if user is not None:
             auth_login(request, user)
-            return redirect('dashboard') # Replace 'dashboard' with your home URL name
+            
+            # Route users based on their role upon successful login
+            if user.is_superuser:
+                return redirect('dashboard') # System Admin
+            else:
+                return redirect('documents') # Legislative Staff
         else:
             # If authentication fails, send an error message to the template
             messages.error(request, 'Invalid email or password. Please try again.')
-
-        return redirect('dashboard')
 
     return render(request, 'index.html')
 
@@ -209,7 +215,23 @@ def audit_logs_view(request):
 # ==========================================
 @login_required(login_url='login')
 def user_management_view(request):
-    return render(request, 'user_management.html')
+    # SECURITY CHECK: Kick out non-admins
+    if not request.user.is_superuser:
+        messages.error(request, 'You do not have permission to access User Management.')
+        return redirect('documents') # Redirect staff away
+
+    # 1. Fetch all users from the database
+    # We order them by date_joined so the newest accounts appear first
+    all_users = User.objects.all().order_by('-date_joined')
+    
+    # 2. Put the users in the context dictionary
+    # The key 'users' MUST match the name used in your {% for user in users %} loop
+    context = {
+        'users': all_users,
+    }
+    
+    # 3. Send the data to the template
+    return render(request, 'user_management.html', context)
 
 # ==========================================
 # 7. USER SETTINGS VIEW
