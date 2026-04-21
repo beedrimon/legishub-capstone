@@ -7,63 +7,70 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Log In - Marikina LegisHub</title>
     <link rel="stylesheet" href="{% static 'css/index.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
 <body>
 
-        <div class="split-screen">
-            <div class="left-panel" style="background-image: url('{% static 'images/picszz.png' %}');">
-                <div class="left-content">
-                    <img src="{% static 'images/legishub-logo-light.png' %}" alt="Logo" class="logo">
-                    <h1>Marikina LegisHub</h1>
-                    <p>An E-Governance-Based Legislative Document Management System for Enhanced Efficiency, Transparency, and Data Integrity</p>
-                </div>
-            </div>
-
-            <div class="right-panel">
-                <div class="login-card">
-                    <h2>LOG IN YOUR ACCOUNT</h2>
-                    <p class="subtitle">Effortlessly upload documents online</p>
-
-                    {% if messages %}
-                    <ul class="messages">
-                        {% for message in messages %}
-                            {% if message.tags == 'error' %}
-                                <li>{{ message }}</li>
-                            {% endif %}
-                        {% endfor %}
-                    </ul>
-                    {% endif %}
-
-                    <form method="POST" action="{% url 'login' %}">
-                        {% csrf_token %}
-                        <div class="form-group">
-                            <label for="email">Email</label>
-                            <input type="email" id="email" name="email" placeholder="mai@gmail.com" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label for="password">Password</label>
-                            <input type="password" id="password" name="password" placeholder="***********" required>
-                        </div>
-
-                        <button type="submit" class="login-btn">Login</button>
-                    </form>
-
-                    <div class="help-text">
-                        For document upload assistance, click <a href="#">here</a>
-                    </div>
-                </div>
-
-                <div class="footer-text">
-                    2026 Marikina LegisHub. All Rights Reserved
-                </div>
+    <div class="split-screen">
+        <div class="left-panel" style="background-image: url('{% static 'images/picszz.png' %}');">
+            <div class="left-content">
+                <img src="{% static 'images/legishub-logo-light.png' %}" alt="Logo" class="logo">
+                <h1>Marikina LegisHub</h1>
+                <p>An E-Governance-Based Legislative Document Management System for Enhanced Efficiency, Transparency,
+                    and Data Integrity</p>
             </div>
         </div>
 
-        
+        <div class="right-panel">
+            <div class="login-card">
+                <h2>LOG IN YOUR ACCOUNT</h2>
+                <p class="subtitle">Effortlessly upload documents online</p>
+
+                {% if messages %}
+                <ul class="messages">
+                    {% for message in messages %}
+                    {% if message.tags == 'error' %}
+                    <li>{{ message }}</li>
+                    {% endif %}
+                    {% endfor %}
+                </ul>
+                {% endif %}
+
+                <form method="POST" action="{% url 'login' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="mai@gmail.com" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div style="position: relative;">
+                            <input type="password" id="password" name="password" placeholder="***********" required
+                                style="padding-right: 40px; width: 100%; box-sizing: border-box;">
+                            <i class="fa-regular fa-eye" id="togglePassword"
+                                style="position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="login-btn">Login</button>
+                </form>
+
+                <div class="help-text">
+                    For document upload assistance, click <a href="#">here</a>
+                </div>
+            </div>
+
+            <div class="footer-text">
+                2026 Marikina LegisHub. All Rights Reserved
+            </div>
+        </div>
     </div>
 
+
+    </div>
+    <script src="{% static 'js/modals.js' %}?v=0"></script>
 </body>
 
 </html>
