@@ -1,2 +1,4 @@
-/legishub/__pycache__
+__pycache__/
 *.pyc
+
+db.sqlite3

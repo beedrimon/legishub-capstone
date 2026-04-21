@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-x2seq_g69(r%d_ysl1atjp6c7dg)f#fj-0)(kj@6mt2*h!yzx*
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']  # Allows any device on your local network to connect
 
 
 # Application definition
