@@ -47,7 +47,7 @@ def login_view(request):
             # If authentication fails, send an error message to the template
             messages.error(request, 'Invalid email or password. Please try again.')
 
-    return render(request, 'index.html')
+    return render(request, 'admin_panel/index.html')
 
 # ==========================================
 # 2. LOGOUT VIEW
@@ -96,7 +96,7 @@ def dashboard_view(request):
         'last_backup_date': 'Live DB Sync Active', # You can update this later when you add cloud backups
     }
 
-    return render(request, 'dashboard.html', context)
+    return render(request, 'admin_panel/dashboard.html', context)
 
 # ==========================================
 # 4. DOCUMENTS VIEW
@@ -141,7 +141,7 @@ def documents_view(request):
     total_records = doc_list.count()
     
     # Pagination
-    paginator = Paginator(doc_list, 10) 
+    paginator = Paginator(doc_list, 5) 
     page_number = request.GET.get('page')
     documents = paginator.get_page(page_number)
     
@@ -152,7 +152,7 @@ def documents_view(request):
         'available_authors': available_authors,
         'current_filters': request.GET, # Pass the current URL parameters back to the HTML
     }
-    return render(request, 'documents.html', context)
+    return render(request, 'admin_panel/documents.html', context)
 
 # ==========================================
 # 4. ARCHIVE VIEW
@@ -230,7 +230,7 @@ def audit_logs_view(request):
         'available_actions': available_actions,
         'current_filters': request.GET, # Passes selections back to HTML
     }
-    return render(request, 'audit_logs.html', context)
+    return render(request, 'admin_panel/audit_logs.html', context)
 
 # ==========================================
 # 6. USER MANAGEMENT VIEW
@@ -253,7 +253,7 @@ def user_management_view(request):
     }
     
     # 3. Send the data to the template
-    return render(request, 'user_management.html', context)
+    return render(request, 'admin_panel/user_management.html', context)
 
 # ==========================================
 # 7. USER SETTINGS VIEW
