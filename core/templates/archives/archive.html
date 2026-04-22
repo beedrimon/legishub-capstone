@@ -79,22 +79,28 @@
                 </div>
             </section>
 
-            <section class="folder-grid">
-                <div class="folder-card">
-                    <i class="fa-regular fa-folder"></i>
-                    <p>1990 - 1999</p>
-                </div>
-                <div class="folder-card">
-                    <i class="fa-regular fa-folder"></i>
-                    <p>2000 - 2009</p>
-                </div>
-                <div class="folder-card">
-                    <i class="fa-regular fa-folder"></i>
-                    <p>2010 - 2019</p>
-                </div>
-                <div class="folder-card">
-                    <i class="fa-solid fa-folder-lock"></i>
-                    <p>Confidential</p>
+            <section class="folder-section">
+                <div class="folder-grid">
+                    <a href="{% url 'archive_90s' %}" class="folder-card">
+                        <i class="fa-regular fa-folder"></i>
+                        <p>1900 - 1999</p>
+                    </a>
+
+                    <a href="{% url 'archive_20s' %}" class="folder-card">
+                        <i class="fa-regular fa-folder"></i>
+                        <p>2000 - RECENT</p>
+                    </a>
+
+                    <a href="{% url 'archive_confidential' %}" class="folder-card">
+                        <div class="folder-icon-wrapper">
+                            <i class="fa-solid fa-lock overlay-lock"></i>
+                        </div>
+                        <p>Confidential</p>
+                    </a>
+
+                    <button class="btn-add-folder">
+                        <i class="fa-solid fa-plus"></i>
+                    </button>
                 </div>
             </section>
 

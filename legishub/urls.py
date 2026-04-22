@@ -25,7 +25,16 @@ urlpatterns = [
 
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('documents/', views.documents_view, name='documents'),
+
+    #ARCHIVE VIEWS
     path('archive/', views.archive_view, name='archive'),
+
+    path('archive_90s/', views.archive_90s_view, name='archive_90s'),
+    path('archive_year_details/<int:year>/', views.archive_year_detail_view, name='archive_year_detail'),
+
+    path('archive_20s/', views.archive_20s_view, name='archive_20s'),
+    path('archive_confidential/', views.archive_confidential_view, name='archive_confidential'),
+
     path('audit_logs/', views.audit_logs_view, name='audit_logs'),
     path('user_management/', views.user_management_view, name='user_management'),
 

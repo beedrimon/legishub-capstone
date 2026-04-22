@@ -157,10 +157,32 @@ def documents_view(request):
 # ==========================================
 # 4. ARCHIVE VIEW
 # ==========================================
+
+#ARCHIVE VIEW
 @login_required(login_url='login')
 def archive_view(request):
-    return render(request, 'archive.html')
+    return render(request, 'archives/archive.html')
 
+#ARCHIVE 1900-1999 VIEW
+@login_required(login_url='login')
+def archive_90s_view(request):
+    return render(request, 'archives/archive_90s.html')
+
+#ARCHIVE YEAR DETAIL VIEW
+@login_required(login_url='login')
+def archive_year_detail_view(request, year):
+    return render(request, 'archives/archive_year_detail.html', {'year': year})
+
+
+#ARCHIVE 2000-RECENT VIEW
+@login_required(login_url='login')
+def archive_20s_view(request):
+    return render(request, 'archives/archive_20s.html')
+
+#ARCHIVE CONFIDENTIAL VIEW
+@login_required(login_url='login')
+def archive_confidential_view(request):
+    return render(request, 'archives/archive_confidential.html')
 
 # ==========================================
 # 5. AUDIT LOGS VIEW
