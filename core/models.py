@@ -27,6 +27,7 @@ class LegislativeDocument(models.Model):
     # ==========================================
     date_enacted = models.DateField(null=True, blank=True)
     sponsor = models.CharField(max_length=255, null=True, blank=True)
+    co_sponsors = models.CharField(max_length=500, null=True, blank=True)
     visibility = models.CharField(max_length=50, choices=VISIBILITY_CHOICES, default='Public Access')
     keywords = models.CharField(max_length=255, null=True, blank=True)
     physical_storage = models.CharField(max_length=255, null=True, blank=True)

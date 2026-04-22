@@ -6,6 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Documents - Marikina LegisHub</title>
+    <link rel="icon" href="../static/images/legishub-logo-light.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
 </head>
@@ -147,6 +148,12 @@
                                         data-number="{{ doc.document_number }}" data-title="{{ doc.title }}"
                                         data-type="{{ doc.doc_type }}" data-year="{{ doc.year }}"
                                         data-date="{% if doc.date_enacted %}{{ doc.date_enacted|date:'Y-m-d' }}{% endif %}"
+                                        data-sponsor="{{ doc.sponsor|default:'' }}"
+                                        data-cosponsors="{{ doc.co_sponsors|default:'' }}"
+                                        data-keywords="{{ doc.keywords|default:'' }}"
+                                        data-status="{{ doc.status }}"
+                                        data-visibility="{{ doc.visibility }}"
+                                        data-storage="{{ doc.physical_storage|default:'' }}"
                                         {% if doc.file_attachment %}data-file="{{ doc.file_attachment.name }}" {% endif %}></i>
 
                                     {% if doc.file_attachment %}
@@ -251,6 +258,28 @@
                         <input type="text" name="sponsor" placeholder="Hon. Name of Sponsor">
                     </div>
                     <div class="form-group">
+                        <label>KEYWORDS / TAGS</label>
+                        <input type="text" name="keywords" placeholder="e.g., Environment, Baha, Business">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>PROJECT CO-SPONSOR/S</label>
+                        <input type="text" name="co_sponsors" placeholder="Separate names with commas">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>STATUS</label>
+                        <select name="status" required>
+                            <option value="Pending">Pending</option>
+                            <option value="Active">Active</option>
+                            <option value="Archived">Archived</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>VISIBILITY / PRIVACY</label>
                         <select name="visibility">
                             <option value="Public Access">Public Access</option>
@@ -260,11 +289,7 @@
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>KEYWORDS / TAGS</label>
-                        <input type="text" name="keywords" placeholder="e.g., Environment, Baha, Business">
-                    </div>
-                    <div class="form-group">
+                    <div class="form-group full-width">
                         <label>PHYSICAL STORAGE REF (OPTIONAL)</label>
                         <input type="text" name="physical_storage" placeholder="e.g., Cabinet A, Shelf 2">
                     </div>
@@ -421,6 +446,49 @@
                     <div class="form-group">
                         <label>DATE ENACTED / APPROVED</label>
                         <input type="date" name="date_enacted" id="edit-date">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>PRIMARY SPONSOR / AUTHOR</label>
+                        <input type="text" name="sponsor" id="edit-sponsor" placeholder="Hon. Name of Sponsor">
+                    </div>
+                    <div class="form-group">
+                        <label>KEYWORDS / TAGS</label>
+                        <input type="text" name="keywords" id="edit-keywords" placeholder="e.g., Environment, Baha, Business">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>PROJECT CO-SPONSOR/S</label>
+                        <input type="text" name="co_sponsors" id="edit-co-sponsors" placeholder="Separate names with commas">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>STATUS</label>
+                        <select name="status" id="edit-status" required>
+                            <option value="Pending">Pending</option>
+                            <option value="Active">Active</option>
+                            <option value="Archived">Archived</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>VISIBILITY / PRIVACY</label>
+                        <select name="visibility" id="edit-visibility">
+                            <option value="Public Access">Public Access</option>
+                            <option value="Internal Only">Internal Only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>PHYSICAL STORAGE REF (OPTIONAL)</label>
+                        <input type="text" name="physical_storage" id="edit-physical-storage" placeholder="e.g., Cabinet A, Shelf 2">
                     </div>
                 </div>
 

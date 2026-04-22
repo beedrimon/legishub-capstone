@@ -159,6 +159,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const docType = this.getAttribute('data-type');
             const docYear = this.getAttribute('data-year');
             const docDate = this.getAttribute('data-date');
+            const docSponsor = this.getAttribute('data-sponsor');
+            const docCoSponsors = this.getAttribute('data-cosponsors');
+            const docKeywords = this.getAttribute('data-keywords');
+            const docStatus = this.getAttribute('data-status');
+            const docVisibility = this.getAttribute('data-visibility');
+            const docStorage = this.getAttribute('data-storage');
             const fileName = this.getAttribute('data-file');
 
             // 2. Inject data into the Edit form inputs
@@ -168,6 +174,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('edit-type').value = docType;
             document.getElementById('edit-year').value = docYear;
             document.getElementById('edit-date').value = docDate;
+            document.getElementById('edit-sponsor').value = docSponsor || '';
+            document.getElementById('edit-co-sponsors').value = docCoSponsors || '';
+            document.getElementById('edit-keywords').value = docKeywords || '';
+            document.getElementById('edit-status').value = docStatus || 'Pending';
+            document.getElementById('edit-visibility').value = docVisibility || 'Public Access';
+            document.getElementById('edit-physical-storage').value = docStorage || '';
 
             // 3. Update the File Text UI
             const fileText = document.getElementById('edit-file-text');

@@ -309,6 +309,8 @@ def upload_document(request):
         # New fields from your modal
         date_enacted = request.POST.get('date_enacted')
         sponsor = request.POST.get('sponsor')
+        co_sponsors = request.POST.get('co_sponsors')
+        status = request.POST.get('status', 'Pending')
         visibility = request.POST.get('visibility')
         keywords = request.POST.get('keywords')
         physical_storage = request.POST.get('physical_storage')
@@ -324,12 +326,13 @@ def upload_document(request):
             year=year,
             date_enacted=date_enacted if date_enacted else None, # Handles empty dates safely
             sponsor=sponsor,
+            co_sponsors=co_sponsors,
             visibility=visibility,
             keywords=keywords,
             physical_storage=physical_storage,
             file_attachment=file_attachment,
             uploaded_by=request.user,
-            status='Pending'
+            status=status
         )
 
         # 4. Save an Audit Log entry
@@ -371,6 +374,13 @@ def edit_document(request):
         
         date_enacted = request.POST.get('date_enacted')
         doc.date_enacted = date_enacted if date_enacted else None
+
+        doc.sponsor = request.POST.get('sponsor')
+        doc.co_sponsors = request.POST.get('co_sponsors')
+        doc.keywords = request.POST.get('keywords')
+        doc.status = request.POST.get('status')
+        doc.visibility = request.POST.get('visibility')
+        doc.physical_storage = request.POST.get('physical_storage')
 
         # Only overwrite the file if they uploaded a new one!
         new_file = request.FILES.get('file_attachment')

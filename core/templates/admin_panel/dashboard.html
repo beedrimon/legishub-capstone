@@ -186,8 +186,7 @@
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label>DOCUMENT TITLE / SUBJECT</label>
-                        <input type="text" name="title" placeholder="Complete title of the Ordinance or Resolution"
-                            required>
+                        <input type="text" name="title" placeholder="Complete title of the Ordinance or Resolution" required>
                     </div>
                 </div>
 
@@ -222,6 +221,28 @@
                         <input type="text" name="sponsor" placeholder="Hon. Name of Sponsor">
                     </div>
                     <div class="form-group">
+                        <label>KEYWORDS / TAGS</label>
+                        <input type="text" name="keywords" placeholder="e.g., Environment, Baha, Business">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>PROJECT CO-SPONSOR/S</label>
+                        <input type="text" name="co_sponsors" placeholder="Separate names with commas">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>STATUS</label>
+                        <select name="status" required>
+                            <option value="Pending">Pending</option>
+                            <option value="Active">Active</option>
+                            <option value="Archived">Archived</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label>VISIBILITY / PRIVACY</label>
                         <select name="visibility">
                             <option value="Public Access">Public Access</option>
@@ -231,21 +252,17 @@
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>KEYWORDS / TAGS</label>
-                        <input type="text" name="keywords" placeholder="e.g., Environment, Baha, Business">
-                    </div>
-                    <div class="form-group">
+                    <div class="form-group full-width">
                         <label>PHYSICAL STORAGE REF (OPTIONAL)</label>
                         <input type="text" name="physical_storage" placeholder="e.g., Cabinet A, Shelf 2">
                     </div>
                 </div>
 
-                <label for="fileInput" class="upload-area" style="cursor: pointer; display: block;">
+                <label for="fileInputDocPage" class="upload-area" style="cursor: pointer; display: block;">
                     <i class="fa-regular fa-file-pdf"></i>
                     <p>Upload Certified PDF Copy</p>
                     <span>Click here to browse files (Max 20MB)</span>
-                    <input type="file" name="file_attachment" hidden id="fileInput" accept=".pdf">
+                    <input type="file" name="file_attachment" hidden id="fileInputDocPage" accept=".pdf">
                 </label>
 
                 <div class="modal-footer">
