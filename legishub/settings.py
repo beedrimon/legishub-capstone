@@ -80,9 +80,9 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
-        # 'OPTIONS': {
+        #'OPTIONS': {
         #     'sslmode': 'require',
-        # },
+        #},
     }
 }
 
@@ -124,3 +124,14 @@ STATIC_URL = 'static/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# ==========================================
+# EMAIL CONFIGURATION (GMAIL)
+# ==========================================
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'jayveemoral0319@gmail.com' # Your actual Gmail address
+EMAIL_HOST_PASSWORD = 'fcrryepxusvjnwtd' # The 16-character App Password (no spaces)
+DEFAULT_FROM_EMAIL = 'Marikina LegisHub <your.email@gmail.com>'
