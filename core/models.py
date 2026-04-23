@@ -1,5 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User # Using Django's built-in secure User table
+from django.core.exceptions import ValidationError
+from django.db.models.signals import pre_save
+from django.dispatch import receiver
 
 class LegislativeDocument(models.Model):
     DOCUMENT_TYPES = [
@@ -59,3 +62,25 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.action} - {self.document}"
+    
+# ==========================================
+# ENFORCE UNIQUE EMAILS AND USERNAMES
+# ==========================================
+@receiver(pre_save, sender=User)
+def enforce_unique_credentials(sender, instance, **kwargs):
+    # 1. Clean up the data first (remove accidental spaces at the beginning or end)
+    if instance.username:
+        instance.username = instance.username.strip()
+    if instance.email:
+        instance.email = instance.email.strip()
+
+    # 2. Check for duplicate Emails (case-insensitive)
+    if instance.email:
+        # __iexact makes it ignore uppercase/lowercase differences
+        if User.objects.filter(email__iexact=instance.email).exclude(id=instance.id).exists():
+            raise ValidationError(f"Account creation failed: The email '{instance.email}' is already in use.")
+
+    # 3. Check for duplicate Usernames (case-insensitive)
+    if instance.username:
+        if User.objects.filter(username__iexact=instance.username).exclude(id=instance.id).exists():
+            raise ValidationError(f"Account creation failed: The username '{instance.username}' is already taken. Please choose another.")
