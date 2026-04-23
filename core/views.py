@@ -11,6 +11,13 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 
 # ==========================================
+# HELPER: ROLE CHECKS
+# ==========================================
+def is_legislator(user):
+    # Legislators are regular users (not superusers and not staff)
+    return not user.is_superuser and not user.is_staff
+
+# ==========================================
 # 1. LOGIN VIEW
 # ==========================================
 def login_view(request):
@@ -19,7 +26,7 @@ def login_view(request):
         if request.user.is_superuser:
             return redirect('dashboard')
         else:
-            return redirect('documents') # Send staff to documents, or change to a staff dashboard URL
+            return redirect('dashboard') # Send staff to documents, or change to a staff dashboard URL
 
     if request.method == 'POST':
         email = request.POST.get('email')
@@ -78,8 +85,11 @@ def dashboard_view(request):
     recent_documents = LegislativeDocument.objects.all().order_by('-id')[:5]
 
     # 3. FETCH RECENT AUDIT LOGS
-    # Get the 5 most recent actions taken by users
-    recent_logs = AuditLog.objects.all().order_by('-timestamp')[:5]
+    # Legislators only see their own recent logs, Admins/Staff see everyone's
+    if is_legislator(request.user):
+        recent_logs = AuditLog.objects.filter(user=request.user).order_by('-timestamp')[:5]
+    else:
+        recent_logs = AuditLog.objects.all().order_by('-timestamp')[:5]
 
     # 4. PASS THE REAL DATA TO THE TEMPLATE
     context = {
@@ -94,6 +104,7 @@ def dashboard_view(request):
         'recent_documents': recent_documents,
         'audit_logs': recent_logs,
         'last_backup_date': 'Live DB Sync Active', # You can update this later when you add cloud backups
+        'is_legislator': is_legislator(request.user),
     }
 
     return render(request, 'admin_panel/dashboard.html', context)
@@ -151,6 +162,7 @@ def documents_view(request):
         'available_years': available_years,
         'available_authors': available_authors,
         'current_filters': request.GET, # Pass the current URL parameters back to the HTML
+        'is_legislator': is_legislator(request.user), # Tell the template if the user is a legislator
     }
     return render(request, 'admin_panel/documents.html', context)
 
@@ -161,27 +173,30 @@ def documents_view(request):
 #ARCHIVE VIEW
 @login_required(login_url='login')
 def archive_view(request):
-    return render(request, 'archives/archive.html')
+    return render(request, 'archives/archive.html', {'is_legislator': is_legislator(request.user)})
 
 #ARCHIVE 1900-1999 VIEW
 @login_required(login_url='login')
 def archive_90s_view(request):
-    return render(request, 'archives/archive_90s.html')
+    return render(request, 'archives/archive_90s.html', {'is_legislator': is_legislator(request.user)})
 
 #ARCHIVE YEAR DETAIL VIEW
 @login_required(login_url='login')
 def archive_year_detail_view(request, year):
-    return render(request, 'archives/archive_year_detail.html', {'year': year})
+    return render(request, 'archives/archive_year_detail.html', {'year': year, 'is_legislator': is_legislator(request.user)})
 
 
 #ARCHIVE 2000-RECENT VIEW
 @login_required(login_url='login')
 def archive_20s_view(request):
-    return render(request, 'archives/archive_20s.html')
+    return render(request, 'archives/archive_20s.html', {'is_legislator': is_legislator(request.user)})
 
 #ARCHIVE CONFIDENTIAL VIEW
 @login_required(login_url='login')
 def archive_confidential_view(request):
+    if is_legislator(request.user):
+        messages.error(request, 'Legislators do not have permission to view confidential archives.')
+        return redirect('archive')
     return render(request, 'archives/archive_confidential.html')
 
 # ==========================================
@@ -190,7 +205,11 @@ def archive_confidential_view(request):
 @login_required(login_url='login')
 def audit_logs_view(request):
     # Fetch all logs from the database, ordered by newest first
-    logs = AuditLog.objects.all().select_related('user', 'document').order_by('-timestamp')
+    if is_legislator(request.user):
+        # Legislators can only see their own activity
+        logs = AuditLog.objects.filter(user=request.user).select_related('document').order_by('-timestamp')
+    else:
+        logs = AuditLog.objects.all().select_related('user', 'document').order_by('-timestamp')
     
     # 1. Grab search and filter terms from the URL
     query = request.GET.get('q', '')
@@ -218,8 +237,11 @@ def audit_logs_view(request):
         logs = logs.filter(timestamp__date=date_filter)
 
     # 4. Fetch dynamic data for the dropdowns
-    # Gets unique usernames of users who actually have logs
-    available_users = User.objects.filter(auditlog__isnull=False).values_list('username', flat=True).distinct().order_by('username')
+    if is_legislator(request.user):
+        available_users = [request.user.username]
+    else:
+        # Gets unique usernames of users who actually have logs
+        available_users = User.objects.filter(auditlog__isnull=False).values_list('username', flat=True).distinct().order_by('username')
     
     # Gets the exact actions ('Upload', 'Edit', etc.) straight from your models.py
     available_actions = [choice[0] for choice in AuditLog.ACTION_CHOICES]
@@ -229,6 +251,7 @@ def audit_logs_view(request):
         'available_users': available_users,
         'available_actions': available_actions,
         'current_filters': request.GET, # Passes selections back to HTML
+        'is_legislator': is_legislator(request.user),
     }
     return render(request, 'admin_panel/audit_logs.html', context)
 
@@ -262,26 +285,36 @@ def user_management_view(request):
 #GENERAL INFO VIEW
 @login_required(login_url='login')
 def general_info_view(request):
+    if not request.user.is_superuser:
+        return redirect('documents')
     return render(request, 'settings_page/general_info.html')
 
 #BACKUP & CLOUD VIEW
 @login_required(login_url='login')
 def backup_cloud_view(request):
+    if not request.user.is_superuser:
+        return redirect('documents')
     return render(request, 'settings_page/backup_cloud.html')
 
 #METADATA TAGS VIEW
 @login_required(login_url='login')
 def metadata_tags_view(request):
+    if not request.user.is_superuser:
+        return redirect('documents')
     return render(request, 'settings_page/metadata_tags.html')
 
 #SECURITY POLICY VIEW
 @login_required(login_url='login')
 def security_policy_view(request):
+    if not request.user.is_superuser:
+        return redirect('documents')
     return render(request, 'settings_page/security_policy.html')
 
 #NOTIFICATIONS VIEW
 @login_required(login_url='login')
 def notifications_view(request):
+    if not request.user.is_superuser:
+        return redirect('documents')
     return render(request, 'settings_page/notifications.html')
 
 
@@ -290,6 +323,10 @@ def notifications_view(request):
 # ==========================================
 @login_required(login_url='login')
 def upload_document(request):
+    if is_legislator(request.user):
+        messages.error(request, 'Action Denied: Legislators have read-only access and cannot upload documents.')
+        return redirect('documents')
+
     if request.method == 'POST':
         # 1. Grab all text data from the HTML form
         title = request.POST.get('title')
@@ -351,6 +388,10 @@ def upload_document(request):
 # ==========================================
 @login_required(login_url='login')
 def edit_document(request):
+    if is_legislator(request.user):
+        messages.error(request, 'Action Denied: Legislators have read-only access and cannot edit documents.')
+        return redirect('documents')
+
     if request.method == 'POST':
         # Grab the hidden ID so we know which document to update
         doc_id = request.POST.get('doc_id')
