@@ -32,11 +32,13 @@ def login_view(request):
         email = request.POST.get('email')
         password = request.POST.get('password')
 
-        try:
-            # Django auth expects a username, so we find the user by email first
-            user_obj = User.objects.get(email=email)
+        # SAFELY and CASE-INSENSITIVELY look up the user by email
+        # __iexact ensures "Admin@gmail.com" matches "admin@gmail.com"
+        user_obj = User.objects.filter(email__iexact=email).first()
+        
+        if user_obj:
             username = user_obj.username
-        except User.DoesNotExist:
+        else:
             username = None
 
         # Authenticate the user
