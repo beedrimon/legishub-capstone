@@ -280,6 +280,141 @@ def user_management_view(request):
     # 3. Send the data to the template
     return render(request, 'admin_panel/user_management.html', context)
 
+@login_required(login_url='login')
+def create_user_view(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'You do not have permission to create users.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        role = request.POST.get('role')
+
+        try:
+            if User.objects.filter(username__iexact=username).exists():
+                messages.error(request, f"Account creation failed: The username '{username}' is already taken.")
+                return redirect('user_management')
+                
+            if User.objects.filter(email__iexact=email).exists():
+                messages.error(request, f"Account creation failed: The email '{email}' is already in use.")
+                return redirect('user_management')
+
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password,
+                first_name=first_name,
+                last_name=last_name
+            )
+
+            if role == 'admin':
+                user.is_superuser = True
+                user.is_staff = True
+            elif role == 'staff':
+                user.is_superuser = False
+                user.is_staff = True
+            else: # legislator
+                user.is_superuser = False
+                user.is_staff = False
+
+            user.save()
+            messages.success(request, f"User '{username}' successfully created!")
+
+        except Exception as e:
+            messages.error(request, f"Error creating user: {e}")
+            
+    return redirect('user_management')
+
+@login_required(login_url='login')
+def edit_user_view(request):
+    if not request.user.is_superuser:
+        messages.error(request, 'You do not have permission to edit users.')
+        return redirect('user_management')
+        
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        first_name = request.POST.get('first_name')
+        last_name = request.POST.get('last_name')
+        email = request.POST.get('email')
+        username = request.POST.get('username')
+
+        try:
+            target_user = User.objects.get(id=user_id)
+            
+            # Ensure new username/email aren't already taken by SOMEONE ELSE
+            if User.objects.filter(username__iexact=username).exclude(id=user_id).exists():
+                messages.error(request, f"Update failed: The username '{username}' is already taken.")
+                return redirect('user_management')
+                
+            if User.objects.filter(email__iexact=email).exclude(id=user_id).exists():
+                messages.error(request, f"Update failed: The email '{email}' is already in use.")
+                return redirect('user_management')
+
+            target_user.first_name = first_name
+            target_user.last_name = last_name
+            target_user.email = email
+            target_user.username = username
+            target_user.save()
+            
+            messages.success(request, f"Account for '{username}' successfully updated!")
+        except User.DoesNotExist:
+            messages.error(request, "Error: User not found.")
+            
+    return redirect('user_management')
+
+@login_required(login_url='login')
+def delete_user_view(request, user_id):
+    if not request.user.is_superuser:
+        messages.error(request, 'You do not have permission to delete users.')
+        return redirect('user_management')
+        
+    if request.method == 'POST':
+        try:
+            user_to_delete = User.objects.get(id=user_id)
+            if user_to_delete == request.user:
+                messages.error(request, "You cannot delete your own active session account.")
+            else:
+                username = user_to_delete.username
+                user_to_delete.delete()
+                messages.success(request, f"User '{username}' successfully deleted.")
+        except User.DoesNotExist:
+            messages.error(request, "Error: User not found.")
+            
+    return redirect('user_management')
+
+@login_required(login_url='login')
+def toggle_permission_view(request, user_id, perm_type):
+    if not request.user.is_superuser:
+        messages.error(request, 'You do not have permission to modify user access.')
+        return redirect('user_management')
+        
+    if request.method == 'POST':
+        try:
+            target_user = User.objects.get(id=user_id)
+            if target_user == request.user:
+                messages.error(request, "You cannot modify your own permissions.")
+                return redirect('user_management')
+                
+            if perm_type == 'superuser':
+                target_user.is_superuser = not target_user.is_superuser
+                if target_user.is_superuser:
+                    target_user.is_staff = True  # Admins should also be staff
+            elif perm_type == 'active':
+                target_user.is_active = not target_user.is_active
+            elif perm_type == 'staff':
+                target_user.is_staff = not target_user.is_staff
+                
+            target_user.save()
+            messages.success(request, f"Permissions updated successfully for '{target_user.username}'.")
+        except User.DoesNotExist:
+            messages.error(request, "Error: User not found.")
+            
+    return redirect('user_management')
+
 # ==========================================
 # 7. USER SETTINGS VIEW
 # ==========================================

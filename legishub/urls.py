@@ -39,7 +39,11 @@ urlpatterns = [
 
     path('audit_logs/', views.audit_logs_view, name='audit_logs'),
     path('user_management/', views.user_management_view, name='user_management'),
-
+    path('create_user/', views.create_user_view, name='create_user'),
+    path('edit_user/', views.edit_user_view, name='edit_user'),
+    path('delete_user/<int:user_id>/', views.delete_user_view, name='delete_user'),
+    path('toggle_permission/<int:user_id>/<str:perm_type>/', views.toggle_permission_view, name='toggle_permission'),
+ 
     # USER SETTINGS/GENERAL INFO VIEW
     path('general_info/', views.general_info_view, name='general_info'),
     path('backup_cloud/', views.backup_cloud_view, name='backup_cloud'),

@@ -11,7 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const modals = {
         upload: document.getElementById('uploadModal'),
         view: document.getElementById('viewModal'),
-        edit: document.getElementById('editModal')
+        edit: document.getElementById('editModal'),
+        user: document.getElementById('userModal'),
+        editUser: document.getElementById('editUserModal')
     };
 
     // 2. Helper to close all UI overlays
@@ -37,6 +39,8 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTrigger('.trigger-modal', 'upload');
     setupTrigger('.trigger-view', 'view');
     setupTrigger('.trigger-edit', 'edit');
+    setupTrigger('.trigger-user', 'user');
+    setupTrigger('.trigger-edit-user', 'editUser');
 
     // 4. Close Buttons Logic
     // Handles any button with class 'close-modal' or 'btn-discard' inside any modal
@@ -227,6 +231,27 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 fileText.innerHTML = `Current File: <strong style="color: #888;">No file attached</strong>`;
             }
+        });
+    });
+
+    // ==========================================
+    // POPULATE EDIT USER MODAL
+    // ==========================================
+    const editUserButtons = document.querySelectorAll('.trigger-edit-user');
+
+    editUserButtons.forEach(btn => {
+        btn.addEventListener('click', function () {
+            const userId = this.getAttribute('data-id');
+            const userFirst = this.getAttribute('data-first');
+            const userLast = this.getAttribute('data-last');
+            const userEmail = this.getAttribute('data-email');
+            const userUsername = this.getAttribute('data-username');
+
+            document.getElementById('edit-user-id').value = userId;
+            document.getElementById('edit-user-first').value = userFirst;
+            document.getElementById('edit-user-last').value = userLast;
+            document.getElementById('edit-user-email').value = userEmail;
+            document.getElementById('edit-user-username').value = userUsername;
         });
     });
 

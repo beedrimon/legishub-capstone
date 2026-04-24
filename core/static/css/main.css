@@ -871,6 +871,7 @@ td strong { color: var(--sidebar-bg); }
 .toggle {
     width: 34px; height: 19px; border-radius: 10px;
     position: relative; cursor: pointer; flex-shrink: 0; transition: background 0.2s;
+    display: block;
 }
 
 .toggle::after {

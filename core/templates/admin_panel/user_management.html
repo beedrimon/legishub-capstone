@@ -12,6 +12,19 @@
 </head>
 
 <body>
+
+    <!-- GLOBAL TOAST MESSAGES -->
+    <div class="toast-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="toast {{ message.tags }}">
+                    <span>{{ message }}</span>
+                    <button class="close-toast">&times;</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
     <nav class="sidebar">
         <div class="sidebar-logo">
             <a href="{% url 'dashboard' %}" style="text-decoration: none; color: inherit;">
@@ -52,7 +65,7 @@
                     <h1>User Management</h1>
                     <p>Control access levels and manage legislative staff accounts.</p>
                 </div>
-                <button class="btn-create">
+                <button class="btn-create trigger-user">
                     <i class="fa-solid fa-user-plus"></i> Create New Account
                 </button>
             </div>
@@ -74,13 +87,22 @@
                     </div>
                     <div class="permission-list">
                         <div class="permission-row">Full System Access
-                            <span class="toggle {% if user.is_superuser %}on{% else %}off{% endif %}"></span>
+                            <form method="POST" action="{% url 'toggle_permission' user.id 'superuser' %}" style="margin: 0; display: inline-flex;">
+                                {% csrf_token %}
+                                <button type="submit" class="toggle {% if user.is_superuser %}on{% else %}off{% endif %}" style="border: none; outline: none;"></button>
+                            </form>
                         </div>
-                        <div class="permission-row">Document Upload
-                            <span class="toggle {% if user.is_active %}on{% else %}off{% endif %}"></span>
+                        <div class="permission-row">Active Account (Login)
+                            <form method="POST" action="{% url 'toggle_permission' user.id 'active' %}" style="margin: 0; display: inline-flex;">
+                                {% csrf_token %}
+                                <button type="submit" class="toggle {% if user.is_active %}on{% else %}off{% endif %}" style="border: none; outline: none;"></button>
+                            </form>
                         </div>
                         <div class="permission-row">Archive Management
-                            <span class="toggle {% if user.is_staff %}on{% else %}off{% endif %}"></span>
+                            <form method="POST" action="{% url 'toggle_permission' user.id 'staff' %}" style="margin: 0; display: inline-flex;">
+                                {% csrf_token %}
+                                <button type="submit" class="toggle {% if user.is_staff %}on{% else %}off{% endif %}" style="border: none; outline: none;"></button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -111,7 +133,23 @@
                                 <span class="status-inactive" style="color: gray;">Inactive</span>
                                 {% endif %}
                             </td>
-                            <td><i class="fa-solid fa-ellipsis"></i></td>
+                            <td>
+                                <button type="button" class="trigger-edit-user" style="background: none; border: none; color: #1E88E5; cursor: pointer; padding: 4px 8px; border-radius: 4px;" title="Edit User"
+                                    data-id="{{ user.id }}"
+                                    data-first="{{ user.first_name }}"
+                                    data-last="{{ user.last_name }}"
+                                    data-email="{{ user.email }}"
+                                    data-username="{{ user.username }}">
+                                    <i class="fa-solid fa-pen-to-square"></i>
+                                </button>
+                                
+                                <form method="POST" action="{% url 'delete_user' user.id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete the user {{ user.username }}? This action cannot be undone.');">
+                                    {% csrf_token %}
+                                    <button type="submit" style="background: none; border: none; color: #E53935; cursor: pointer; padding: 4px 8px; border-radius: 4px;" title="Delete User">
+                                        <i class="fa-solid fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -124,6 +162,98 @@
             </section>
         </div>
     </main>
+
+    <!-- ===========================
+     MODALS
+     =========================== -->
+    <div id="userModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>CREATE NEW ACCOUNT</h2>
+                <button class="close-modal" id="closeUserModal">&times;</button>
+            </div>
+            <form class="modal-body" method="POST" action="{% url 'create_user' %}">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>FIRST NAME</label>
+                        <input type="text" name="first_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>LAST NAME</label>
+                        <input type="text" name="last_name" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>EMAIL ADDRESS</label>
+                        <input type="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>USERNAME</label>
+                        <input type="text" name="username" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>PASSWORD</label>
+                        <input type="password" name="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>ROLE / DESIGNATION</label>
+                        <select name="role" required>
+                            <option value="staff">Legislative Staff</option>
+                            <option value="admin">System Admin</option>
+                            <option value="legislator">Legislator (Read-Only)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-discard" id="discardUserBtn">Discard</button>
+                    <button type="submit" class="btn-add">Create Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="editUserModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>EDIT ACCOUNT DETAILS</h2>
+                <button class="close-modal" id="closeEditUserModal">&times;</button>
+            </div>
+            <form class="modal-body" method="POST" action="{% url 'edit_user' %}">
+                {% csrf_token %}
+                <input type="hidden" name="user_id" id="edit-user-id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>FIRST NAME</label>
+                        <input type="text" name="first_name" id="edit-user-first" required>
+                    </div>
+                    <div class="form-group">
+                        <label>LAST NAME</label>
+                        <input type="text" name="last_name" id="edit-user-last" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>EMAIL ADDRESS</label>
+                        <input type="email" name="email" id="edit-user-email" required>
+                    </div>
+                    <div class="form-group">
+                        <label>USERNAME</label>
+                        <input type="text" name="username" id="edit-user-username" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-discard" id="discardEditUserBtn">Discard Changes</button>
+                    <button type="submit" class="btn-add">Update Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'js/modals.js' %}?v=6"></script>
 </body>
 
 </html>
