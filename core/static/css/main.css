@@ -996,23 +996,28 @@ td strong {
 
 .folder-card {
     background: #FFF8DC;
+    background: #FDF9F3;
     padding: 28px 20px;
     border-radius: 12px;
     text-align: center;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
     border: 1px solid #FFE082;
+    border: 1px solid #D9C8AC;
+    color: #7C5C35;
     box-shadow: var(--shadow-md);
 }
 
 .folder-card:hover {
     transform: translateY(-4px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 20px rgba(124, 92, 53, 0.15);
 }
 
 .folder-card i {
     font-size: 2.4rem;
     color: #B08500;
+    color: #7C5C35;
     margin-bottom: 10px;
     display: block;
 }
@@ -1021,8 +1026,39 @@ td strong {
     margin: 0;
     font-weight: 700;
     color: #5D4037;
+    color: inherit;
     font-size: 0.88rem;
 }
+
+/* Folders Active States & Sub-folders */
+.selected-folder, .selected-year {
+    border: 2px solid #7C5C35 !important;
+    background-color: #fcfaf7 !important;
+    box-shadow: 0 4px 12px rgba(124, 92, 53, 0.25) !important;
+}
+.doc-type-folder {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Add Folder Button Styling */
+.btn-add-folder-card {
+    background: transparent !important;
+    border: 2px dashed #D9C8AC !important;
+    color: #A0835D !important;
+    box-shadow: none !important;
+}
+.btn-add-folder-card i {
+    color: #A0835D !important;
+}
+.btn-add-folder-card:hover {
+    background: #fcfaf7 !important;
+    border-color: #7C5C35 !important;
+    color: #7C5C35 !important;
+}
+.btn-add-folder-card:hover i {
+    color: #7C5C35 !important;
+}
+
 
 
 /* ============================================================

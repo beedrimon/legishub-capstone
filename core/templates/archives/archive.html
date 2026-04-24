@@ -9,6 +9,7 @@
     <link rel="icon" href="../static/images/legishub-logo-light.png">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/archive.css' %}">
 </head>
 
 <body>
@@ -59,58 +60,51 @@
 
         <div class="dashboard-body">
             <nav class="breadcrumb">
-                System / Repository / <span>Archives</span>
+                <span>Archives</span>
             </nav>
 
             <div class="dashboard-header">
                 <h1>Digital Archives</h1>
             </div>
 
-            <section class="storage-card">
-                <div class="storage-info">
-                    <div class="info-group">
-                        <label>ARCHIVE STORAGE</label>
-                        <h3>3.25 GB / 5.0 GB</h3>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: 65%;"></div>
-                        </div>
+            <section class="folder-section">
+                <div class="folder-grid" id="parent-folders">
+                    <div class="folder-card doc-type-folder" id="folder-Ordinance" onclick="selectType('Ordinance')" style="cursor: pointer;">
+                        <i class="fa-regular fa-folder"></i>
+                        <p>ORDINANCES</p>
                     </div>
-                    <div class="info-group">
-                        <label>LAST BACKUP</label>
-                        <h3 class="status-green">Today, 04:30 AM</h3>
+
+                    <div class="folder-card doc-type-folder" id="folder-Resolution" onclick="selectType('Resolution')" style="cursor: pointer;">
+                        <i class="fa-regular fa-folder"></i>
+                        <p>RESOLUTIONS</p>
                     </div>
-                    <button class="btn-download-all">
-                        <i class="fa-solid fa-cloud-arrow-down"></i> Download All Archives
-                    </button>
+
+                    {% if not is_legislator %}
+                    <a href="{% url 'archive_confidential' %}" class="folder-card doc-type-folder">
+                        <i class="fa-solid fa-lock"></i>
+                        <p>CONFIDENTIAL</p>
+                    </a>
+                    {% endif %}
+
+                    {% if not is_legislator %}
+                    <div class="folder-card doc-type-folder btn-add-folder-card" id="btn-add-folder" style="cursor: pointer;">
+                        <i class="fa-solid fa-plus"></i>
+                        <p>ADD FOLDER</p>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="folder-grid" id="decade-folders" style="display: none;">
+                    <!-- Decade folders will be injected here via JS -->
                 </div>
             </section>
 
-            <section class="folder-section">
-                <div class="folder-grid">
-                    <a href="{% url 'archive_90s' %}" class="folder-card">
-                        <i class="fa-regular fa-folder"></i>
-                        <p>1900 - 1999</p>
-                    </a>
-
-                    <a href="{% url 'archive_20s' %}" class="folder-card">
-                        <i class="fa-regular fa-folder"></i>
-                        <p>2000 - RECENT</p>
-                    </a>
-
-                    {% if not is_legislator %}
-                    <a href="{% url 'archive_confidential' %}" class="folder-card">
-                        <div class="folder-icon-wrapper">
-                            <i class="fa-solid fa-lock overlay-lock"></i>
-                        </div>
-                        <p>Confidential</p>
-                    </a>
-                    {% endif %}
-
-                    {% if not is_legislator %}
-                    <button class="btn-add-folder">
-                        <i class="fa-solid fa-plus"></i>
-                    </button>
-                    {% endif %}
+            <section class="sub-folder-section archive-view-container" id="year-folders-section" style="display: none; margin-bottom: 24px; padding-bottom: 20px;">
+                <div class="archive-view-header" style="margin-bottom: 15px;">
+                    <i class="fa-regular fa-folder-open"></i>
+                    <span id="selected-type-label">Select Year</span>
+                </div>
+                <div class="year-grid" id="year-folders-grid" style="padding: 0 20px;">
+                    <!-- Year folders will be injected here via JS -->
                 </div>
             </section>
 
@@ -127,7 +121,7 @@
                     </thead>
                     <tbody>
                         {% for archive in archives %}
-                        <tr>
+                        <tr class="archive-row" data-type="{{ archive.doc_type }}" data-year="{{ archive.year }}">
                             <td><strong>{{ archive.doc_type }} {{ archive.original_document_number }}:</strong>
                                 {{archive.title }}</td>
                             <td>{{ archive.archive_id }}</td>
@@ -156,12 +150,19 @@
                             </td>
                         </tr>
                         {% empty %}
-                        <tr>
+                        <tr id="empty-row">
                             <td colspan="5" style="text-align: center; padding: 20px; color: #888;">
                                 No archived documents found.
                             </td>
                         </tr>
                         {% endfor %}
+                        {% if archives %}
+                        <tr id="empty-row" style="display: none;">
+                            <td colspan="5" style="text-align: center; padding: 20px; color: #888;">
+                                No archived documents match the selected folder.
+                            </td>
+                        </tr>
+                        {% endif %}
                     </tbody>
                 </table>
             </section>
@@ -429,14 +430,42 @@
         </div>
     </div>
 
-    <script>
-        function goToPage(pageNum) {
-            document.getElementById('pageInput').value = pageNum;
-            document.getElementById('filterForm').submit();
-        }
-    </script>
+    <!-- Add Folder Modal -->
+    <div id="addFolderModal" class="modal-overlay">
+        <div class="modal-container" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>CREATE NEW FOLDER</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form class="modal-body" method="POST" action="#">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>FOLDER NAME / CATEGORY</label>
+                        <input type="text" name="new_folder_name" placeholder="e.g., Executive Orders" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-discard close-modal">Cancel</button>
+                    <button type="button" class="btn-add close-modal" onclick="alert('Folder creation logic will be handled by the backend once implemented.')">Create Folder</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="{% static 'js/modals.js' %}?v=3"></script>
+    <script>
+        // Store basic metadata for filtering
+        const archiveData = [
+            {% for archive in archives %}
+            {
+                type: "{{ archive.doc_type|escapejs }}",
+                year: "{{ archive.year|escapejs }}"
+            },
+            {% endfor %}
+        ];
+    </script>
+    <script src="{% static 'js/archive.js' %}"></script>
 </body>
 
 </html>
