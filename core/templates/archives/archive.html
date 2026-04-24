@@ -13,23 +13,25 @@
 
 <body>
     <nav class="sidebar">
-        <div class="sidebar-logo">  
+        <div class="sidebar-logo">
             <a href="{% url 'dashboard' %}" style="text-decoration: none; color: inherit;">
-            <img src="{% static 'images/legishub-logo-light.png' %}" alt="Logo">
-            <h2>MARIKINA LEGISHUB</h2>
-            <p>Legislative Document Management System</p>
+                <img src="{% static 'images/legishub-logo-light.png' %}" alt="Logo">
+                <h2>MARIKINA LEGISHUB</h2>
+                <p>Legislative Document Management System</p>
             </a>
         </div>
         <ul class="nav-links">
             <li><a href="{% url 'dashboard' %}"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a></li>
-            <li><a href="{% url 'documents' %}" ><i class="fa-regular fa-file-lines"></i> Documents</a></li>
-            <li><a href=""class="active"><i class="fa-solid fa-box-archive"></i> Archive</a></li>  
+            <li><a href="{% url 'documents' %}"><i class="fa-regular fa-file-lines"></i> Documents</a></li>
+            <li><a href="" class="active"><i class="fa-solid fa-box-archive"></i> Archive</a></li>
             <li><a href="{% url 'audit_logs' %}"><i class="fa-solid fa-chart-line"></i> Audit Logs</a></li>
             {% if request.user.is_superuser %}
             <li><a href="{% url 'user_management' %}"><i class="fa-solid fa-users"></i> User Management</a></li>
-            <li class="settings-link"><a href="{% url 'general_info' %}"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            <li class="settings-link"><a href="{% url 'general_info' %}"><i class="fa-solid fa-gear"></i> Settings</a>
+            </li>
             {% endif %}
-            <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+            <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i>
+                    Logout</a></li>
         </ul>
     </nav>
 
@@ -40,20 +42,20 @@
                 <input type="text" placeholder="Search Archived Documents by Title, ID, or Keywords...">
             </div>
             <div class="header-actions">
-                    {% if not is_legislator %}
-                    <button type="button" class="btn-upload trigger-modal"><i class="fa-solid fa-plus"></i> Upload
-                        Document</button>
-                    {% endif %}
-                    <div class="notification-wrapper">
-                        <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer; font-size: 1.2rem;"></i>
-                        <span class="notif-badge"></span>
-                    </div>
-                    <i class="fa-regular fa-circle-question" title="Help"></i>
-                    <div class="profile">
-                        <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
-                    </div>
+                {% if not is_legislator %}
+                <button type="button" class="btn-upload trigger-modal"><i class="fa-solid fa-plus"></i> Upload
+                    Document</button>
+                {% endif %}
+                <div class="notification-wrapper">
+                    <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer; font-size: 1.2rem;"></i>
+                    <span class="notif-badge"></span>
                 </div>
-            </header>
+                <i class="fa-regular fa-circle-question" title="Help"></i>
+                <div class="profile">
+                    <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
+                </div>
+            </div>
+        </header>
 
         <div class="dashboard-body">
             <nav class="breadcrumb">
@@ -126,20 +128,31 @@
                     <tbody>
                         {% for archive in archives %}
                         <tr>
-                            <td><strong>{{ archive.doc_type }} {{ archive.original_document_number }}:</strong> {{ archive.title }}</td>
+                            <td><strong>{{ archive.doc_type }} {{ archive.original_document_number }}:</strong>
+                                {{archive.title }}</td>
                             <td>{{ archive.archive_id }}</td>
                             <td>{{ archive.original_date_filed|date:"M d, Y" }}</td>
                             <td>
                                 {% if archive.retention_policy == 'Permanent' %}
-                                    <span class="badge-permanent">PERMANENT</span>
+                                <span class="badge-permanent">PERMANENT</span>
                                 {% else %}
-                                    <span class="badge-retention">{{ archive.retention_policy|upper }}</span>
+                                <span class="badge-retention">{{ archive.retention_policy|upper }}</span>
                                 {% endif %}
                             </td>
-                            <td>
-                                {% if not is_legislator %}
-                                <i class="fa-solid fa-ellipsis-vertical" style="cursor: pointer;" title="Archive Options"></i>
-                                {% endif %}
+                            <td class="action-icons">
+
+                                <i class="fa-regular fa-eye trigger-view" title="View Document" style="cursor: pointer;"
+                                    data-number="{{ archive.archive_id }}" data-title="{{ archive.title }}"
+                                    data-type="{{ archive.doc_type }}" data-year="{{ archive.year }}"
+                                    data-date="{{ archive.original_date_filed|date:'M d, Y' }}"
+                                    data-sponsor="{{ archive.sponsor|default:'No Sponsor Listed' }}"
+                                    data-keywords="{{ archive.keywords|default:'None' }}"
+                                    data-enacted="{% if archive.date_enacted %}{{ archive.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
+                                    data-cosponsors="{{ archive.co_sponsors|default:'None' }}" data-status="Archived"
+                                    data-visibility="{{ archive.visibility }}"
+                                    data-storage="{{ archive.physical_storage|default:'Not specified' }}" 
+                                    {% if archive.file_attachment %}data-file="{{ archive.file_attachment.url }}" {% endif %}>
+                                </i>
                             </td>
                         </tr>
                         {% empty %}
@@ -156,7 +169,7 @@
     </main>
 
 
-    
+
     <!-- ===========================
      MODALS
      =========================== -->
@@ -171,7 +184,8 @@
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label>DOCUMENT TITLE / SUBJECT</label>
-                        <input type="text" name="title" placeholder="Complete title of the Ordinance or Resolution" required>
+                        <input type="text" name="title" placeholder="Complete title of the Ordinance or Resolution"
+                            required>
                     </div>
                 </div>
 
