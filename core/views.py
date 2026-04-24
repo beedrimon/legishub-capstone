@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from .models import LegislativeDocument, AuditLog
+from .models import LegislativeDocument, AuditLog, ArchivedDocument # Added ArchivedDocument
 from django.core.paginator import Paginator
 from django.db.models import Q
 
@@ -175,7 +175,12 @@ def documents_view(request):
 #ARCHIVE VIEW
 @login_required(login_url='login')
 def archive_view(request):
-    return render(request, 'archives/archive.html', {'is_legislator': is_legislator(request.user)})
+    # Fetch all archives, newest first
+    archives = ArchivedDocument.objects.all().order_by('-date_archived')
+    return render(request, 'archives/archive.html', {
+        'archives': archives, 
+        'is_legislator': is_legislator(request.user)
+    })
 
 #ARCHIVE 1900-1999 VIEW
 @login_required(login_url='login')
@@ -607,6 +612,72 @@ def edit_document(request):
         if new_file:
             doc.file_attachment = new_file
 
+        # Update the fields
+        doc.title = request.POST.get('title')
+        doc.document_number = new_document_number
+        doc.doc_type = request.POST.get('doc_type')
+        doc.year = request.POST.get('year')
+        
+        date_enacted = request.POST.get('date_enacted')
+        doc.date_enacted = date_enacted if date_enacted else None
+
+        doc.sponsor = request.POST.get('sponsor')
+        doc.co_sponsors = request.POST.get('co_sponsors')
+        doc.keywords = request.POST.get('keywords')
+        doc.visibility = request.POST.get('visibility')
+        doc.physical_storage = request.POST.get('physical_storage')
+
+        # Check the new status
+        new_status = request.POST.get('status')
+        
+        # ==========================================
+        # ARCHIVAL TRIGGER LOGIC
+        # ==========================================
+        if new_status == 'Archived':
+            # 1. Generate a unique Archive ID (e.g., ARC-26-015)
+            year_suffix = str(doc.year)[-2:]
+            archive_id = f"ARC-{year_suffix}-{doc.id:03d}"
+            
+            # 2. Create the new record in the ArchivedDocument table
+            new_archive = ArchivedDocument.objects.create(
+                archive_id=archive_id,
+                original_document_number=doc.document_number,
+                title=doc.title,
+                doc_type=doc.doc_type,
+                year=doc.year,
+                date_enacted=doc.date_enacted,
+                sponsor=doc.sponsor,
+                co_sponsors=doc.co_sponsors,
+                visibility='Internal Only', # Automatically locks privacy for archives
+                keywords=doc.keywords,
+                physical_storage=doc.physical_storage,
+                retention_policy='Permanent',
+                original_date_filed=doc.date_filed,
+                archived_by=request.user
+            )
+
+            # 3. Transfer the PDF File to the new /archives/ folder
+            from django.core.files.base import ContentFile
+            if doc.file_attachment:
+                file_content = ContentFile(doc.file_attachment.read())
+                file_name = doc.file_attachment.name.split('/')[-1]
+                new_archive.file_attachment.save(file_name, file_content, save=True)
+
+            # 4. Log the archival and DELETE the active document
+            AuditLog.objects.create(user=request.user, action=f'Archived Document: {archive_id}')
+            doc.delete()
+
+            messages.success(request, f'Document successfully moved to Archives as {archive_id}!')
+            return redirect('archive') # Send them to the archive page!
+
+        # If it is NOT being archived, just save it normally as an Active/Pending document
+        doc.status = new_status
+
+        # Only overwrite the file if they uploaded a new one!
+        new_file = request.FILES.get('file_attachment')
+        if new_file:
+            doc.file_attachment = new_file
+
         doc.save()
 
         # Log the edit action
@@ -618,4 +689,4 @@ def edit_document(request):
 
         messages.success(request, 'Document successfully updated!')
         
-    return redirect('documents') # Bounce them back to the documents page
+    return redirect('documents')

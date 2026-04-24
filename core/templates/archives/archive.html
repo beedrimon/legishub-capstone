@@ -124,29 +124,32 @@
                         </tr>
                     </thead>
                     <tbody>
+                        {% for archive in archives %}
                         <tr>
-                            <td><strong>Res 1995-01:</strong> River Rehabilitation</td>
-                            <td>ARC-95-001</td>
-                            <td>June 12, 1995</td>
-                            <td><span class="badge-permanent">PERMANENT</span></td>
+                            <td><strong>{{ archive.doc_type }} {{ archive.original_document_number }}:</strong> {{ archive.title }}</td>
+                            <td>{{ archive.archive_id }}</td>
+                            <td>{{ archive.original_date_filed|date:"M d, Y" }}</td>
+                            <td>
+                                {% if archive.retention_policy == 'Permanent' %}
+                                    <span class="badge-permanent">PERMANENT</span>
+                                {% else %}
+                                    <span class="badge-retention">{{ archive.retention_policy|upper }}</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if not is_legislator %}
-                                <i class="fa-solid fa-ellipsis-vertical"></i>
+                                <i class="fa-solid fa-ellipsis-vertical" style="cursor: pointer;" title="Archive Options"></i>
                                 {% endif %}
                             </td>
                         </tr>
+                        {% empty %}
                         <tr>
-                            <td><strong>Ord 2002-45:</strong> Public Market Cleanliness</td>
-                            <td>ARC-02-045</td>
-                            <td>Feb 20, 2002</td>
-                            <td><span class="badge-retention">10 YEARS LEFT</span></td>
-                            <td>
-                                {% if not is_legislator %}
-                                <i class="fa-solid fa-ellipsis-vertical"></i>
-                                {% endif %}
+                            <td colspan="5" style="text-align: center; padding: 20px; color: #888;">
+                                No archived documents found.
                             </td>
                         </tr>
-                        </tbody>
+                        {% endfor %}
+                    </tbody>
                 </table>
             </section>
         </div>

@@ -56,6 +56,57 @@ class LegislativeDocument(models.Model):
     def __str__(self):
         return f"{self.document_number}: {self.title}"
 
+# ==========================================
+# CUSTOM FILE RENAMING FUNCTION FOR ARCHIVES
+# ==========================================
+def archive_upload_path(instance, filename):
+    # Extract the file extension (e.g., 'pdf')
+    ext = filename.split('.')[-1]
+    # Rename the file to match the unique Archive ID
+    safe_name = instance.archive_id.replace('/', '-').replace('\\', '-')
+    new_filename = f"{safe_name}.{ext}"
+    # Saves to a separate 'archives' folder instead of 'documents'
+    return os.path.join('archives/', new_filename)
+
+# ==========================================
+# ARCHIVED DOCUMENT MODEL
+# ==========================================
+class ArchivedDocument(models.Model):
+    RETENTION_CHOICES = [
+        ('Permanent', 'Permanent'),
+        ('10 Years', '10 Years'),
+        ('5 Years', '5 Years'),
+        ('Pending Disposal', 'Pending Disposal'),
+    ]
+
+    # 1. New Unique Archive Identifier (Replaces document_number)
+    archive_id = models.CharField(max_length=100, unique=True)
+    
+    # Optional: Keep a record of what the original Legis Number was
+    original_document_number = models.CharField(max_length=100, null=True, blank=True)
+    
+    # 2. Mirrored Attributes from LegislativeDocument
+    title = models.CharField(max_length=255)
+    doc_type = models.CharField(max_length=50, choices=LegislativeDocument.DOCUMENT_TYPES)
+    year = models.IntegerField()
+    date_enacted = models.DateField(null=True, blank=True)
+    sponsor = models.CharField(max_length=255, null=True, blank=True)
+    co_sponsors = models.CharField(max_length=500, null=True, blank=True)
+    visibility = models.CharField(max_length=50, choices=LegislativeDocument.VISIBILITY_CHOICES, default='Internal Only')
+    keywords = models.CharField(max_length=255, null=True, blank=True)
+    physical_storage = models.CharField(max_length=255, null=True, blank=True)
+    
+    # 3. Archive-Specific Attributes
+    retention_policy = models.CharField(max_length=50, choices=RETENTION_CHOICES, default='Permanent')
+    original_date_filed = models.DateField(null=True, blank=True)
+    date_archived = models.DateField(auto_now_add=True)
+    
+    # Uses the new archive upload path
+    file_attachment = models.FileField(upload_to=archive_upload_path, null=True, blank=True)
+    archived_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='archived_docs')
+
+    def __str__(self):
+        return f"{self.archive_id}: {self.title}"
 
 class AuditLog(models.Model):
     ACTION_CHOICES = [
