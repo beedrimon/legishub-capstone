@@ -80,13 +80,13 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
-        #'OPTIONS': {
-        #     'sslmode': 'require',
-        #},
+        'OPTIONS': {
+            'sslmode': 'require',
+        },
     }
 }
 
-# Password validation
+# Password validations
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -110,7 +110,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Manila'
 
 USE_I18N = True
 
@@ -124,6 +124,11 @@ STATIC_URL = 'static/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+# ==========================================
+# IFRAME SECURITY (ALLOW PDF PREVIEWS)
+# ==========================================
+X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # ==========================================
 # EMAIL CONFIGURATION (GMAIL)

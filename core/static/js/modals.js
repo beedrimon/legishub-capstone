@@ -75,18 +75,42 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Add to modals.js
-    const fileInput = document.getElementById('fileInput');
-    if (fileInput) {
-        fileInput.addEventListener('change', function () {
-            const uploadText = this.parentElement.querySelector('p');
-            if (this.files && this.files.length > 0) {
-                // Change the text to the name of the file!
-                uploadText.innerText = 'File selected: ' + this.files[0].name;
-                uploadText.style.color = '#22C55E'; // Make it green
+    // ==========================================
+    // FILE UPLOAD UI FEEDBACK (Upload Modal)
+    // ==========================================
+    // Use event delegation to catch ALL file inputs across the entire application.
+    // This completely ignores IDs and safely finds the input no matter what it's named.
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.type === 'file') {
+            const fileInput = e.target;
+            // Pinpoint the exact visual box directly surrounding this specific input
+            const uploadArea = fileInput.closest('.upload-area');
+            
+            if (uploadArea) {
+                const uploadText = uploadArea.querySelector('p');
+                const uploadSpan = uploadArea.querySelector('span');
+                
+                if (uploadText) {
+                    if (fileInput.files && fileInput.files.length > 0) {
+                        // Use innerHTML to preserve <strong> tags utilized by Edit Modals
+                        if (!uploadArea.hasAttribute('data-default-html')) {
+                            uploadArea.setAttribute('data-default-html', uploadText.innerHTML);
+                            if (uploadSpan) uploadArea.setAttribute('data-default-span', uploadSpan.innerText);
+                        }
+                        
+                        uploadText.innerHTML = `File attached: <strong style="color: #22C55E;">${fileInput.files[0].name}</strong>`;
+                        if (uploadSpan) uploadSpan.innerText = 'Ready to upload';
+                    } else {
+                        // Revert to original text/formatting if user clicks "Cancel"
+                        if (uploadArea.hasAttribute('data-default-html')) {
+                            uploadText.innerHTML = uploadArea.getAttribute('data-default-html');
+                            if (uploadSpan) uploadSpan.innerText = uploadArea.getAttribute('data-default-span');
+                        }
+                    }
+                }
             }
-        });
-    }
+        }
+    });
 
     // ==========================================
     // POPULATE DETAILED VIEW MODAL
@@ -103,6 +127,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const docDate = this.getAttribute('data-date');
             const docSponsor = this.getAttribute('data-sponsor');
             const docKeywords = this.getAttribute('data-keywords');
+            const docEnacted = this.getAttribute('data-enacted');
+            const docCosponsors = this.getAttribute('data-cosponsors');
+            const docStatus = this.getAttribute('data-status');
+            const docVisibility = this.getAttribute('data-visibility');
+            const docStorage = this.getAttribute('data-storage');
             const fileUrl = this.getAttribute('data-file');
 
             // 2. Inject the data into the modal's HTML
@@ -113,6 +142,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('view-date').innerText = docDate;
             document.getElementById('view-sponsor').innerText = docSponsor;
             document.getElementById('view-keywords').innerText = docKeywords;
+            if(document.getElementById('view-enacted')) document.getElementById('view-enacted').innerText = docEnacted;
+            if(document.getElementById('view-cosponsors')) document.getElementById('view-cosponsors').innerText = docCosponsors;
+            if(document.getElementById('view-status')) document.getElementById('view-status').innerHTML = `<span class="badge ${docStatus ? docStatus.toLowerCase() : ''}">${docStatus}</span>`;
+            if(document.getElementById('view-visibility')) document.getElementById('view-visibility').innerText = docVisibility;
+            if(document.getElementById('view-storage')) document.getElementById('view-storage').innerText = docStorage;
 
             // 3. Update the Download Button
             const downloadBtn = document.getElementById('view-download-btn');
@@ -131,9 +165,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const pdfIframe = document.getElementById('view-pdf-iframe');
             const pdfMissing = document.getElementById('view-pdf-missing');
 
-            if (fileUrl) {
-                // If there is a file, set the iframe source to the file URL and show it
-                pdfIframe.src = fileUrl;
+            // Safe check for valid URL
+            const hasFile = fileUrl && fileUrl.trim() !== '' && fileUrl !== 'None' && fileUrl !== 'null';
+
+            if (hasFile) {
+                // Set iframe source and force PDF to fit horizontal width smoothly
+                pdfIframe.src = fileUrl + '#view=FitH';
                 pdfIframe.style.display = 'block';
                 pdfMissing.style.display = 'none';
             } else {
@@ -192,17 +229,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
-
-    // 4. Change UI text when a new file is selected during edit
-    const editFileInput = document.getElementById('editFileInput');
-    if (editFileInput) {
-        editFileInput.addEventListener('change', function () {
-            const uploadText = document.getElementById('edit-file-text');
-            if (this.files && this.files.length > 0) {
-                uploadText.innerHTML = `New file selected: <strong style="color: #22C55E;">${this.files[0].name}</strong>`;
-            }
-        });
-    }
 
     // ==========================================
     // 5. PASSWORD VISIBILITY TOGGLE

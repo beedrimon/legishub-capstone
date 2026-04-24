@@ -1,8 +1,20 @@
+import os
 from django.db import models
 from django.contrib.auth.models import User # Using Django's built-in secure User table
 from django.core.exceptions import ValidationError
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
+
+# ==========================================
+# CUSTOM FILE RENAMING FUNCTION
+# ==========================================
+def document_upload_path(instance, filename):
+    # Extract the file extension (e.g., 'pdf')
+    ext = filename.split('.')[-1]
+    # Rename the file to match the unique Document Number (replace slashes just in case)
+    safe_name = instance.document_number.replace('/', '-').replace('\\', '-')
+    new_filename = f"{safe_name}.{ext}"
+    return os.path.join('documents/', new_filename)
 
 class LegislativeDocument(models.Model):
     DOCUMENT_TYPES = [
@@ -38,7 +50,7 @@ class LegislativeDocument(models.Model):
     # Original system columns
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Pending')
     date_filed = models.DateField(auto_now_add=True)
-    file_attachment = models.FileField(upload_to='documents/', null=True, blank=True)
+    file_attachment = models.FileField(upload_to=document_upload_path, null=True, blank=True)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='documents')
 
     def __str__(self):

@@ -13,6 +13,18 @@
 
 <body>
 
+    <!-- GLOBAL TOAST MESSAGES -->
+    <div class="toast-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="toast {{ message.tags }}">
+                    <span>{{ message }}</span>
+                    <button class="close-toast">&times;</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
     <nav class="sidebar">
         <div class="sidebar-logo">
             <a href="{% url 'dashboard' %}" style="text-decoration: none; color: inherit;">
@@ -145,8 +157,13 @@
                                         data-title="{{ doc.title }}" data-type="{{ doc.doc_type }}"
                                         data-year="{{ doc.year }}" data-date="{{ doc.date_filed|date:'M d, Y' }}"
                                         data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
-                                        data-keywords="{{ doc.keywords|default:'None' }}" {% if doc.file_attachment %}
-                                        data-file="{{ doc.file_attachment.url }}" {% endif %}></i>
+                                        data-keywords="{{ doc.keywords|default:'None' }}"
+                                        data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
+                                        data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
+                                        data-status="{{ doc.status }}"
+                                        data-visibility="{{ doc.visibility }}"
+                                        data-storage="{{ doc.physical_storage|default:'Not specified' }}"
+                                        {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}" {% endif %}></i>
                                     {% if not is_legislator %}
                                     <i class="fa-regular fa-pen-to-square trigger-edit" title="Edit Record"
                                         style="cursor: pointer;" data-id="{{ doc.id }}"
@@ -381,13 +398,37 @@
                             <p class="meta-val" id="view-year"></p>
                         </div>
                     </div>
-                    <div class="meta-group">
-                        <label>DATE FILED</label>
-                        <p class="meta-val" id="view-date"></p>
+                    <div class="meta-row">
+                        <div class="meta-group">
+                            <label>DATE FILED</label>
+                            <p class="meta-val" id="view-date"></p>
+                        </div>
+                        <div class="meta-group">
+                            <label>DATE ENACTED</label>
+                            <p class="meta-val" id="view-enacted"></p>
+                        </div>
                     </div>
                     <div class="meta-group">
                         <label>PRIMARY AUTHOR / SPONSOR</label>
                         <p class="meta-val" id="view-sponsor"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>CO-SPONSOR(S)</label>
+                        <p class="meta-val" id="view-cosponsors"></p>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-group">
+                            <label>STATUS</label>
+                            <p class="meta-val" id="view-status"></p>
+                        </div>
+                        <div class="meta-group">
+                            <label>VISIBILITY</label>
+                            <p class="meta-val" id="view-visibility"></p>
+                        </div>
+                    </div>
+                    <div class="meta-group">
+                        <label>PHYSICAL STORAGE</label>
+                        <p class="meta-val" id="view-storage"></p>
                     </div>
                     <div class="meta-group">
                         <label>KEYWORDS</label>
@@ -523,7 +564,7 @@
         }
     </script>
 
-    <script src="{% static 'js/modals.js' %}?v=3"></script>
+    <script src="{% static 'js/modals.js' %}?v=5"></script>
 </body>
 
 </html>

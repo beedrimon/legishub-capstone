@@ -13,6 +13,18 @@
 
 <body class="page-dashboard">
 
+    <!-- GLOBAL TOAST MESSAGES -->
+    <div class="toast-container">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="toast {{ message.tags }}">
+                    <span>{{ message }}</span>
+                    <button class="close-toast">&times;</button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    </div>
+
     <nav class="sidebar">
         <div class="sidebar-logo">
             <a href="{% url 'dashboard' %}" style="text-decoration: none; color: inherit;">
@@ -321,7 +333,7 @@
     </div>
 
 
-    <script src="{% static 'js/modals.js' %}"></script>
+    <script src="{% static 'js/modals.js' %}?v=4"></script>
 
 </body>
 
