@@ -267,14 +267,43 @@ def user_management_view(request):
         messages.error(request, 'You do not have permission to access User Management.')
         return redirect('documents') # Redirect staff away
 
-    # 1. Fetch all users from the database
-    # We order them by date_joined so the newest accounts appear first
     all_users = User.objects.all().order_by('-date_joined')
     
-    # 2. Put the users in the context dictionary
-    # The key 'users' MUST match the name used in your {% for user in users %} loop
+    search_query = request.GET.get('q', '')
+    role_filter = request.GET.get('role', '')
+    status_filter = request.GET.get('status', '')
+
+    if search_query:
+        all_users = all_users.filter(
+            Q(username__icontains=search_query) | 
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(email__icontains=search_query)
+        )
+
+    if role_filter == 'admin':
+        all_users = all_users.filter(is_superuser=True)
+    elif role_filter == 'staff':
+        all_users = all_users.filter(is_superuser=False, is_staff=True)
+    elif role_filter == 'legislator':
+        all_users = all_users.filter(is_superuser=False, is_staff=False)
+        
+    if status_filter == 'active':
+        all_users = all_users.filter(is_active=True)
+    elif status_filter == 'inactive':
+        all_users = all_users.filter(is_active=False)
+
+    total_records = all_users.count()
+    
+    # Pagination (Showing 10 users per page)
+    paginator = Paginator(all_users, 5) 
+    page_number = request.GET.get('page')
+    paginated_users = paginator.get_page(page_number)
+
     context = {
-        'users': all_users,
+        'users': paginated_users,
+        'total_records': total_records,
+        'current_filters': request.GET,
     }
     
     # 3. Send the data to the template
@@ -341,6 +370,7 @@ def edit_user_view(request):
         last_name = request.POST.get('last_name')
         email = request.POST.get('email')
         username = request.POST.get('username')
+        role = request.POST.get('role')
 
         try:
             target_user = User.objects.get(id=user_id)
@@ -358,6 +388,18 @@ def edit_user_view(request):
             target_user.last_name = last_name
             target_user.email = email
             target_user.username = username
+            
+            if role:
+                if role == 'admin':
+                    target_user.is_superuser = True
+                    target_user.is_staff = True
+                elif role == 'staff':
+                    target_user.is_superuser = False
+                    target_user.is_staff = True
+                elif role == 'legislator':
+                    target_user.is_superuser = False
+                    target_user.is_staff = False
+
             target_user.save()
             
             messages.success(request, f"Account for '{username}' successfully updated!")

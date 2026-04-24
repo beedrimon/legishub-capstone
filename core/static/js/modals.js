@@ -246,12 +246,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const userLast = this.getAttribute('data-last');
             const userEmail = this.getAttribute('data-email');
             const userUsername = this.getAttribute('data-username');
+            const userRole = this.getAttribute('data-role');
 
             document.getElementById('edit-user-id').value = userId;
             document.getElementById('edit-user-first').value = userFirst;
             document.getElementById('edit-user-last').value = userLast;
             document.getElementById('edit-user-email').value = userEmail;
             document.getElementById('edit-user-username').value = userUsername;
+            if(document.getElementById('edit-user-role')) {
+                document.getElementById('edit-user-role').value = userRole;
+            }
         });
     });
 

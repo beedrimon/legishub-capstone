@@ -66,54 +66,48 @@
                     <p>Control access levels and manage legislative staff accounts.</p>
                 </div>
                 <button class="btn-create trigger-user">
-                    <i class="fa-solid fa-user-plus"></i> Create New Account
+                    <i class="fa-solid fa-user-plus"></i> Add User
                 </button>
             </div>
 
-            <section class="iam-grid">
-                {% for user in users %}
-                <div class="iam-card">
-                    <div class="user-badge-header">
-                        <div class="avatar-info">
-                            <span class="initials">{{ user.username|slice:":2"|upper }}</span>
-                            <div>
-                                <strong>{{ user.first_name }} {{ user.last_name|default:user.username }}</strong><br>
-                                <small>{{ user.email|default:"no-email@marikina.gov" }}</small>
-                            </div>
-                        </div>
-                        <span class="role-badge {% if user.is_superuser %}sys-admin{% else %}staff{% endif %}">
-                            {% if user.is_superuser %}SYSTEM ADMIN{% else %}LEGISLATIVE STAFF{% endif %}
-                        </span>
-                    </div>
-                    <div class="permission-list">
-                        <div class="permission-row">Full System Access
-                            <form method="POST" action="{% url 'toggle_permission' user.id 'superuser' %}" style="margin: 0; display: inline-flex;">
-                                {% csrf_token %}
-                                <button type="submit" class="toggle {% if user.is_superuser %}on{% else %}off{% endif %}" style="border: none; outline: none;"></button>
-                            </form>
-                        </div>
-                        <div class="permission-row">Active Account (Login)
-                            <form method="POST" action="{% url 'toggle_permission' user.id 'active' %}" style="margin: 0; display: inline-flex;">
-                                {% csrf_token %}
-                                <button type="submit" class="toggle {% if user.is_active %}on{% else %}off{% endif %}" style="border: none; outline: none;"></button>
-                            </form>
-                        </div>
-                        <div class="permission-row">Archive Management
-                            <form method="POST" action="{% url 'toggle_permission' user.id 'staff' %}" style="margin: 0; display: inline-flex;">
-                                {% csrf_token %}
-                                <button type="submit" class="toggle {% if user.is_staff %}on{% else %}off{% endif %}" style="border: none; outline: none;"></button>
-                            </form>
-                        </div>
-                    </div>
+            <form method="GET" action="{% url 'user_management' %}" id="userFilterForm" class="filter-section" style="align-items: center;">
+                <div class="search-bar" style="background: white; border: 1.5px solid var(--border-color); flex: 1; max-width: 400px; border-radius: 8px;">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" name="q" value="{{ current_filters.q }}" placeholder="Search by name, username, or email...">
+                    <button type="submit" style="display: none;"></button>
                 </div>
-                {% endfor %}
-            </section>
+                
+                <div class="filter-group" style="min-width: 150px; flex: none;">
+                    <label>ROLE</label>
+                    <select name="role" onchange="document.getElementById('userFilterForm').submit();">
+                        <option value="">All Roles</option>
+                        <option value="admin" {% if current_filters.role == 'admin' %}selected{% endif %}>System Admin</option>
+                        <option value="staff" {% if current_filters.role == 'staff' %}selected{% endif %}>Legislative Staff</option>
+                        <option value="legislator" {% if current_filters.role == 'legislator' %}selected{% endif %}>Legislator</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group" style="min-width: 150px; flex: none;">
+                    <label>STATUS</label>
+                    <select name="status" onchange="document.getElementById('userFilterForm').submit();">
+                        <option value="">All Statuses</option>
+                        <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if current_filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+
+                <a href="{% url 'user_management' %}" class="btn-reset" style="text-decoration: none; padding: 10px 18px; align-self: flex-end;">Reset</a>
+            </form>
+
+            <div class="total-records" style="margin-bottom: 12px; font-weight: 600; padding-left: 5px;">
+                {{ total_records }} Account{% if total_records != 1 %}s{% endif %} Found
+            </div>
 
             <section class="table-card">
                 <table>
                     <thead>
                         <tr>
-                            <th>USER NAME</th>
+                            <th>USER DETAILS</th>
                             <th>DESIGNATION</th>
                             <th>LAST ACTIVITY</th>
                             <th>STATUS</th>
@@ -123,15 +117,24 @@
                     <tbody>
                         {% for user in users %}
                         <tr>
-                            <td><strong>{{ user.get_full_name|default:user.username }}</strong></td>
-                            <td>{% if user.is_superuser %}Admin{% else %}Staff / Support{% endif %}</td>
+                            <td>
+                                <strong>{{ user.get_full_name|default:user.username }}</strong><br>
+                                <small style="color: var(--text-light);">{{ user.email|default:"No email provided" }}</small>
+                            </td>
+                            <td>
+                                <span class="role-badge {% if user.is_superuser %}sys-admin{% else %}staff{% endif %}">
+                                    {% if user.is_superuser %}SYSTEM ADMIN{% elif user.is_staff %}STAFF{% else %}LEGISLATOR{% endif %}
+                                </span>
+                            </td>
                             <td>{{ user.last_login|timesince|default:"Never" }} ago</td>
                             <td>
-                                {% if user.is_active %}
-                                <span class="status-active">Active</span>
-                                {% else %}
-                                <span class="status-inactive" style="color: gray;">Inactive</span>
-                                {% endif %}
+                                <form method="POST" action="{% url 'toggle_permission' user.id 'active' %}" style="margin: 0; display: inline-flex; align-items: center; gap: 8px;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="toggle {% if user.is_active %}on{% else %}off{% endif %}" style="border: none; outline: none;"></button>
+                                    <span style="font-size: 0.8rem; font-weight: 600; color: {% if user.is_active %}#2E7D32{% else %}#888{% endif %};">
+                                        {% if user.is_active %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </form>
                             </td>
                             <td>
                                 <button type="button" class="trigger-edit-user" style="background: none; border: none; color: #1E88E5; cursor: pointer; padding: 4px 8px; border-radius: 4px;" title="Edit User"
@@ -139,7 +142,8 @@
                                     data-first="{{ user.first_name }}"
                                     data-last="{{ user.last_name }}"
                                     data-email="{{ user.email }}"
-                                    data-username="{{ user.username }}">
+                                    data-username="{{ user.username }}"
+                                    data-role="{% if user.is_superuser %}admin{% elif user.is_staff %}staff{% else %}legislator{% endif %}">
                                     <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
                                 
@@ -159,6 +163,36 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                
+                <!-- Pagination Section -->
+                {% if users.has_other_pages %}
+                <div class="pagination">
+                    <div class="page-info">
+                        Showing page {{ users.number }} of {{ users.paginator.num_pages }}
+                    </div>
+                    <div class="page-numbers">
+                        {% if users.has_previous %}
+                        <a href="?page=1{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.role %}&role={{ current_filters.role }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}" style="text-decoration: none;">
+                            <button>&laquo; First</button>
+                        </a>
+                        <a href="?page={{ users.previous_page_number }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.role %}&role={{ current_filters.role }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}" style="text-decoration: none;">
+                            <button>Previous</button>
+                        </a>
+                        {% endif %}
+                        
+                        <span>Page {{ users.number }}</span>
+
+                        {% if users.has_next %}
+                        <a href="?page={{ users.next_page_number }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.role %}&role={{ current_filters.role }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}" style="text-decoration: none;">
+                            <button>Next</button>
+                        </a>
+                        <a href="?page={{ users.paginator.num_pages }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.role %}&role={{ current_filters.role }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}" style="text-decoration: none;">
+                            <button>Last &raquo;</button>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
             </section>
         </div>
     </main>
@@ -243,6 +277,16 @@
                     <div class="form-group">
                         <label>USERNAME</label>
                         <input type="text" name="username" id="edit-user-username" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>ROLE / DESIGNATION</label>
+                        <select name="role" id="edit-user-role" required>
+                            <option value="staff">Legislative Staff</option>
+                            <option value="admin">System Admin</option>
+                            <option value="legislator">Legislator (Read-Only)</option>
+                        </select>
                     </div>
                 </div>
                 <div class="modal-footer">
