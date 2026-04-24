@@ -1,54 +1,10 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
+{% extends 'admin_panel/base.html' %}
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Marikina LegisHub</title>
-    <link rel="icon" href="../static/images/legishub-logo-light.png">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/main.css' %}">
-</head>
+{% block title %}Dashboard - Marikina LegisHub{% endblock %}
 
-<body class="page-dashboard">
+{% block body_class %}page-dashboard{% endblock %}
 
-    <!-- GLOBAL TOAST MESSAGES -->
-    <div class="toast-container">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="toast {{ message.tags }}">
-                    <span>{{ message }}</span>
-                    <button class="close-toast">&times;</button>
-                </div>
-            {% endfor %}
-        {% endif %}
-    </div>
-
-    <nav class="sidebar">
-        <div class="sidebar-logo">
-            <a href="{% url 'dashboard' %}" style="text-decoration: none; color: inherit;">
-            <img src="{% static 'images/legishub-logo-light.png' %}" alt="Logo">
-            <h2>MARIKINA LEGISHUB</h2>
-            <p>Legislative Document Management System</p>
-            </a>
-        </div>
-        <ul class="nav-links">
-            <li><a href="{% url 'dashboard' %}" class="active"><i class="fa-solid fa-table-cells-large"></i>
-                    Dashboard</a></li>
-            <li><a href="{% url 'documents' %}"><i class="fa-regular fa-file-lines"></i> Documents</a></li>
-            <li><a href="{% url 'archive' %}"><i class="fa-solid fa-box-archive"></i> Archive</a></li>
-            <li><a href="{% url 'audit_logs' %}"><i class="fa-solid fa-chart-line"></i> Audit Logs</a></li>
-            {% if request.user.is_superuser %}
-            <li><a href="{% url 'user_management' %}"><i class="fa-solid fa-users"></i> User Management</a></li>
-            <li class="settings-link"><a href="{% url 'general_info' %}"><i class="fa-solid fa-gear"></i> Settings</a></li>
-            {% endif %}
-            <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i>Logout</a></li>
-        </ul>
-    </nav>
-
-    <main class="main-content">
-        <header class="top-header">
+{% block top_header_content %}
             <form method="GET" action="{% url 'dashboard' %}" class="search-bar">
                 <i class="fa-solid fa-magnifying-glass"></i>
                  <input type="text" name="q" value="{{ request.GET.q }}" 
@@ -65,13 +21,12 @@
                 </div>
                 <i class="fa-regular fa-circle-question" title="Help"></i>
                 <div class="profile">
-                    <i class="fa-regular fa-circle-user"></i> {{request.user.username|default:"Name" }}
+                    <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
                 </div>
             </div>
-        </header>
+{% endblock %}
 
-        <div class="dashboard-body">
-                
+{% block content %}
             <div class="dashboard-header">
                 <h1>Dashboard</h1>
                 <p>Monitoring efficiency and data integrity for Marikina City Council.</p>
@@ -185,156 +140,4 @@
                     </div>
 
                 </div>
-
-            </div>
-        </div>
-    </main>
-
-
-    <!-- ===========================
-     MODALS
-     =========================== -->
-
-    <div id="uploadModal" class="modal-overlay">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h2>NEW LEGISLATIVE ENTRY</h2>
-                <button class="close-modal" id="closeModal">&times;</button>
-            </div>
-            <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data">
-                {% csrf_token %}
-                <div class="form-row">
-                    <div class="form-group full-width">
-                        <label>DOCUMENT TITLE / SUBJECT</label>
-                        <input type="text" name="title" placeholder="Complete title of the Ordinance or Resolution" required>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>LEGIS NUMBER (REF NO.)</label>
-                        <input type="text" name="document_number" placeholder="e.g., ORD-2026-001" required>
-                    </div>
-                    <div class="form-group">
-                        <label>DOCUMENT TYPE</label>
-                        <select name="doc_type" required>
-                            <option value="Ordinance">Ordinance</option>
-                            <option value="Resolution">Resolution</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>SERIES YEAR</label>
-                        <input type="number" name="year" value="2026" required>
-                    </div>
-                    <div class="form-group">
-                        <label>DATE ENACTED / APPROVED</label>
-                        <input type="date" name="date_enacted">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>PRIMARY SPONSOR / AUTHOR</label>
-                        <input type="text" name="sponsor" placeholder="Hon. Name of Sponsor">
-                    </div>
-                    <div class="form-group">
-                        <label>KEYWORDS / TAGS</label>
-                        <input type="text" name="keywords" placeholder="e.g., Environment, Baha, Business">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group full-width">
-                        <label>PROJECT CO-SPONSOR/S</label>
-                        <input type="text" name="co_sponsors" placeholder="Separate names with commas">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>STATUS</label>
-                        <select name="status" required>
-                            <option value="Pending">Pending</option>
-                            <option value="Active">Active</option>
-                            <option value="Archived">Archived</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>VISIBILITY / PRIVACY</label>
-                        <select name="visibility">
-                            <option value="Public Access">Public Access</option>
-                            <option value="Internal Only">Internal Only</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group full-width">
-                        <label>PHYSICAL STORAGE REF (OPTIONAL)</label>
-                        <input type="text" name="physical_storage" placeholder="e.g., Cabinet A, Shelf 2">
-                    </div>
-                </div>
-
-                <label for="fileInputDocPage" class="upload-area" style="cursor: pointer; display: block;">
-                    <i class="fa-regular fa-file-pdf"></i>
-                    <p>Upload Certified PDF Copy</p>
-                    <span>Click here to browse files (Max 20MB)</span>
-                    <input type="file" name="file_attachment" hidden id="fileInputDocPage" accept=".pdf">
-                </label>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn-discard" id="discardBtn">Discard</button>
-                    <button type="submit" class="btn-add">Add Document</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-
-    <div id="notificationDropdown" class="notif-dropdown" style="display: none;">
-        <div class="notif-header">
-            <h3>NOTIFICATIONS</h3>
-            <a href="#" class="mark-read">Mark all as read</a>
-        </div>
-        <div class="notif-body">
-            <div class="notif-item unread">
-                <span class="notif-dot"></span>
-                <div class="notif-content">
-                    <p><strong>New Document:</strong> Ordinance No. 2026-005 has been uploaded by <strong>M.
-                            Esquilona</strong>.</p>
-                    <span class="notif-time">2 minutes ago</span>
-                </div>
-            </div>
-            <div class="notif-item">
-                <div class="notif-content">
-                    <p><strong>Pending Review:</strong> Resolution 102 (Flood Mitigation) requires your signature.</p>
-                    <span class="notif-time">1 hour ago</span>
-                </div>
-            </div>
-            <div class="notif-item">
-                <div class="notif-content">
-                    <p><strong>System Update:</strong> Cloud Backup was successful at 10:00 AM.</p>
-                    <span class="notif-time">3 hours ago</span>
-                </div>
-            </div>
-            <div class="notif-item border-none">
-                <div class="notif-content">
-                    <p><strong>Security Alert:</strong> New login detected from IP 192.168.1.45 (Admin PC).</p>
-                    <span class="notif-time">Yesterday</span>
-                </div>
-            </div>
-        </div>
-        <div class="notif-footer">
-            <a href="#">See All Notifications</a>
-        </div>
-    </div>
-
-
-    <script src="{% static 'js/modals.js' %}?v=4"></script>
-
-</body>
-
-</html>
+{% endblock %}
