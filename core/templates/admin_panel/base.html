@@ -65,11 +65,114 @@
      MODALS
      =========================== -->
     {% block modals %}
-    <div id="uploadModal" class="modal-overlay">
+    <div id="uploadNewModal" class="modal-overlay">
         <div class="modal-container">
             <div class="modal-header">
-                <h2>NEW LEGISLATIVE ENTRY</h2>
-                <button class="close-modal" id="closeModal">&times;</button>
+                <h2>NEW DOCUMENT PROPOSAL</h2>
+                <button type="button" class="close-modal">&times;</button>
+            </div>
+            <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>DOCUMENT TITLE / SUBJECT</label>
+                        <input type="text" name="title" placeholder="Complete title of the Ordinance or Resolution" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>LEGIS NUMBER (REF NO.)</label>
+                        <input type="text" name="document_number" placeholder="e.g., ORD-2026-001" required>
+                    </div>
+                    <div class="form-group">
+                        <label>DOCUMENT TYPE</label>
+                        <select name="doc_type" required>
+                            <option value="Ordinance">Ordinance</option>
+                            <option value="Resolution">Resolution</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>SERIES YEAR</label>
+                        <input type="number" name="year" value="2026" required>
+                    </div>
+                    <div class="form-group">
+                        <label>DATE ENACTED / APPROVED</label>
+                        <input type="date" name="date_enacted">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>PRIMARY SPONSOR / AUTHOR</label>
+                        <input type="text" name="sponsor" placeholder="Hon. Name of Sponsor">
+                    </div>
+                    <div class="form-group">
+                        <label>KEYWORDS / TAGS</label>
+                        <input type="text" name="keywords" placeholder="e.g., Environment, Baha, Business">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>PROJECT CO-SPONSOR/S</label>
+                        <input type="text" name="co_sponsors" placeholder="Separate names with commas">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>STATUS</label>
+                        <select name="status" required>
+                            <option value="1st reading">1st reading</option>
+                            <option value="2nd reading">2nd reading</option>
+                            <option value="3rd reading">3rd reading</option>
+                            <option value="For Certification">For Certification</option>
+                            <option value="For Signing">For Signing</option>
+                            <option value="For Approval">For Approval</option>
+                            <option value="Vetoed">Vetoed</option>
+                            <option value="Archived">Archived</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>VISIBILITY / PRIVACY</label>
+                        <select name="visibility">
+                            <option value="Public Access">Public Access</option>
+                            <option value="Internal Only">Internal Only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>PHYSICAL STORAGE REF (OPTIONAL)</label>
+                        <input type="text" name="physical_storage" placeholder="e.g., Cabinet A, Shelf 2">
+                    </div>
+                </div>
+
+                <label class="upload-area" style="cursor: pointer; display: block;">
+                    <i class="fa-regular fa-file-pdf"></i>
+                    <p>Upload Certified PDF Copy</p>
+                    <span>Click here to browse files (Max 20MB)</span>
+                    <input type="file" name="file_attachment" hidden accept=".pdf">
+                </label>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-discard">Discard</button>
+                    <button type="submit" class="btn-add">Add Proposal</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="uploadExistingModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>NEW LEGISLATIVE ENTRY (EXISTING)</h2>
+                <button type="button" class="close-modal">&times;</button>
             </div>
             <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data">
                 {% csrf_token %}
@@ -129,6 +232,13 @@
                         <select name="status" required>
                             <option value="Pending">Pending</option>
                             <option value="Active">Active</option>
+                            <option value="1st reading">1st reading</option>
+                            <option value="2nd reading">2nd reading</option>
+                            <option value="3rd reading">3rd reading</option>
+                            <option value="For Certification">For Certification</option>
+                            <option value="For Signing">For Signing</option>
+                            <option value="For Approval">For Approval</option>
+                            <option value="Vetoed">Vetoed</option>
                             <option value="Archived">Archived</option>
                         </select>
                     </div>
@@ -148,15 +258,15 @@
                     </div>
                 </div>
 
-                <label for="fileInputDocPage" class="upload-area" style="cursor: pointer; display: block;">
+                <label class="upload-area" style="cursor: pointer; display: block;">
                     <i class="fa-regular fa-file-pdf"></i>
                     <p>Upload Certified PDF Copy</p>
                     <span>Click here to browse files (Max 20MB)</span>
-                    <input type="file" name="file_attachment" hidden id="fileInputDocPage" accept=".pdf">
+                    <input type="file" name="file_attachment" hidden accept=".pdf">
                 </label>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn-discard" id="discardBtn">Discard</button>
+                    <button type="button" class="btn-discard">Discard</button>
                     <button type="submit" class="btn-add">Add Document</button>
                 </div>
             </form>
