@@ -25,6 +25,13 @@ class LegislativeDocument(models.Model):
         ('Active', 'Active'),
         ('Pending', 'Pending'),
         ('Archived', 'Archived'),
+        ('1st reading', '1st reading'),
+        ('2nd reading', '2nd reading'),
+        ('3rd reading', '3rd reading'),
+        ('For Certification', 'For Certification'),
+        ('For Signing', 'For Signing'),
+        ('For Approval', 'For Approval'),
+        ('Vetoed', 'Vetoed'),
     ]
     # New dropdown choices for your modal
     VISIBILITY_CHOICES = [

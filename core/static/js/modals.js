@@ -6,10 +6,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // 1. Elements
     const bell = document.getElementById('notifBell');
     const notifDropdown = document.getElementById('notificationDropdown');
+    const uploadDropdownBtn = document.querySelector('.btn-upload-dropdown');
+    const uploadDropdownWrapper = document.querySelector('.upload-dropdown');
 
     // Select all potential modals
     const modals = {
-        upload: document.getElementById('uploadModal'),
+        uploadNew: document.getElementById('uploadNewModal'),
+        uploadExisting: document.getElementById('uploadExistingModal'),
         view: document.getElementById('viewModal'),
         edit: document.getElementById('editModal'),
         user: document.getElementById('userModal'),
@@ -18,7 +21,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Helper to close all UI overlays
     const closeAllOverlays = () => {
-        Object.values(modals).forEach(m => { if (m) m.style.display = 'none'; });
+        Object.values(modals).forEach(m => { 
+            if (m) {
+                m.style.display = 'none'; 
+                
+                // Reset file inputs and their visual states to avoid caching old files across modals
+                const fileInputs = m.querySelectorAll('input[type="file"]');
+                fileInputs.forEach(input => {
+                    input.value = ''; // clear physical file selection
+                    const uploadArea = input.closest('.upload-area');
+                    if (uploadArea && uploadArea.hasAttribute('data-default-html')) {
+                        const p = uploadArea.querySelector('p');
+                        const span = uploadArea.querySelector('span');
+                        if (p) p.innerHTML = uploadArea.getAttribute('data-default-html');
+                        if (span) span.innerText = uploadArea.getAttribute('data-default-span');
+                        uploadArea.removeAttribute('data-default-html');
+                        uploadArea.removeAttribute('data-default-span');
+                    }
+                });
+            }
+        });
         if (notifDropdown) notifDropdown.style.display = 'none';
     };
 
@@ -36,7 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    setupTrigger('.trigger-modal', 'upload');
+    setupTrigger('.trigger-upload-new', 'uploadNew');
+    setupTrigger('.trigger-upload-existing', 'uploadExisting');
     setupTrigger('.trigger-view', 'view');
     setupTrigger('.trigger-edit', 'edit');
     setupTrigger('.trigger-user', 'user');
@@ -64,11 +87,25 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 5.5 Upload Dropdown Logic
+    if (uploadDropdownBtn && uploadDropdownWrapper) {
+        uploadDropdownBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadDropdownWrapper.classList.toggle('show');
+        });
+    }
+
     // 6. Global Click Listener (Close when clicking outside)
     window.addEventListener('click', (event) => {
         // Close modal if clicking the background overlay
         if (event.target.classList.contains('modal-overlay')) {
             closeAllOverlays();
+        }
+
+        // Close upload dropdown if clicking outside
+        if (uploadDropdownWrapper && !uploadDropdownWrapper.contains(event.target)) {
+            uploadDropdownWrapper.classList.remove('show');
         }
 
         // Close notification if clicking outside
@@ -224,12 +261,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 3. Update the File Text UI
             const fileText = document.getElementById('edit-file-text');
-            if (fileName) {
+            const uploadArea = fileText ? fileText.closest('.upload-area') : null;
+            const uploadSpan = uploadArea ? uploadArea.querySelector('span') : null;
+
+            if (fileName && fileName !== 'None' && fileName !== 'null' && fileName.trim() !== '') {
                 // Extract just the filename from the folder path
                 const cleanName = fileName.split('/').pop();
                 fileText.innerHTML = `Current File: <strong>${cleanName}</strong>`;
+                if (uploadSpan) uploadSpan.innerText = 'Click to browse or replace file';
             } else {
                 fileText.innerHTML = `Current File: <strong style="color: #888;">No file attached</strong>`;
+                if (uploadSpan) uploadSpan.innerText = 'Click to browse or drag and drop';
             }
         });
     });
