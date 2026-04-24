@@ -103,7 +103,7 @@
                 {{ total_records }} Account{% if total_records != 1 %}s{% endif %} Found
             </div>
 
-            <section class="table-card">
+            <section class="table-container">
                 <table>
                     <thead>
                         <tr>
@@ -125,6 +125,7 @@
                                 <span class="role-badge {% if user.is_superuser %}sys-admin{% else %}staff{% endif %}">
                                     {% if user.is_superuser %}SYSTEM ADMIN{% elif user.is_staff %}STAFF{% else %}LEGISLATOR{% endif %}
                                 </span>
+                                
                             </td>
                             <td>{{ user.last_login|timesince|default:"Never" }} ago</td>
                             <td>
@@ -236,9 +237,9 @@
                     <div class="form-group">
                         <label>ROLE / DESIGNATION</label>
                         <select name="role" required>
-                            <option value="staff">Legislative Staff</option>
-                            <option value="admin">System Admin</option>
-                            <option value="legislator">Legislator (Read-Only)</option>
+                            <option value="staff">Legislative Staff (CRU)</option>
+                            <option value="admin">System Admin (CRUD)</option>
+                            <option value="legislator">Legislator (Read-Only) (R)</option>
                         </select>
                     </div>
                 </div>
@@ -283,9 +284,9 @@
                     <div class="form-group full-width">
                         <label>ROLE / DESIGNATION</label>
                         <select name="role" id="edit-user-role" required>
-                            <option value="staff">Legislative Staff</option>
-                            <option value="admin">System Admin</option>
-                            <option value="legislator">Legislator (Read-Only)</option>
+                            <option value="staff">Legislative Staff (CRU)</option>
+                            <option value="admin">System Admin (CRUD)</option>
+                            <option value="legislator">Legislator (Read-Only) (R)</option>
                         </select>
                     </div>
                 </div>
