@@ -91,41 +91,91 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- NEW: AJAX FETCH LOGIC ---
+    // ==========================================
+    // UNIFIED AJAX FETCH LOGIC & INFINITE SCROLL
+    // ==========================================
+    let currentNotifLimit = 10; // Start by loading 10 items
+
     function fetchNotifications() {
-        fetch('/api/notifications/')
+        return fetch(`/api/notifications/?limit=${currentNotifLimit}`)
             .then(response => response.json())
             .then(data => {
-                const notifBody = document.querySelector('#notificationDropdown .notif-body');
+                const notifBody = document.getElementById('notifModalBody');
                 const notifBadge = document.querySelector('.notif-badge');
 
                 if (notifBody && data.notifications) {
-                    notifBody.innerHTML = ''; // Clear out the hardcoded HTML
+                    let htmlContent = '';
 
-                    data.notifications.forEach((notif, index) => {
-                        // Remove bottom border from the last item
-                        let borderClass = (index === data.notifications.length - 1) ? 'border-none' : '';
+                    // Grab the last read ID from browser memory (default to 0 if never clicked)
+                    const lastReadId = parseInt(localStorage.getItem('lastReadNotifId')) || 0;
 
-                        notifBody.innerHTML += `
-                            <div class="notif-item ${borderClass}">
-                                <div class="notif-content">
+                    // Track the highest ID in this current batch so we can save it later
+                    window.highestNotifId = data.notifications.length > 0 ? Math.max(...data.notifications.map(n => n.id)) : 0;
+
+                    if (data.notifications.length > 0) {
+                        htmlContent += `<div class="notif-section-title">Recent Activity</div>`;
+
+                        data.notifications.forEach((notif) => {
+                            let iconClass = 'fa-desktop';
+                            if (notif.message.includes('Upload')) iconClass = 'fa-file-invoice';
+                            else if (notif.message.includes('Updated') || notif.message.includes('modified')) iconClass = 'fa-file-signature';
+
+                            // Determine if THIS specific notification is unread
+                            const isUnread = notif.id > lastReadId;
+                            const unreadClass = isUnread ? 'unread' : 'read';
+                            const redDotHtml = isUnread ? '<span class="red-dot"></span>' : '';
+                            const blueDotHtml = isUnread ? '<div class="unread-dot"></div>' : '';
+
+                            htmlContent += `
+                            <div class="notif-list-item ${unreadClass}">
+                                <div class="notif-icon">
+                                    <i class="fa-solid ${iconClass}"></i>
+                                    ${redDotHtml}
+                                </div>
+                                <div style="flex: 1;">
                                     <p>${notif.message}</p>
                                     <span class="notif-time">${notif.time}</span>
                                 </div>
-                            </div>
-                        `;
-                    });
+                                ${blueDotHtml}
+                            </div>`;
+                        });
 
-                    // Show the red dot if there are notifications loaded
-                    if (data.notifications.length > 0 && notifBadge.style.display !== 'none') {
-                        notifBadge.style.display = 'block';
+                        // Only show the red bell badge if there are ACTUALLY unread items
+                        const hasUnreadItems = data.notifications.some(n => n.id > lastReadId);
+                        if (notifBadge) {
+                            notifBadge.style.display = hasUnreadItems ? 'block' : 'none';
+                        }
                     }
+
+                    htmlContent += `
+                    <div id="emptyNotifState" class="empty-notif-state" style="display: ${data.notifications.length === 0 ? 'block' : 'none'};">
+                        <i class="fa-solid fa-bell-slash"></i>
+                        <p>You have no notifications.</p>
+                    </div>`;
+
+                    notifBody.innerHTML = htmlContent;
+
+                    // ... (keep the rest of the button toggle logic here)
+                    const loadMoreBtn = document.getElementById('loadMoreNotifsBtn');
+                    const goToAuditLogsBtn = document.getElementById('goToAuditLogsBtn');
+
+                    if (loadMoreBtn && goToAuditLogsBtn) {
+                        if (data.has_more) {
+                            loadMoreBtn.style.display = 'inline-block';
+                            goToAuditLogsBtn.style.display = 'none';
+                        } else {
+                            loadMoreBtn.style.display = 'none';
+                            goToAuditLogsBtn.style.display = 'inline-block';
+                        }
+                    }
+
+                    const activeTab = document.querySelector('.notif-tab.active');
+                    if (activeTab) activeTab.click();
                 }
             })
             .catch(error => console.error('Error fetching notifications:', error));
     }
 
-    // Fetch immediately when the page loads, then check again every 30 seconds
     fetchNotifications();
     setInterval(fetchNotifications, 30000);
 
@@ -357,6 +407,119 @@ document.addEventListener('DOMContentLoaded', () => {
             passwordInput.setAttribute('type', type);
             this.classList.toggle('fa-eye-slash');
             this.classList.toggle('fa-eye');
+        });
+    }
+
+    // ==========================================
+    // UNIFIED DROPDOWN UI LOGIC (Tabs, Ellipsis)
+    // ==========================================
+    const notifTabs = document.querySelectorAll('.notif-tab');
+    const emptyState = document.getElementById('emptyNotifState');
+    const sectionTitles = document.querySelectorAll('.notif-section-title');
+    const loadMoreBtn = document.getElementById('loadMoreNotifsBtn');
+
+    // Tabs
+    notifTabs.forEach(tab => {
+        tab.addEventListener('click', function () {
+            notifTabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+
+            const tabType = this.getAttribute('data-tab');
+            let visibleCount = 0;
+            const dynamicNotifItems = document.querySelectorAll('.notif-list-item');
+
+            dynamicNotifItems.forEach(item => {
+                if (tabType === 'all') {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                } else if (tabType === 'unread') {
+                    if (item.classList.contains('unread')) {
+                        item.style.display = 'flex';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                }
+            });
+
+            if (emptyState) emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+            sectionTitles.forEach(title => {
+                title.style.display = (tabType === 'unread' || visibleCount === 0) ? 'none' : 'block';
+            });
+        });
+    });
+
+    // Ellipsis Menu
+    const notifEllipsis = document.getElementById('notifEllipsis');
+    const notifOptionsMenu = document.getElementById('notifOptionsMenu');
+    if (notifEllipsis && notifOptionsMenu) {
+        notifEllipsis.addEventListener('click', function (e) {
+            e.stopPropagation();
+            notifOptionsMenu.style.display = notifOptionsMenu.style.display === 'block' ? 'none' : 'block';
+        });
+        // Added to the global click listener
+    }
+
+    // Mark All Read
+    const markAllReadBtn = document.querySelector('.mark-all-read-btn');
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+
+            // 1. SAVE TO MEMORY: Remember that we have read everything up to the current highest ID!
+            if (window.highestNotifId) {
+                localStorage.setItem('lastReadNotifId', window.highestNotifId);
+            }
+
+            // 2. Hide the red bell badge instantly
+            const notifBadge = document.querySelector('.notif-badge');
+            if (notifBadge) notifBadge.style.display = 'none';
+
+            // 3. Clear the visual dots from the current list
+            const dynamicNotifItems = document.querySelectorAll('.notif-list-item');
+            dynamicNotifItems.forEach(item => {
+                item.classList.remove('unread');
+                item.classList.add('read');
+                const blueDot = item.querySelector('.unread-dot');
+                if (blueDot) blueDot.style.display = 'none';
+                const redDot = item.querySelector('.red-dot');
+                if (redDot) redDot.style.display = 'none';
+            });
+            notifOptionsMenu.style.display = 'none';
+            const activeTab = document.querySelector('.notif-tab.active');
+            if (activeTab && activeTab.getAttribute('data-tab') === 'unread') activeTab.click();
+        });
+    }
+
+    // ==========================================
+    // LOAD MORE BUTTON (SYNCHRONIZED SCROLL)
+    // ==========================================
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const originalText = this.innerHTML;
+            this.innerHTML = 'Loading... <i class="fa-solid fa-spinner fa-spin" style="margin-left: 5px;"></i>';
+            this.style.pointerEvents = 'none';
+            this.style.opacity = '0.7';
+
+            currentNotifLimit += 10;
+
+            // Use .then() to wait exactly until the fetch is 100% finished!
+            fetchNotifications().then(() => {
+                this.innerHTML = originalText;
+                this.style.pointerEvents = 'auto';
+                this.style.opacity = '1';
+
+                const notifBody = document.getElementById('notifModalBody');
+                if (notifBody) {
+                    notifBody.scrollTo({
+                        top: notifBody.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }
+            });
         });
     }
 });

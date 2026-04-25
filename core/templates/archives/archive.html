@@ -397,40 +397,42 @@
 
 
     <div id="notificationDropdown" class="notif-dropdown" style="display: none;">
-        <div class="notif-header">
-            <h3>NOTIFICATIONS</h3>
-            <a href="#" class="mark-read">Mark all as read</a>
+
+        <div class="notif-modal-header">
+            <h2>NOTIFICATIONS</h2>
         </div>
-        <div class="notif-body">
-            <div class="notif-item unread">
-                <span class="notif-dot"></span>
-                <div class="notif-content">
-                    <p><strong>New Document:</strong> Ordinance No. 2026-005 has been uploaded by <strong>M.
-                            Esquilona</strong>.</p>
-                    <span class="notif-time">2 minutes ago</span>
-                </div>
+
+        <div class="notif-tabs-container">
+            <div class="notif-tabs">
+                <button class="notif-tab active" data-tab="all">ALL</button>
+                <button class="notif-tab" data-tab="unread">UNREAD</button>
             </div>
-            <div class="notif-item">
-                <div class="notif-content">
-                    <p><strong>Pending Review:</strong> Resolution 102 (Flood Mitigation) requires your signature.</p>
-                    <span class="notif-time">1 hour ago</span>
-                </div>
-            </div>
-            <div class="notif-item">
-                <div class="notif-content">
-                    <p><strong>System Update:</strong> Cloud Backup was successful at 10:00 AM.</p>
-                    <span class="notif-time">3 hours ago</span>
-                </div>
-            </div>
-            <div class="notif-item border-none">
-                <div class="notif-content">
-                    <p><strong>Security Alert:</strong> New login detected from IP 192.168.1.45 (Admin PC).</p>
-                    <span class="notif-time">Yesterday</span>
+
+            <div class="notif-ellipsis-wrapper">
+                <i class="fa-solid fa-ellipsis notif-ellipsis" id="notifEllipsis"></i>
+                <div id="notifOptionsMenu" class="notif-options-menu">
+                    <div class="mark-all-read-btn">
+                        <i class="fa-solid fa-check" style="color: #888;"></i> Mark all as read
+                    </div>
+                    <a href="{% url 'audit_logs' %}" class="see-all-btn">
+                        <i class="fa-solid fa-list-ul" style="color: #888;"></i> See All
+                    </a>
                 </div>
             </div>
         </div>
-        <div class="notif-footer">
-            <a href="#">See All Notifications</a>
+
+        <div class="modal-body" id="notifModalBody" style="padding: 0; max-height: 400px; overflow-y: auto;">
+        </div>
+
+        <div class="notif-modal-footer">
+            <button id="loadMoreNotifsBtn"
+                style="background: none; border: none; color: #7d6339; font-weight: bold; font-size: 0.85rem; cursor: pointer; display: none; padding: 5px; margin: 0 auto;">
+                See previous notifications <i class="fa-solid fa-angle-down" style="margin-left: 5px;"></i>
+            </button>
+            <a href="{% url 'audit_logs' %}" id="goToAuditLogsBtn"
+                style="display: none; color: #7d6339; font-weight: bold; font-size: 0.85rem; text-decoration: none;">
+                Go to Full Audit Logs <i class="fa-solid fa-arrow-right" style="margin-left: 5px;"></i>
+            </a>
         </div>
     </div>
 

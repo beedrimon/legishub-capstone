@@ -17,12 +17,12 @@
     <!-- GLOBAL TOAST MESSAGES -->
     <div class="toast-container">
         {% if messages %}
-            {% for message in messages %}
-                <div class="toast {{ message.tags }}">
-                    <span>{{ message }}</span>
-                    <button class="close-toast">&times;</button>
-                </div>
-            {% endfor %}
+        {% for message in messages %}
+        <div class="toast {{ message.tags }}">
+            <span>{{ message }}</span>
+            <button class="close-toast">&times;</button>
+        </div>
+        {% endfor %}
         {% endif %}
     </div>
 
@@ -36,15 +36,23 @@
         </div>
         {% with request.resolver_match.url_name as url_name %}
         <ul class="nav-links">
-            <li><a href="{% url 'dashboard' %}" class="{% if url_name == 'dashboard' %}active{% endif %}"><i class="fa-solid fa-table-cells-large"></i> Dashboard</a></li>
-            <li><a href="{% url 'documents' %}" class="{% if url_name == 'documents' %}active{% endif %}"><i class="fa-regular fa-file-lines"></i> Documents</a></li>
-            <li><a href="{% url 'archive' %}" class="{% if 'archive' in url_name %}active{% endif %}"><i class="fa-solid fa-box-archive"></i> Archive</a></li>
-            <li><a href="{% url 'audit_logs' %}" class="{% if url_name == 'audit_logs' %}active{% endif %}"><i class="fa-solid fa-chart-line"></i> Audit Logs</a></li>
+            <li><a href="{% url 'dashboard' %}" class="{% if url_name == 'dashboard' %}active{% endif %}"><i
+                        class="fa-solid fa-table-cells-large"></i> Dashboard</a></li>
+            <li><a href="{% url 'documents' %}" class="{% if url_name == 'documents' %}active{% endif %}"><i
+                        class="fa-regular fa-file-lines"></i> Documents</a></li>
+            <li><a href="{% url 'archive' %}" class="{% if 'archive' in url_name %}active{% endif %}"><i
+                        class="fa-solid fa-box-archive"></i> Archive</a></li>
+            <li><a href="{% url 'audit_logs' %}" class="{% if url_name == 'audit_logs' %}active{% endif %}"><i
+                        class="fa-solid fa-chart-line"></i> Audit Logs</a></li>
             {% if request.user.is_superuser %}
-            <li><a href="{% url 'user_management' %}" class="{% if url_name == 'user_management' %}active{% endif %}"><i class="fa-solid fa-users"></i> User Management</a></li>
-            <li class="settings-link"><a href="{% url 'general_info' %}" class="{% if url_name == 'general_info' or url_name == 'backup_cloud' or url_name == 'metadata_tags' or url_name == 'security_policy' or url_name == 'notifications' %}active{% endif %}"><i class="fa-solid fa-gear"></i> Settings</a></li>
+            <li><a href="{% url 'user_management' %}" class="{% if url_name == 'user_management' %}active{% endif %}"><i
+                        class="fa-solid fa-users"></i> User Management</a></li>
+            <li class="settings-link"><a href="{% url 'general_info' %}"
+                    class="{% if url_name == 'general_info' or url_name == 'backup_cloud' or url_name == 'metadata_tags' or url_name == 'security_policy' or url_name == 'notifications' %}active{% endif %}"><i
+                        class="fa-solid fa-gear"></i> Settings</a></li>
             {% endif %}
-            <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i> Logout</a></li>
+            <li class="logout-link"><a href="{% url 'logout' %}"><i class="fa-solid fa-right-from-bracket"></i>
+                    Logout</a></li>
         </ul>
         {% endwith %}
     </nav>
@@ -76,7 +84,8 @@
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label>DOCUMENT TITLE / SUBJECT</label>
-                        <input type="text" name="title" placeholder="Complete title of the Ordinance or Resolution" required>
+                        <input type="text" name="title" placeholder="Complete title of the Ordinance or Resolution"
+                            required>
                     </div>
                 </div>
 
@@ -179,7 +188,8 @@
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label>DOCUMENT TITLE / SUBJECT</label>
-                        <input type="text" name="title" placeholder="Complete title of the Ordinance or Resolution" required>
+                        <input type="text" name="title" placeholder="Complete title of the Ordinance or Resolution"
+                            required>
                     </div>
                 </div>
 
@@ -274,45 +284,47 @@
     </div>
 
     <div id="notificationDropdown" class="notif-dropdown" style="display: none;">
-        <div class="notif-header">
-            <h3>NOTIFICATIONS</h3>
-            <a href="#" class="mark-read">Mark all as read</a>
+
+        <div class="notif-modal-header">
+            <h2>NOTIFICATIONS</h2>
         </div>
-        <div class="notif-body">
-            <div class="notif-item unread">
-                <span class="notif-dot"></span>
-                <div class="notif-content">
-                    <p><strong>New Document:</strong> Ordinance No. 2026-005 has been uploaded by <strong>M.
-                            Esquilona</strong>.</p>
-                    <span class="notif-time">2 minutes ago</span>
-                </div>
+
+        <div class="notif-tabs-container">
+            <div class="notif-tabs">
+                <button class="notif-tab active" data-tab="all">ALL</button>
+                <button class="notif-tab" data-tab="unread">UNREAD</button>
             </div>
-            <div class="notif-item">
-                <div class="notif-content">
-                    <p><strong>Pending Review:</strong> Resolution 102 (Flood Mitigation) requires your signature.</p>
-                    <span class="notif-time">1 hour ago</span>
-                </div>
-            </div>
-            <div class="notif-item">
-                <div class="notif-content">
-                    <p><strong>System Update:</strong> Cloud Backup was successful at 10:00 AM.</p>
-                    <span class="notif-time">3 hours ago</span>
-                </div>
-            </div>
-            <div class="notif-item border-none">
-                <div class="notif-content">
-                    <p><strong>Security Alert:</strong> New login detected from IP 192.168.1.45 (Admin PC).</p>
-                    <span class="notif-time">Yesterday</span>
+
+            <div class="notif-ellipsis-wrapper">
+                <i class="fa-solid fa-ellipsis notif-ellipsis" id="notifEllipsis"></i>
+                <div id="notifOptionsMenu" class="notif-options-menu">
+                    <div class="mark-all-read-btn">
+                        <i class="fa-solid fa-check" style="color: #888;"></i> Mark all as read
+                    </div>
+                    <a href="{% url 'audit_logs' %}" class="see-all-btn">
+                        <i class="fa-solid fa-list-ul" style="color: #888;"></i> See All
+                    </a>
                 </div>
             </div>
         </div>
-        <div class="notif-footer">
-            <a href="#">See All Notifications</a>
+
+        <div class="modal-body" id="notifModalBody" style="padding: 0; max-height: 400px; overflow-y: auto;">
+        </div>
+
+        <div class="notif-modal-footer">
+            <button id="loadMoreNotifsBtn"
+                style="background: none; border: none; color: #7d6339; font-weight: bold; font-size: 0.85rem; cursor: pointer; display: none; padding: 5px; margin: 0 auto;">
+                See previous notifications <i class="fa-solid fa-angle-down" style="margin-left: 5px;"></i>
+            </button>
+            <a href="{% url 'audit_logs' %}" id="goToAuditLogsBtn"
+                style="display: none; color: #7d6339; font-weight: bold; font-size: 0.85rem; text-decoration: none;">
+                Go to Full Audit Logs <i class="fa-solid fa-arrow-right" style="margin-left: 5px;"></i>
+            </a>
         </div>
     </div>
     {% endblock modals %}
 
-    <script src="{% static 'js/modals.js' %}?v=6"></script>
+    <script src="{% static 'js/modals.js' %}?v=9"></script>
     {% block extra_js %}{% endblock %}
 </body>
 

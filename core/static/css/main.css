@@ -1124,11 +1124,13 @@ td strong {
 }
 
 /* Folders Active States & Sub-folders */
-.selected-folder, .selected-year {
+.selected-folder,
+.selected-year {
     border: 2px solid #7C5C35 !important;
     background-color: #fcfaf7 !important;
     box-shadow: 0 4px 12px rgba(124, 92, 53, 0.25) !important;
 }
+
 .doc-type-folder {
     transition: all 0.2s ease-in-out;
 }
@@ -1140,14 +1142,17 @@ td strong {
     color: #A0835D !important;
     box-shadow: none !important;
 }
+
 .btn-add-folder-card i {
     color: #A0835D !important;
 }
+
 .btn-add-folder-card:hover {
     background: #fcfaf7 !important;
     border-color: #7C5C35 !important;
     color: #7C5C35 !important;
 }
+
 .btn-add-folder-card:hover i {
     color: #7C5C35 !important;
 }
@@ -1575,7 +1580,7 @@ body.page-dashboard .right-column {
 
 
 .notif-dropdown {
-    position: absolute;
+    position: fixed;
     top: 70px;
     /* Adjust based on your header height */
     right: 20px;
@@ -1760,11 +1765,230 @@ body.page-dashboard .right-column {
 }
 
 /* ============================================================
+   16. FIGMA NOTIFICATIONS MODAL
+   ============================================================ */
+/* Header & Tabs */
+.notif-modal-header {
+    background-color: #7d6339;
+    /* Matches original notifications theme */
+    color: white;
+    padding: 15px 20px;
+    border-radius: 12px 12px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.notif-modal-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: white;
+}
+
+.notif-tabs-container {
+    padding: 12px 20px;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+}
+
+.notif-tabs {
+    display: flex;
+    gap: 10px;
+}
+
+.notif-tab {
+    border: none;
+    background: transparent;
+    color: #888;
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.notif-tab.active {
+    background: #fdfaf5;
+    /* Light tan to match LegisHub theme */
+    color: #7d6339;
+    border: 1px solid #7d6339;
+}
+
+/* Ellipsis & Menu */
+.notif-ellipsis-wrapper {
+    position: relative;
+}
+
+.notif-ellipsis {
+    cursor: pointer;
+    color: #888;
+    font-size: 1.2rem;
+    padding: 0 5px;
+}
+
+.notif-options-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 25px;
+    background: white;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border-radius: 6px;
+    z-index: 10;
+    width: 170px;
+    overflow: hidden;
+}
+
+.mark-all-read-btn {
+    padding: 12px 15px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background 0.2s;
+}
+
+.mark-all-read-btn:hover {
+    background: #f9f9f9;
+}
+
+.see-all-btn {
+    padding: 12px 15px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    transition: background 0.2s;
+    border-top: 1px solid #eee; /* Adds a nice divider line between the two options */
+}
+
+.see-all-btn:hover {
+    background: #f9f9f9;
+}
+
+/* List Items */
+.notif-section-title {
+    padding: 15px 20px 5px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.notif-list-item {
+    display: flex;
+    padding: 15px 20px;
+    border-bottom: 1px solid #eee;
+    background: white;
+    gap: 15px;
+    align-items: flex-start;
+}
+
+.notif-list-item.unread {
+    background-color: #fffaf0;
+    /* Matches original unread theme */
+}
+
+.notif-icon {
+    background: #fdfaf5;
+    border: 1px solid #e8e0d5;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #7d6339;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.notif-icon .red-dot {
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    background: #d9534f;
+    /* Matches original red dot theme */
+    border-radius: 50%;
+    border: 2px solid white;
+}
+
+.notif-list-item p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #333;
+}
+
+.notif-time {
+    font-size: 0.75rem;
+    color: #888;
+    margin-top: 5px;
+    display: block;
+}
+
+.unread-dot {
+    width: 8px;
+    height: 8px;
+    background: #4D8AF0;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+
+/* Empty State & Footer */
+.empty-notif-state {
+    display: none;
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-notif-state i {
+    font-size: 3.5rem;
+    color: #7d6339;
+    margin-bottom: 15px;
+    opacity: 0.5;
+}
+
+.empty-notif-state p {
+    color: #7d6339;
+    font-weight: bold;
+    font-size: 1rem;
+    margin: 0;
+}
+
+.notif-modal-footer {
+    background: #f9f9f9;
+    border-top: 1px solid #eee;
+    padding: 15px;
+    text-align: center;
+    border-radius: 0 0 12px 12px;
+}
+
+.notif-modal-footer a {
+    color: #7d6339;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 0.85rem;
+}
+
+/* ============================================================
    RESPONSIVE MODAL MEDIA QUERY
    ============================================================ */
 @media screen and (max-width: 600px) {
     .form-row {
-        flex-direction: column; /* Stacks the side-by-side inputs vertically */
+        flex-direction: column;
+        /* Stacks the side-by-side inputs vertically */
         gap: 12px;
         margin-bottom: 12px;
     }

@@ -751,24 +751,32 @@ def edit_document(request):
     return redirect('documents')
 
 # ==========================================
-# 11. API: REAL-TIME NOTIFICATIONS
+# 11. API: REAL-TIME NOTIFICATIONS (UNIFIED & SCROLLABLE)
 # ==========================================
 @login_required(login_url='login')
 def get_notifications(request):
-    # Fetch the 5 most recent audit logs
+    # 1. Grab the limit requested by the JavaScript button (default to 10)
+    limit = int(request.GET.get('limit', 10))
+    
+    # 2. Query the database but DON'T slice it to 5!
     if is_legislator(request.user):
-        # Legislators only see their own notifications
-        logs = AuditLog.objects.filter(user=request.user).select_related('user', 'document').order_by('-timestamp')[:5]
+        # Fetch one EXTRA log (+1) to check if there is more history left
+        logs_query = AuditLog.objects.filter(user=request.user).select_related('user', 'document').order_by('-timestamp')
     else:
-        # Admins/Staff see all system activity
-        logs = AuditLog.objects.all().select_related('user', 'document').order_by('-timestamp')[:5]
+        logs_query = AuditLog.objects.all().select_related('user', 'document').order_by('-timestamp')
+        
+    # 3. Apply the dynamic limit
+    logs = list(logs_query[:limit + 1])
+    
+    # 4. Check if we hit the end of the database
+    has_more = len(logs) > limit
+    
+    # 5. Trim it back down to the exact requested number for the frontend
+    logs = logs[:limit] 
     
     data = []
     for log in logs:
-        # Safely grab document info
         doc_number = log.document.document_number if log.document else "a document"
-        
-        # Format the notification message beautifully
         if log.action == 'Upload':
             msg = f"<strong>New Upload:</strong> {doc_number} was uploaded by <strong>{log.user.username}</strong>."
         elif log.action == 'Edit':
@@ -776,12 +784,11 @@ def get_notifications(request):
         else:
             msg = f"<strong>System Action:</strong> {log.action} performed by <strong>{log.user.username}</strong>."
         
-        # Calculate how long ago this happened (e.g., "2 minutes ago")
         time_ago = f"{timesince(log.timestamp, now())} ago"
+        data.append({'id': log.id, 'message': msg, 'time': time_ago})
         
-        data.append({
-            'message': msg,
-            'time': time_ago
-        })
-        
-    return JsonResponse({'notifications': data})
+    # 6. Return the logs AND the has_more flag!
+    return JsonResponse({
+        'notifications': data,
+        'has_more': has_more
+    })
