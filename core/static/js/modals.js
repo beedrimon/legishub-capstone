@@ -11,7 +11,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const modals = {
         upload: document.getElementById('uploadModal'),
         view: document.getElementById('viewModal'),
+<<<<<<< Updated upstream
         edit: document.getElementById('editModal')
+=======
+        edit: document.getElementById('editModal'),
+        user: document.getElementById('userModal'),
+        editUser: document.getElementById('editUserModal'),
+        allNotifs: document.getElementById('allNotificationsModal') // <--- ADD THIS LINE
+>>>>>>> Stashed changes
     };
 
     // 2. Helper to close all UI overlays
@@ -37,6 +44,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTrigger('.trigger-modal', 'upload');
     setupTrigger('.trigger-view', 'view');
     setupTrigger('.trigger-edit', 'edit');
+<<<<<<< Updated upstream
+=======
+    setupTrigger('.trigger-user', 'user');
+    setupTrigger('.trigger-edit-user', 'editUser');
+    setupTrigger('.trigger-all-notifs', 'allNotifs'); // <--- ADD THIS
+>>>>>>> Stashed changes
 
     // 4. Close Buttons Logic
     // Handles any button with class 'close-modal' or 'btn-discard' inside any modal
@@ -49,7 +62,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+<<<<<<< Updated upstream
     // 5. Notification Logic
+=======
+    // ==========================================
+    // STANDARD NOTIFICATION BELL LOGIC
+    // ==========================================
+>>>>>>> Stashed changes
     if (bell && notifDropdown) {
         bell.addEventListener('click', (e) => {
             e.preventDefault();
@@ -57,6 +76,123 @@ document.addEventListener('DOMContentLoaded', () => {
             const isShowing = notifDropdown.style.display === 'block';
             closeAllOverlays();
             notifDropdown.style.display = isShowing ? 'none' : 'block';
+<<<<<<< Updated upstream
+=======
+
+            const badge = document.querySelector('.notif-badge');
+            if (badge) badge.style.display = 'none';
+        });
+    }
+
+    // Global Click Listener (Close when clicking outside)
+    window.addEventListener('click', (event) => {
+        if (event.target.classList.contains('modal-overlay')) {
+            closeAllOverlays();
+        }
+        if (uploadDropdownWrapper && !uploadDropdownWrapper.contains(event.target)) {
+            uploadDropdownWrapper.classList.remove('show');
+        }
+        if (bell && !bell.contains(event.target) && notifDropdown && !notifDropdown.contains(event.target)) {
+            notifDropdown.style.display = 'none';
+        }
+    });
+
+    // --- UPGRADED: AJAX FETCH LOGIC (BOTH DROPDOWNS) ---
+    function fetchNotifications() {
+        fetch('/api/notifications/')
+            .then(response => response.json())
+            .then(data => {
+                // Find BOTH containers
+                const miniBody = document.querySelector('#notificationDropdown .notif-body');
+                const expandedBody = document.getElementById('notifModalBody');
+                const notifBadge = document.querySelector('.notif-badge');
+
+                if (data.notifications) {
+                    let miniHtml = '';
+                    let expandedHtml = '';
+
+                    if (data.notifications.length > 0) {
+                        // Add the section title for the expanded view
+                        expandedHtml += `<div class="notif-section-title" style="padding: 15px 20px 5px; font-weight: bold; font-size: 0.9rem; color: #333;">Recent Activity</div>`;
+
+                        data.notifications.forEach((notif, index) => {
+
+                            // ==========================================
+                            // 1. BUILD THE MINI DROPDOWN HTML
+                            // ==========================================
+                            let borderClass = (index === data.notifications.length - 1) ? 'border-none' : '';
+                            miniHtml += `
+                                <div class="notif-item ${borderClass}">
+                                    <div class="notif-content">
+                                        <p>${notif.message}</p>
+                                        <span class="notif-time">${notif.time}</span>
+                                    </div>
+                                </div>
+                            `;
+
+                            // ==========================================
+                            // 2. BUILD THE EXPANDED FIGMA HTML (CLEANED)
+                            // ==========================================
+                            let iconClass = 'fa-desktop';
+                            if (notif.message.includes('Upload')) iconClass = 'fa-file-invoice';
+                            else if (notif.message.includes('Updated') || notif.message.includes('modified')) iconClass = 'fa-file-signature';
+
+                            expandedHtml += `
+                            <div class="notif-list-item unread">
+                                <div class="notif-icon">
+                                    <i class="fa-solid ${iconClass}"></i>
+                                    <span class="red-dot"></span>
+                                </div>
+                                <div style="flex: 1;">
+                                    <p>${notif.message}</p>
+                                    <span class="notif-time">${notif.time}</span>
+                                </div>
+                                <div class="unread-dot"></div>
+                            </div>`;
+                        });
+
+                        if (notifBadge && notifBadge.style.display !== 'none') {
+                            notifBadge.style.display = 'block';
+                        }
+                    } else {
+                        miniHtml = `
+                            <div class="notif-item border-none">
+                                <div class="notif-content" style="text-align: center; padding: 15px;">
+                                    <p style="color: #888;">No recent activities found.</p>
+                                </div>
+                            </div>`;
+                    }
+
+                    // Empty state using clean CSS classes
+                    expandedHtml += `
+                    <div id="emptyNotifState" class="empty-notif-state" style="display: ${data.notifications.length === 0 ? 'block' : 'none'};">
+                        <i class="fa-solid fa-bell-slash"></i>
+                        <p>You have no notifications.</p>
+                    </div>`;
+
+                    // Inject the live HTML into BOTH boxes!
+                    if (miniBody) miniBody.innerHTML = miniHtml;
+                    if (expandedBody) expandedBody.innerHTML = expandedHtml;
+
+                    // Automatically apply the active tab filters (All/Unread) to the newly loaded data
+                    const activeTab = document.querySelector('.notif-tab.active');
+                    if (activeTab) activeTab.click();
+                }
+            })
+            .catch(error => console.error('Error fetching notifications:', error));
+    }
+
+    // Fetch immediately, then check again every 30 seconds
+    fetchNotifications();
+    setInterval(fetchNotifications, 30000);
+
+    // 5.5 Upload Dropdown Logic
+    if (uploadDropdownBtn && uploadDropdownWrapper) {
+        uploadDropdownBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            uploadDropdownWrapper.classList.toggle('show');
+>>>>>>> Stashed changes
         });
     }
 
@@ -218,6 +354,98 @@ document.addEventListener('DOMContentLoaded', () => {
             passwordInput.setAttribute('type', type);
             this.classList.toggle('fa-eye-slash');
             this.classList.toggle('fa-eye');
+        });
+    }
+
+    // ==========================================
+    // SEE ALL NOTIFICATIONS MODAL LOGIC
+    // ==========================================
+    const notifTabs = document.querySelectorAll('.notif-tab');
+    const emptyState = document.getElementById('emptyNotifState');
+    const sectionTitles = document.querySelectorAll('.notif-section-title');
+
+    // 1. Tab Switching (All vs Unread)
+    notifTabs.forEach(tab => {
+        tab.addEventListener('click', function () {
+            notifTabs.forEach(t => {
+                t.classList.remove('active');
+                t.style.background = 'transparent';
+                t.style.color = '#888';
+            });
+            this.classList.add('active');
+            this.style.background = '#EFEBE9';
+            this.style.color = '#5D4037';
+
+            const tabType = this.getAttribute('data-tab');
+            let visibleCount = 0;
+
+            // Re-select items dynamically inside the click!
+            const dynamicNotifItems = document.querySelectorAll('.notif-list-item');
+
+            dynamicNotifItems.forEach(item => {
+                if (tabType === 'all') {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                } else if (tabType === 'unread') {
+                    if (item.classList.contains('unread')) {
+                        item.style.display = 'flex';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                }
+            });
+
+            if (emptyState) emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+            sectionTitles.forEach(title => {
+                title.style.display = (tabType === 'unread' || visibleCount === 0) ? 'none' : 'block';
+            });
+        });
+    });
+
+    // 2. Ellipsis Menu Logic
+    const notifEllipsis = document.getElementById('notifEllipsis');
+    const notifOptionsMenu = document.getElementById('notifOptionsMenu');
+    const markAllReadBtn = document.querySelector('.mark-all-read-btn');
+
+    if (notifEllipsis && notifOptionsMenu) {
+        // Toggle the menu when clicking the 3 dots
+        notifEllipsis.addEventListener('click', function (e) {
+            e.stopPropagation();
+            notifOptionsMenu.style.display = notifOptionsMenu.style.display === 'block' ? 'none' : 'block';
+        });
+
+        // Close the menu if user clicks anywhere else on the screen
+        window.addEventListener('click', function (e) {
+            if (e.target !== notifEllipsis && !notifOptionsMenu.contains(e.target)) {
+                notifOptionsMenu.style.display = 'none';
+            }
+        });
+    }
+
+    // 3. Mark All As Read Logic
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', function () {
+            // Re-select items dynamically inside the click!
+            const dynamicNotifItems = document.querySelectorAll('.notif-list-item');
+
+            dynamicNotifItems.forEach(item => {
+                item.classList.remove('unread');
+                item.classList.add('read');
+
+                const blueDot = item.querySelector('.unread-dot');
+                if (blueDot) blueDot.style.display = 'none';
+
+                const redDot = item.querySelector('.red-dot');
+                if (redDot) redDot.style.display = 'none';
+            });
+
+            notifOptionsMenu.style.display = 'none';
+
+            const activeTab = document.querySelector('.notif-tab.active');
+            if (activeTab && activeTab.getAttribute('data-tab') === 'unread') {
+                activeTab.click();
+            }
         });
     }
 });
