@@ -72,8 +72,13 @@
                             </option>
                             <option value="Pending" {% if current_filters.status == 'Pending' %}selected{% endif %}>
                                 Pending</option>
-                            <option value="Archived" {% if current_filters.status == 'Archived' %}selected{% endif %}>
-                                Archived</option>
+                            <option value="1st reading" {% if current_filters.status == '1st reading' %}selected{% endif %}>1st reading</option>
+                            <option value="2nd reading" {% if current_filters.status == '2nd reading' %}selected{% endif %}>2nd reading</option>
+                            <option value="3rd reading" {% if current_filters.status == '3rd reading' %}selected{% endif %}>3rd reading</option>
+                            <option value="For Certification" {% if current_filters.status == 'For Certification' %}selected{% endif %}>For Certification</option>
+                            <option value="For Signing" {% if current_filters.status == 'For Signing' %}selected{% endif %}>For Signing</option>
+                            <option value="For Approval" {% if current_filters.status == 'For Approval' %}selected{% endif %}>For Approval</option>
+                            <option value="Vetoed" {% if current_filters.status == 'Vetoed' %}selected{% endif %}>Vetoed</option>
                         </select>
                     </div>
                     <div class="filter-group">
