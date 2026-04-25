@@ -144,6 +144,21 @@
             margin-top: 10px;
             transition: background 0.3s ease;
         }
+        .forgotpass {
+            color: #5C3A21;
+            border: none;
+            padding: 12px 45px;
+            border-radius: 25px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: background 0.3s ease;
+        }
+
+        .forgotpass :hover {
+             color: #666666;             
+        }
 
         .login-btn:hover {
             background-color: #4A2F1A;

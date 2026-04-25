@@ -131,7 +131,15 @@ def documents_view(request):
         # Search inside BOTH the Title and the Document Number
         doc_list = doc_list.filter(
             Q(title__icontains=search_query) | 
-            Q(document_number__icontains=search_query)
+            Q(document_number__icontains=search_query) |
+            Q(doc_type__icontains=search_query) |
+            Q(keywords__icontains=search_query) |
+            Q(sponsor__icontains=search_query) |
+            Q(co_sponsors__icontains=search_query) |
+            Q(physical_storage__icontains=search_query) |
+            Q(visibility__icontains=search_query) |
+            Q(date_enacted__icontains=search_query) |
+            Q(date_filed__icontains=search_query) 
         )
     
     if doc_type:
@@ -205,6 +213,33 @@ def archive_confidential_view(request):
         messages.error(request, 'Legislators do not have permission to view confidential archives.')
         return redirect('archive')
     return render(request, 'archives/archive_confidential.html')
+
+# ARCHIVE SEARCH
+@login_required(login_url='login')
+def archive_view(request):
+    # 1. Start with all archived records
+    archive_list = ArchivedDocument.objects.all().order_by('-original_date_filed')
+
+    # 2. Get the search query 'q' from the URL
+    search_query = request.GET.get('q', '')
+
+    # 3. Apply the Logic Tier filter
+    if search_query:
+        archive_list = archive_list.filter(
+            Q(title__icontains=search_query) | 
+            Q(archive_id__icontains=search_query) |
+            Q(sponsor__icontains=search_query) |
+            Q(keywords__icontains=search_query) |
+            Q(doc_type__icontains=search_query)
+        )
+
+    # 4. Return the filtered list to the Template
+    context = {
+        'archives': archive_list, # This matches the {% for archive in archives %} in your HTML
+        'is_legislator': is_legislator(request.user), 
+        'search_query': search_query,
+    }
+    return render(request, 'archives/archive.html', context)
 
 # ==========================================
 # 5. AUDIT LOGS VIEW

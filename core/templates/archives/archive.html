@@ -38,10 +38,11 @@
 
     <main class="main-content">
         <header class="top-header">
-            <div class="search-bar">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" placeholder="Search Archived Documents by Title, ID, or Keywords...">
-            </div>
+                <form method="GET" action="{% url 'archive' %}" class="search-bar">
+                     <i class="fa-solid fa-magnifying-glass"></i>
+                      <input type="text" name="q" value="{{ request.GET.q}}" placeholder="Search Archived Documents by Title, Sponsor, or Keywords...">
+                      <button type="submit" style="display: none;"></button>
+                </form>
             <div class="header-actions">
                 {% if not is_legislator %}
                 <button type="button" class="btn-upload trigger-modal"><i class="fa-solid fa-plus"></i> Upload
