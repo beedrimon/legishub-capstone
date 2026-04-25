@@ -6,7 +6,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from .models import LegislativeDocument, AuditLog, ArchivedDocument # Added ArchivedDocument
+from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder
 from django.core.paginator import Paginator
 from django.db.models import Q
 
@@ -177,10 +177,31 @@ def documents_view(request):
 def archive_view(request):
     # Fetch all archives, newest first
     archives = ArchivedDocument.objects.all().order_by('-date_archived')
+    custom_folders = ArchiveFolder.objects.all().order_by('name')
     return render(request, 'archives/archive.html', {
         'archives': archives, 
+        'custom_folders': custom_folders,
         'is_legislator': is_legislator(request.user)
     })
+
+#CREATE ARCHIVE FOLDER VIEW
+@login_required(login_url='login')
+def create_archive_folder(request):
+    if is_legislator(request.user):
+        messages.error(request, 'Action Denied: Legislators cannot create folders.')
+        return redirect('archive')
+
+    if request.method == 'POST':
+        folder_name = request.POST.get('new_folder_name')
+        if folder_name:
+            folder_name = folder_name.strip()
+            if ArchiveFolder.objects.filter(name__iexact=folder_name).exists():
+                messages.error(request, f"Folder '{folder_name}' already exists.")
+            else:
+                ArchiveFolder.objects.create(name=folder_name, created_by=request.user)
+                messages.success(request, f"Folder '{folder_name}' created successfully!")
+                
+    return redirect('archive')
 
 #ARCHIVE 1900-1999 VIEW
 @login_required(login_url='login')

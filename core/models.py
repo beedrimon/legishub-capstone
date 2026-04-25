@@ -75,6 +75,14 @@ def archive_upload_path(instance, filename):
     # Saves to a separate 'archives' folder instead of 'documents'
     return os.path.join('archives/', new_filename)
 
+class ArchiveFolder(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+
+    def __str__(self):
+        return self.name
+
 # ==========================================
 # ARCHIVED DOCUMENT MODEL
 # ==========================================
@@ -89,6 +97,7 @@ class ArchivedDocument(models.Model):
     # 1. New Unique Archive Identifier (Replaces document_number)
     archive_id = models.CharField(max_length=100, unique=True)
     
+    custom_folder = models.ForeignKey(ArchiveFolder, on_delete=models.SET_NULL, null=True, blank=True, related_name='documents')
     # Optional: Keep a record of what the original Legis Number was
     original_document_number = models.CharField(max_length=100, null=True, blank=True)
     

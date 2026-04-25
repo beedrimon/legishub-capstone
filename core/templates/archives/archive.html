@@ -91,8 +91,15 @@
                     </a>
                     {% endif %}
 
+                    {% for folder in custom_folders %}
+                    <div class="folder-card doc-type-folder" onclick="selectType('{{ folder.name|escapejs }}')" style="cursor: pointer;">
+                        <i class="fa-regular fa-folder"></i>
+                        <p>{{ folder.name|upper }}</p>
+                    </div>
+                    {% endfor %}
+
                     {% if not is_legislator %}
-                    <div class="folder-card doc-type-folder btn-add-folder-card" id="btn-add-folder" style="cursor: pointer;">
+                    <div class="folder-card doc-type-folder btn-add-folder-card" id="btn-add-folder" style="cursor: pointer;" onclick="document.getElementById('addFolderModal').style.display='flex'">
                         <i class="fa-solid fa-plus"></i>
                         <p>ADD FOLDER</p>
                     </div>
@@ -551,7 +558,7 @@
                 <h2>CREATE NEW FOLDER</h2>
                 <button class="close-modal">&times;</button>
             </div>
-            <form class="modal-body" method="POST" action="#">
+            <form class="modal-body" method="POST" action="{% url 'create_archive_folder' %}">
                 {% csrf_token %}
                 <div class="form-row">
                     <div class="form-group full-width">
@@ -560,8 +567,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-discard close-modal">Cancel</button>
-                    <button type="button" class="btn-add close-modal" onclick="alert('Folder creation logic will be handled by the backend once implemented.')">Create Folder</button>
+                    <button type="button" class="btn-discard close-modal" onclick="document.getElementById('addFolderModal').style.display='none'">Cancel</button>
+                    <button type="submit" class="btn-add">Create Folder</button>
                 </div>
             </form>
         </div>
@@ -573,7 +580,7 @@
         const archiveData = [
             {% for archive in archives %}
             {
-                type: "{{ archive.doc_type|escapejs }}",
+                type: "{% if archive.custom_folder %}{{ archive.custom_folder.name|escapejs }}{% else %}{{ archive.doc_type|escapejs }}{% endif %}",
                 year: "{{ archive.year|escapejs }}"
             },
             {% endfor %}

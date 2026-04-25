@@ -30,6 +30,7 @@ urlpatterns = [
 
     #ARCHIVE VIEWS
     path('archive/', views.archive_view, name='archive'),
+    path('archives/create-folder/', views.create_archive_folder, name='create_archive_folder'),
 
     path('archive_90s/', views.archive_90s_view, name='archive_90s'),
     path('archive_year_details/<int:year>/', views.archive_year_detail_view, name='archive_year_detail'),
