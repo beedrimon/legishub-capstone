@@ -4,7 +4,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Elements
-    const bell = document.getElementById('notifBell');
+    const bell = document.querySelector('.notification-wrapper');
     const notifDropdown = document.getElementById('notificationDropdown');
     const uploadDropdownBtn = document.querySelector('.btn-upload-dropdown');
     const uploadDropdownWrapper = document.querySelector('.upload-dropdown');
@@ -21,10 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Helper to close all UI overlays
     const closeAllOverlays = () => {
-        Object.values(modals).forEach(m => { 
+        Object.values(modals).forEach(m => {
             if (m) {
-                m.style.display = 'none'; 
-                
+                m.style.display = 'none';
+
                 // Reset file inputs and their visual states to avoid caching old files across modals
                 const fileInputs = m.querySelectorAll('input[type="file"]');
                 fileInputs.forEach(input => {
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 5. Notification Logic
+    // 5. Notification Logic & Real-Time Polling
     if (bell && notifDropdown) {
         bell.addEventListener('click', (e) => {
             e.preventDefault();
@@ -84,8 +84,50 @@ document.addEventListener('DOMContentLoaded', () => {
             const isShowing = notifDropdown.style.display === 'block';
             closeAllOverlays();
             notifDropdown.style.display = isShowing ? 'none' : 'block';
+
+            // Hide the red badge when the user clicks the bell
+            const badge = document.querySelector('.notif-badge');
+            if (badge) badge.style.display = 'none';
         });
     }
+
+    // --- NEW: AJAX FETCH LOGIC ---
+    function fetchNotifications() {
+        fetch('/api/notifications/')
+            .then(response => response.json())
+            .then(data => {
+                const notifBody = document.querySelector('#notificationDropdown .notif-body');
+                const notifBadge = document.querySelector('.notif-badge');
+
+                if (notifBody && data.notifications) {
+                    notifBody.innerHTML = ''; // Clear out the hardcoded HTML
+
+                    data.notifications.forEach((notif, index) => {
+                        // Remove bottom border from the last item
+                        let borderClass = (index === data.notifications.length - 1) ? 'border-none' : '';
+
+                        notifBody.innerHTML += `
+                            <div class="notif-item ${borderClass}">
+                                <div class="notif-content">
+                                    <p>${notif.message}</p>
+                                    <span class="notif-time">${notif.time}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+
+                    // Show the red dot if there are notifications loaded
+                    if (data.notifications.length > 0 && notifBadge.style.display !== 'none') {
+                        notifBadge.style.display = 'block';
+                    }
+                }
+            })
+            .catch(error => console.error('Error fetching notifications:', error));
+    }
+
+    // Fetch immediately when the page loads, then check again every 30 seconds
+    fetchNotifications();
+    setInterval(fetchNotifications, 30000);
 
     // 5.5 Upload Dropdown Logic
     if (uploadDropdownBtn && uploadDropdownWrapper) {
@@ -111,7 +153,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Close notification if clicking outside
         if (notifDropdown &&
             !notifDropdown.contains(event.target) &&
-            event.target !== bell) {
+            bell && !bell.contains(event.target)) {
             notifDropdown.style.display = 'none';
         }
     });
@@ -126,11 +168,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const fileInput = e.target;
             // Pinpoint the exact visual box directly surrounding this specific input
             const uploadArea = fileInput.closest('.upload-area');
-            
+
             if (uploadArea) {
                 const uploadText = uploadArea.querySelector('p');
                 const uploadSpan = uploadArea.querySelector('span');
-                
+
                 if (uploadText) {
                     if (fileInput.files && fileInput.files.length > 0) {
                         // Use innerHTML to preserve <strong> tags utilized by Edit Modals
@@ -138,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             uploadArea.setAttribute('data-default-html', uploadText.innerHTML);
                             if (uploadSpan) uploadArea.setAttribute('data-default-span', uploadSpan.innerText);
                         }
-                        
+
                         uploadText.innerHTML = `File attached: <strong style="color: #22C55E;">${fileInput.files[0].name}</strong>`;
                         if (uploadSpan) uploadSpan.innerText = 'Ready to upload';
                     } else {
@@ -183,11 +225,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('view-date').innerText = docDate;
             document.getElementById('view-sponsor').innerText = docSponsor;
             document.getElementById('view-keywords').innerText = docKeywords;
-            if(document.getElementById('view-enacted')) document.getElementById('view-enacted').innerText = docEnacted;
-            if(document.getElementById('view-cosponsors')) document.getElementById('view-cosponsors').innerText = docCosponsors;
-            if(document.getElementById('view-status')) document.getElementById('view-status').innerHTML = `<span class="badge ${docStatus ? docStatus.toLowerCase() : ''}">${docStatus}</span>`;
-            if(document.getElementById('view-visibility')) document.getElementById('view-visibility').innerText = docVisibility;
-            if(document.getElementById('view-storage')) document.getElementById('view-storage').innerText = docStorage;
+            if (document.getElementById('view-enacted')) document.getElementById('view-enacted').innerText = docEnacted;
+            if (document.getElementById('view-cosponsors')) document.getElementById('view-cosponsors').innerText = docCosponsors;
+            if (document.getElementById('view-status')) document.getElementById('view-status').innerHTML = `<span class="badge ${docStatus ? docStatus.toLowerCase() : ''}">${docStatus}</span>`;
+            if (document.getElementById('view-visibility')) document.getElementById('view-visibility').innerText = docVisibility;
+            if (document.getElementById('view-storage')) document.getElementById('view-storage').innerText = docStorage;
 
             // 3. Update the Download Button
             const downloadBtn = document.getElementById('view-download-btn');
@@ -295,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('edit-user-last').value = userLast;
             document.getElementById('edit-user-email').value = userEmail;
             document.getElementById('edit-user-username').value = userUsername;
-            if(document.getElementById('edit-user-role')) {
+            if (document.getElementById('edit-user-role')) {
                 document.getElementById('edit-user-role').value = userRole;
             }
         });

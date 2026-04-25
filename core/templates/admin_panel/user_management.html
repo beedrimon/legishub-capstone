@@ -3,251 +3,268 @@
 {% block title %}User Management - Marikina LegisHub{% endblock %}
 
 {% block top_header_content %}
-            <div class="header-title">Identity & Access Management (IAM)</div>
-            <div class="header-actions">
-                <i class="fa-regular fa-bell"></i>
-                <i class="fa-regular fa-circle-question"></i>
-                <div class="profile">
-                    <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
-                </div>
-            </div>
+<div class="header-title">Identity & Access Management (IAM)</div>
+<div class="header-actions">
+    <div class="notification-wrapper">
+        <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer;"></i>
+        <span class="notif-badge" style="display: none;"></span>
+    </div>
+    <i class="fa-regular fa-circle-question"></i>
+    <div class="profile">
+        <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
+    </div>
+</div>
 {% endblock %}
 
 {% block content %}
-            <div class="dashboard-header-row">
-                <div class="header-text">
-                    <h1>User Management</h1>
-                    <p>Control access levels and manage legislative staff accounts.</p>
-                </div>
-                <button class="btn-create trigger-user">
-                    <i class="fa-solid fa-user-plus"></i> Add User
-                </button>
-            </div>
+<div class="dashboard-header-row">
+    <div class="header-text">
+        <h1>User Management</h1>
+        <p>Control access levels and manage legislative staff accounts.</p>
+    </div>
+    <button class="btn-create trigger-user">
+        <i class="fa-solid fa-user-plus"></i> Add User
+    </button>
+</div>
 
-            <form method="GET" action="{% url 'user_management' %}" id="userFilterForm" class="filter-section" style="align-items: center;">
-                <div class="search-bar" style="background: white; border: 1.5px solid var(--border-color); flex: 1; max-width: 400px; border-radius: 8px;">
-                    <i class="fa-solid fa-magnifying-glass"></i>
-                    <input type="text" name="q" value="{{ current_filters.q }}" placeholder="Search by name, username, or email...">
-                    <button type="submit" style="display: none;"></button>
-                </div>
-                
-                <div class="filter-group" style="min-width: 150px; flex: none;">
-                    <label>ROLE</label>
-                    <select name="role" onchange="document.getElementById('userFilterForm').submit();">
-                        <option value="">All Roles</option>
-                        <option value="admin" {% if current_filters.role == 'admin' %}selected{% endif %}>System Admin</option>
-                        <option value="staff" {% if current_filters.role == 'staff' %}selected{% endif %}>Legislative Staff</option>
-                        <option value="legislator" {% if current_filters.role == 'legislator' %}selected{% endif %}>Legislator</option>
-                    </select>
-                </div>
-                
-                <div class="filter-group" style="min-width: 150px; flex: none;">
-                    <label>STATUS</label>
-                    <select name="status" onchange="document.getElementById('userFilterForm').submit();">
-                        <option value="">All Statuses</option>
-                        <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Active</option>
-                        <option value="inactive" {% if current_filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
-                    </select>
-                </div>
+<form method="GET" action="{% url 'user_management' %}" id="userFilterForm" class="filter-section"
+    style="align-items: center;">
+    <div class="search-bar"
+        style="background: white; border: 1.5px solid var(--border-color); flex: 1; max-width: 400px; border-radius: 8px;">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" name="q" value="{{ current_filters.q }}" placeholder="Search by name, username, or email...">
+        <button type="submit" style="display: none;"></button>
+    </div>
 
-                <a href="{% url 'user_management' %}" class="btn-reset" style="text-decoration: none; padding: 10px 18px; align-self: flex-end;">Reset</a>
-            </form>
+    <div class="filter-group" style="min-width: 150px; flex: none;">
+        <label>ROLE</label>
+        <select name="role" onchange="document.getElementById('userFilterForm').submit();">
+            <option value="">All Roles</option>
+            <option value="admin" {% if current_filters.role == 'admin' %}selected{% endif %}>System Admin</option>
+            <option value="staff" {% if current_filters.role == 'staff' %}selected{% endif %}>Legislative Staff</option>
+            <option value="legislator" {% if current_filters.role == 'legislator' %}selected{% endif %}>Legislator
+            </option>
+        </select>
+    </div>
 
-            <div class="total-records" style="margin-bottom: 12px; font-weight: 600; padding-left: 5px;">
-                {{ total_records }} Account{% if total_records != 1 %}s{% endif %} Found
-            </div>
+    <div class="filter-group" style="min-width: 150px; flex: none;">
+        <label>STATUS</label>
+        <select name="status" onchange="document.getElementById('userFilterForm').submit();">
+            <option value="">All Statuses</option>
+            <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Active</option>
+            <option value="inactive" {% if current_filters.status == 'inactive' %}selected{% endif %}>Inactive</option>
+        </select>
+    </div>
 
-            <section class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>USER DETAILS</th>
-                            <th>DESIGNATION</th>
-                            <th>LAST ACTIVITY</th>
-                            <th>STATUS</th>
-                            <th>ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for user in users %}
-                        <tr>
-                            <td>
-                                <strong>{{ user.get_full_name|default:user.username }}</strong><br>
-                                <small style="color: var(--text-light);">{{ user.email|default:"No email provided" }}</small>
-                            </td>
-                            <td>
-                                <span class="role-badge {% if user.is_superuser %}sys-admin{% else %}staff{% endif %}">
-                                    {% if user.is_superuser %}SYSTEM ADMIN{% elif user.is_staff %}STAFF{% else %}LEGISLATOR{% endif %}
-                                </span>
-                                
-                            </td>
-                            <td>{{ user.last_login|timesince|default:"Never" }} ago</td>
-                            <td>
-                                <form method="POST" action="{% url 'toggle_permission' user.id 'active' %}" style="margin: 0; display: inline-flex; align-items: center; gap: 8px;">
-                                    {% csrf_token %}
-                                    <button type="submit" class="toggle {% if user.is_active %}on{% else %}off{% endif %}" style="border: none; outline: none;"></button>
-                                    <span style="font-size: 0.8rem; font-weight: 600; color: {% if user.is_active %}#2E7D32{% else %}#888{% endif %};">
-                                        {% if user.is_active %}Active{% else %}Inactive{% endif %}
-                                    </span>
-                                </form>
-                            </td>
-                            <td>
-                                <button type="button" class="trigger-edit-user" style="background: none; border: none; color: #1E88E5; cursor: pointer; padding: 4px 8px; border-radius: 4px;" title="Edit User"
-                                    data-id="{{ user.id }}"
-                                    data-first="{{ user.first_name }}"
-                                    data-last="{{ user.last_name }}"
-                                    data-email="{{ user.email }}"
-                                    data-username="{{ user.username }}"
-                                    data-role="{% if user.is_superuser %}admin{% elif user.is_staff %}staff{% else %}legislator{% endif %}">
-                                    <i class="fa-solid fa-pen-to-square"></i>
-                                </button>
-                                
-                                <form method="POST" action="{% url 'delete_user' user.id %}" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete the user {{ user.username }}? This action cannot be undone.');">
-                                    {% csrf_token %}
-                                    <button type="submit" style="background: none; border: none; color: #E53935; cursor: pointer; padding: 4px 8px; border-radius: 4px;" title="Delete User">
-                                        <i class="fa-solid fa-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" style="text-align: center; padding: 20px;">No users found in the database.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-                
-                <!-- Pagination Section -->
-                {% if users.has_other_pages %}
-                <div class="pagination">
-                    <div class="page-info">
-                        Showing page {{ users.number }} of {{ users.paginator.num_pages }}
-                    </div>
-                    <div class="page-numbers">
-                        {% if users.has_previous %}
-                        <a href="?page=1{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.role %}&role={{ current_filters.role }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}" style="text-decoration: none;">
-                            <button>&laquo; First</button>
-                        </a>
-                        <a href="?page={{ users.previous_page_number }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.role %}&role={{ current_filters.role }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}" style="text-decoration: none;">
-                            <button>Previous</button>
-                        </a>
-                        {% endif %}
-                        
-                        <span>Page {{ users.number }}</span>
+    <a href="{% url 'user_management' %}" class="btn-reset"
+        style="text-decoration: none; padding: 10px 18px; align-self: flex-end;">Reset</a>
+</form>
 
-                        {% if users.has_next %}
-                        <a href="?page={{ users.next_page_number }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.role %}&role={{ current_filters.role }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}" style="text-decoration: none;">
-                            <button>Next</button>
-                        </a>
-                        <a href="?page={{ users.paginator.num_pages }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.role %}&role={{ current_filters.role }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}" style="text-decoration: none;">
-                            <button>Last &raquo;</button>
-                        </a>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endif %}
-            </section>
+<div class="total-records" style="margin-bottom: 12px; font-weight: 600; padding-left: 5px;">
+    {{ total_records }} Account{% if total_records != 1 %}s{% endif %} Found
+</div>
+
+<section class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>USER DETAILS</th>
+                <th>DESIGNATION</th>
+                <th>LAST ACTIVITY</th>
+                <th>STATUS</th>
+                <th>ACTIONS</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>
+                    <strong>{{ user.get_full_name|default:user.username }}</strong><br>
+                    <small style="color: var(--text-light);">{{ user.email|default:"No email provided" }}</small>
+                </td>
+                <td>
+                    <span class="role-badge {% if user.is_superuser %}sys-admin{% else %}staff{% endif %}">
+                        {% if user.is_superuser %}SYSTEM ADMIN{% elif user.is_staff %}STAFF{% else %}LEGISLATOR{% endif %}
+                    </span>
+
+                </td>
+                <td>{{ user.last_login|timesince|default:"Never" }} ago</td>
+                <td>
+                    <form method="POST" action="{% url 'toggle_permission' user.id 'active' %}"
+                        style="margin: 0; display: inline-flex; align-items: center; gap: 8px;">
+                        {% csrf_token %}
+                        <button type="submit" class="toggle {% if user.is_active %}on{% else %}off{% endif %}"
+                            style="border: none; outline: none;"></button>
+                        <span
+                            style="font-size: 0.8rem; font-weight: 600; color: {% if user.is_active %}#2E7D32{% else %}#888{% endif %};">
+                            {% if user.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </form>
+                </td>
+                <td>
+                    <button type="button" class="trigger-edit-user"
+                        style="background: none; border: none; color: #1E88E5; cursor: pointer; padding: 4px 8px; border-radius: 4px;"
+                        title="Edit User" data-id="{{ user.id }}" data-first="{{ user.first_name }}"
+                        data-last="{{ user.last_name }}" data-email="{{ user.email }}"
+                        data-username="{{ user.username }}"
+                        data-role="{% if user.is_superuser %}admin{% elif user.is_staff %}staff{% else %}legislator{% endif %}">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+
+                    <form method="POST" action="{% url 'delete_user' user.id %}" style="display: inline;"
+                        onsubmit="return confirm('Are you sure you want to delete the user {{ user.username }}? This action cannot be undone.');">
+                        {% csrf_token %}
+                        <button type="submit"
+                            style="background: none; border: none; color: #E53935; cursor: pointer; padding: 4px 8px; border-radius: 4px;"
+                            title="Delete User">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" style="text-align: center; padding: 20px;">No users found in the database.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination Section -->
+    {% if users.has_other_pages %}
+    <div class="pagination">
+        <div class="page-info">
+            Showing page {{ users.number }} of {{ users.paginator.num_pages }}
+        </div>
+        <div class="page-numbers">
+            {% if users.has_previous %}
+            <a href="?page=1{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.role %}&role={{ current_filters.role }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}"
+                style="text-decoration: none;">
+                <button>&laquo; First</button>
+            </a>
+            <a href="?page={{ users.previous_page_number }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.role %}&role={{ current_filters.role }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}"
+                style="text-decoration: none;">
+                <button>Previous</button>
+            </a>
+            {% endif %}
+
+            <span>Page {{ users.number }}</span>
+
+            {% if users.has_next %}
+            <a href="?page={{ users.next_page_number }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.role %}&role={{ current_filters.role }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}"
+                style="text-decoration: none;">
+                <button>Next</button>
+            </a>
+            <a href="?page={{ users.paginator.num_pages }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.role %}&role={{ current_filters.role }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}"
+                style="text-decoration: none;">
+                <button>Last &raquo;</button>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</section>
 {% endblock %}
 
 {% block modals %}
 {{ block.super }}
 
-    <div id="userModal" class="modal-overlay">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h2>CREATE NEW ACCOUNT</h2>
-                <button class="close-modal" id="closeUserModal">&times;</button>
-            </div>
-            <form class="modal-body" method="POST" action="{% url 'create_user' %}">
-                {% csrf_token %}
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>FIRST NAME</label>
-                        <input type="text" name="first_name" required>
-                    </div>
-                    <div class="form-group">
-                        <label>LAST NAME</label>
-                        <input type="text" name="last_name" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>EMAIL ADDRESS</label>
-                        <input type="email" name="email" required>
-                    </div>
-                    <div class="form-group">
-                        <label>USERNAME</label>
-                        <input type="text" name="username" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>PASSWORD</label>
-                        <input type="password" name="password" required>
-                    </div>
-                    <div class="form-group">
-                        <label>ROLE / DESIGNATION</label>
-                        <select name="role" required>
-                            <option value="staff">Legislative Staff (CRU)</option>
-                            <option value="admin">System Admin (CRUD)</option>
-                            <option value="legislator">Legislator (Read-Only) (R)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-discard" id="discardUserBtn">Discard</button>
-                    <button type="submit" class="btn-add">Create Account</button>
-                </div>
-            </form>
+<div id="userModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2>CREATE NEW ACCOUNT</h2>
+            <button class="close-modal" id="closeUserModal">&times;</button>
         </div>
+        <form class="modal-body" method="POST" action="{% url 'create_user' %}">
+            {% csrf_token %}
+            <div class="form-row">
+                <div class="form-group">
+                    <label>FIRST NAME</label>
+                    <input type="text" name="first_name" required>
+                </div>
+                <div class="form-group">
+                    <label>LAST NAME</label>
+                    <input type="text" name="last_name" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>EMAIL ADDRESS</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>USERNAME</label>
+                    <input type="text" name="username" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>PASSWORD</label>
+                    <input type="password" name="password" required>
+                </div>
+                <div class="form-group">
+                    <label>ROLE / DESIGNATION</label>
+                    <select name="role" required>
+                        <option value="staff">Legislative Staff (CRU)</option>
+                        <option value="admin">System Admin (CRUD)</option>
+                        <option value="legislator">Legislator (Read-Only) (R)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-discard" id="discardUserBtn">Discard</button>
+                <button type="submit" class="btn-add">Create Account</button>
+            </div>
+        </form>
     </div>
+</div>
 
-    <div id="editUserModal" class="modal-overlay">
-        <div class="modal-container">
-            <div class="modal-header">
-                <h2>EDIT ACCOUNT DETAILS</h2>
-                <button class="close-modal" id="closeEditUserModal">&times;</button>
-            </div>
-            <form class="modal-body" method="POST" action="{% url 'edit_user' %}">
-                {% csrf_token %}
-                <input type="hidden" name="user_id" id="edit-user-id">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>FIRST NAME</label>
-                        <input type="text" name="first_name" id="edit-user-first" required>
-                    </div>
-                    <div class="form-group">
-                        <label>LAST NAME</label>
-                        <input type="text" name="last_name" id="edit-user-last" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>EMAIL ADDRESS</label>
-                        <input type="email" name="email" id="edit-user-email" required>
-                    </div>
-                    <div class="form-group">
-                        <label>USERNAME</label>
-                        <input type="text" name="username" id="edit-user-username" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group full-width">
-                        <label>ROLE / DESIGNATION</label>
-                        <select name="role" id="edit-user-role" required>
-                            <option value="staff">Legislative Staff (CRU)</option>
-                            <option value="admin">System Admin (CRUD)</option>
-                            <option value="legislator">Legislator (Read-Only) (R)</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn-discard" id="discardEditUserBtn">Discard Changes</button>
-                    <button type="submit" class="btn-add">Update Account</button>
-                </div>
-            </form>
+<div id="editUserModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2>EDIT ACCOUNT DETAILS</h2>
+            <button class="close-modal" id="closeEditUserModal">&times;</button>
         </div>
+        <form class="modal-body" method="POST" action="{% url 'edit_user' %}">
+            {% csrf_token %}
+            <input type="hidden" name="user_id" id="edit-user-id">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>FIRST NAME</label>
+                    <input type="text" name="first_name" id="edit-user-first" required>
+                </div>
+                <div class="form-group">
+                    <label>LAST NAME</label>
+                    <input type="text" name="last_name" id="edit-user-last" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>EMAIL ADDRESS</label>
+                    <input type="email" name="email" id="edit-user-email" required>
+                </div>
+                <div class="form-group">
+                    <label>USERNAME</label>
+                    <input type="text" name="username" id="edit-user-username" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label>ROLE / DESIGNATION</label>
+                    <select name="role" id="edit-user-role" required>
+                        <option value="staff">Legislative Staff (CRU)</option>
+                        <option value="admin">System Admin (CRUD)</option>
+                        <option value="legislator">Legislator (Read-Only) (R)</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-discard" id="discardEditUserBtn">Discard Changes</button>
+                <button type="submit" class="btn-add">Update Account</button>
+            </div>
+        </form>
     </div>
+</div>
+
 {% endblock %}

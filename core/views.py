@@ -1,4 +1,7 @@
 from django.shortcuts import render
+from django.http import JsonResponse
+from django.utils.timesince import timesince
+from django.utils.timezone import now
 
 # Create your views here.
 from django.shortcuts import render, redirect
@@ -746,3 +749,39 @@ def edit_document(request):
         messages.success(request, 'Document successfully updated!')
         
     return redirect('documents')
+
+# ==========================================
+# 11. API: REAL-TIME NOTIFICATIONS
+# ==========================================
+@login_required(login_url='login')
+def get_notifications(request):
+    # Fetch the 5 most recent audit logs
+    if is_legislator(request.user):
+        # Legislators only see their own notifications
+        logs = AuditLog.objects.filter(user=request.user).select_related('user', 'document').order_by('-timestamp')[:5]
+    else:
+        # Admins/Staff see all system activity
+        logs = AuditLog.objects.all().select_related('user', 'document').order_by('-timestamp')[:5]
+    
+    data = []
+    for log in logs:
+        # Safely grab document info
+        doc_number = log.document.document_number if log.document else "a document"
+        
+        # Format the notification message beautifully
+        if log.action == 'Upload':
+            msg = f"<strong>New Upload:</strong> {doc_number} was uploaded by <strong>{log.user.username}</strong>."
+        elif log.action == 'Edit':
+            msg = f"<strong>Document Updated:</strong> {doc_number} was modified by <strong>{log.user.username}</strong>."
+        else:
+            msg = f"<strong>System Action:</strong> {log.action} performed by <strong>{log.user.username}</strong>."
+        
+        # Calculate how long ago this happened (e.g., "2 minutes ago")
+        time_ago = f"{timesince(log.timestamp, now())} ago"
+        
+        data.append({
+            'message': msg,
+            'time': time_ago
+        })
+        
+    return JsonResponse({'notifications': data})
