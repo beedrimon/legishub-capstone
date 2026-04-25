@@ -337,6 +337,58 @@ body {
     opacity: 0.88;
 }
 
+/* ============================================================
+   UPLOAD DROPDOWN BUTTON
+   ============================================================ */
+.upload-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.upload-dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    min-width: 230px;
+    box-shadow: var(--shadow-md);
+    border-radius: 8px;
+    z-index: 1000;
+    top: 110%;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.upload-dropdown-content button {
+    color: var(--text-main);
+    padding: 14px 18px;
+    text-decoration: none;
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s;
+    border-bottom: 1px solid var(--bg-color);
+}
+
+.upload-dropdown-content button:last-child {
+    border-bottom: none;
+}
+
+.upload-dropdown-content button:hover {
+    background-color: var(--bg-color);
+    color: var(--sidebar-bg);
+}
+
+.upload-dropdown.show .upload-dropdown-content {
+    display: block;
+}
+
 .btn-reset {
     border: 1.5px solid var(--sidebar-bg);
     color: var(--sidebar-bg);
@@ -548,6 +600,47 @@ td strong {
 .badge.inactive {
     background: #FAFAFA;
     color: #999;
+}
+
+/* New Proposal Statuses */
+.badge.1st {
+    background: #E3F2FD;
+    color: #1565C0;
+}
+
+.badge.2nd {
+    background: #EDE7F6;
+    color: #5E35B1;
+}
+
+.badge.3rd {
+    background: #F3E5F5;
+    color: #6A1B9A;
+}
+
+.badge.for.certification {
+    background: #FFF3E0;
+    color: #E65100;
+}
+
+.badge.for.signing {
+    background: #E0F7FA;
+    color: #00838F;
+}
+
+.badge.for.approval {
+    background: #FFF8E1;
+    color: #F57F17;
+}
+
+.badge.vetoed {
+    background: #FFEBEE;
+    color: #C62828;
+}
+
+.badge.archived {
+    background: #F5F5F5;
+    color: #616161;
 }
 
 .status-tag {
