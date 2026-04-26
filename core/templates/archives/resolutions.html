@@ -39,15 +39,15 @@
     
     <nav class="breadcrumb">
         <a href="{% url 'documents' %}">Repository</a>
-        <a href="{% url 'archive' %}">Archive</a>
+        <a href="{% url 'archive' %}">/ Archive</a>
         {% if current_view == 'year_list' %}
-            <a href="{% url 'resolutions' %}">Resolutions</a>
-            <span class="active">{{ selected_range }}</span>
+            <a href="{% url 'resolutions' %}">/ Resolutions</a>
+            <span class="active">/ {{ selected_range }}</span>
         {% elif current_view == 'doc_list' %}
-            <a href="{% url 'resolutions' %}">Resolutions</a>
-            <span class="active">{{ selected_year }}</span>
+            <a href="{% url 'resolutions' %}">/ Resolutions</a>
+            <span class="active">/ {{ selected_year }}</span>
         {% else %}
-            <span class="active">Resolutions</span>
+            <span class="active">/ Resolutions</span>
         {% endif %}
     </nav>
 
