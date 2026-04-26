@@ -9,6 +9,9 @@ from django.contrib.auth.models import User
 from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder
 from django.core.paginator import Paginator
 from django.db.models import Q
+from django.db.models.functions import ExtractYear
+from django.db.models import Count
+
 
 # ==========================================
 # HELPER: ROLE CHECKS
@@ -179,18 +182,119 @@ def documents_view(request):
 # ==========================================
 # 4. ARCHIVE VIEW
 # ==========================================
-
-#ARCHIVE VIEW
-@login_required(login_url='login')
+@login_required
 def archive_view(request):
-    # Fetch all archives, newest first
-    archives = ArchivedDocument.objects.all().order_by('-date_archived')
-    custom_folders = ArchiveFolder.objects.all().order_by('name')
+    # This pulls EVERYTHING for the main table
+    all_archives = LegislativeDocument.objects.all().order_by('-date_archived')[:10]
+    
+    # These counts determine if the folders feel "alive"
+    res_count = LegislativeDocument.objects.filter(doc_type__iexact='Resolution').count()
+    ord_count = LegislativeDocument.objects.filter(doc_type__iexact='Ordinance').count()
+    
     return render(request, 'archives/archive.html', {
-        'archives': archives, 
-        'custom_folders': custom_folders,
-        'is_legislator': is_legislator(request.user)
+        'archives': all_archives,
+        'res_count': res_count,
+        'ord_count': ord_count
     })
+
+@login_required
+def ordinances_view(request):
+    selected_range = request.GET.get('range') # e.g., "2000-2026"
+    selected_year = request.GET.get('year')   # e.g., "2026"
+    search_query = request.GET.get('q', '')
+    sort_order = request.GET.get('sort', 'desc')
+
+    ordinances = ArchivedDocument.objects.filter(doc_type__iexact='Ordinance')
+
+    # Step 1: Handle Year Range Selection (Shows list of Years)
+    if selected_range:
+        start_year, end_year = map(int, selected_range.split('-'))
+        years_list = ordinances.filter(year__range=(start_year, end_year)) \
+                               .values('year') \
+                               .annotate(doc_count=Count('id'))
+        
+        if search_query:
+            years_list = years_list.filter(year__icontains=search_query)
+        
+        years_list = years_list.order_by('year' if sort_order == 'asc' else '-year')
+        
+        return render(request, 'archives/ordinances.html', {
+            'years_list': years_list,
+            'selected_range': selected_range,
+            'current_view': 'year_list'
+        })
+
+    # Step 2: Handle Specific Year Selection (Shows list of Documents)
+    if selected_year:
+        docs = ordinances.filter(year=selected_year)
+        return render(request, 'archives/ordinances.html', {
+            'archives': docs,
+            'selected_year': selected_year,
+            'current_view': 'doc_list'
+        })
+
+    # Default View: Show all or summary
+    archives = ordinances.order_by('-year')
+    return render(request, 'archives/ordinances.html', {'archives': archives, 'current_view': 'default'})
+
+@login_required
+def resolutions_view(request):
+    selected_range = request.GET.get('range') # e.g., "2000-2026"
+    selected_year = request.GET.get('year')   # e.g., "2026"
+    search_query = request.GET.get('q', '')
+    sort_order = request.GET.get('sort', 'desc')
+
+
+    resolutions = ArchivedDocument.objects.filter(doc_type__iexact='Resolution')
+
+    # Step 1: Handle Year Range Selection (Shows list of Years)
+    if selected_range:
+        start_year, end_year = map(int, selected_range.split('-'))
+        years_list = resolutions.filter(year__range=(start_year, end_year)) \
+                               .values('year') \
+                               .annotate(doc_count=Count('id'))
+        
+        if search_query:
+            years_list = years_list.filter(year__icontains=search_query)
+        
+        years_list = years_list.order_by('year' if sort_order == 'asc' else '-year')
+        
+        return render(request, 'archives/resolutions.html', {
+            'years_list': years_list,
+            'selected_range': selected_range,
+            'current_view': 'year_list'
+        })
+
+    # Step 2: Handle Specific Year Selection (Shows list of Documents)
+    if selected_year:
+        docs = resolutions.filter(year=selected_year)
+        return render(request, 'archives/resolutions.html', {
+            'archives': docs,
+            'selected_year': selected_year,
+            'current_view': 'doc_list'
+        })
+
+    # Default View: Show all or summary
+    archives = resolutions.order_by('-year')
+    return render(request, 'archives/resolutions.html', {'archives': archives, 'current_view': 'default'})
+
+@login_required
+def confidential_view(request):
+    """Restricted page for Internal Archives"""
+    if is_legislator(request.user):
+        return redirect('archive') # Legislators can't see this
+        
+    archives = ArchivedDocument.objects.filter(visibility='Internal Only').order_by('-date_archived')
+    return render(request, 'archives/confidential.html', {'archives': archives})
+
+@login_required
+def vetoed_view(request):
+    """Restricted page for Vetoed Legislation"""
+    if is_legislator(request.user):
+        return redirect('archive') # Legislators can't see this
+        
+    archives = ArchivedDocument.objects.filter(status='Vetoed').order_by('-date_archived')
+    return render(request, 'archives/vetoed.html', {'archives': archives})
 
 #CREATE ARCHIVE FOLDER VIEW
 @login_required(login_url='login')
@@ -210,30 +314,6 @@ def create_archive_folder(request):
                 messages.success(request, f"Folder '{folder_name}' created successfully!")
                 
     return redirect('archive')
-
-#ARCHIVE 1900-1999 VIEW
-@login_required(login_url='login')
-def archive_90s_view(request):
-    return render(request, 'archives/archive_90s.html', {'is_legislator': is_legislator(request.user)})
-
-#ARCHIVE YEAR DETAIL VIEW
-@login_required(login_url='login')
-def archive_year_detail_view(request, year):
-    return render(request, 'archives/archive_year_detail.html', {'year': year, 'is_legislator': is_legislator(request.user)})
-
-
-#ARCHIVE 2000-RECENT VIEW
-@login_required(login_url='login')
-def archive_20s_view(request):
-    return render(request, 'archives/archive_20s.html', {'is_legislator': is_legislator(request.user)})
-
-#ARCHIVE CONFIDENTIAL VIEW
-@login_required(login_url='login')
-def archive_confidential_view(request):
-    if is_legislator(request.user):
-        messages.error(request, 'Legislators do not have permission to view confidential archives.')
-        return redirect('archive')
-    return render(request, 'archives/archive_confidential.html')
 
 # ARCHIVE SEARCH
 @login_required(login_url='login')
@@ -328,7 +408,8 @@ def user_management_view(request):
         messages.error(request, 'You do not have permission to access User Management.')
         return redirect('documents') # Redirect staff away
 
-    all_users = User.objects.all().order_by('-date_joined')
+    # Exclude the current logged-in user from the list
+    all_users = User.objects.all().exclude(id=request.user.id).order_by('-date_joined')
     
     search_query = request.GET.get('q', '')
     role_filter = request.GET.get('role', '')

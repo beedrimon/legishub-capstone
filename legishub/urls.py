@@ -30,13 +30,10 @@ urlpatterns = [
 
     #ARCHIVE VIEWS
     path('archive/', views.archive_view, name='archive'),
-    path('archives/create-folder/', views.create_archive_folder, name='create_archive_folder'),
-
-    path('archive_90s/', views.archive_90s_view, name='archive_90s'),
-    path('archive_year_details/<int:year>/', views.archive_year_detail_view, name='archive_year_detail'),
-
-    path('archive_20s/', views.archive_20s_view, name='archive_20s'),
-    path('archive_confidential/', views.archive_confidential_view, name='archive_confidential'),
+    path('ordinances/', views.ordinances_view, name='ordinances'),
+    path('resolutions/', views.resolutions_view, name='resolutions'),
+    path('confidential/', views.confidential_view, name='confidential'),
+    path('vetoed/', views.vetoed_view, name='vetoed'),
 
     path('audit_logs/', views.audit_logs_view, name='audit_logs'),
     path('user_management/', views.user_management_view, name='user_management'),

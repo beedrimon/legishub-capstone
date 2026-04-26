@@ -2,9 +2,54 @@ let currentType = null;
 let currentDecadeStart = null;
 let currentYear = null;
 
+function updateBreadcrumb() {
+    const bc = document.getElementById("breadcrumb");
+
+    bc.innerHTML = `
+        <h1 style="color:red;">
+            ${currentType || "NO TYPE"} |
+            ${currentDecadeStart || "NO DECADE"} |
+            ${currentYear || "NO YEAR"}
+        </h1>
+    `;
+}
+function goHome() {
+    currentType = null;
+    currentDecadeStart = null;
+    currentYear = null;
+
+    document.getElementById('decade-folders').style.display = 'none';
+    document.getElementById('parent-folders').style.display = 'grid';
+    document.getElementById('year-folders-section').style.display = 'none';
+
+    updateBreadcrumb();
+    filterTable();
+}
+
+function goType() {
+    currentDecadeStart = null;
+    currentYear = null;
+
+    document.getElementById('decade-folders').style.display = 'grid';
+    document.getElementById('year-folders-section').style.display = 'none';
+
+    updateBreadcrumb();
+    filterTable();
+}
+
+function goDecade() {
+    currentYear = null;
+
+    document.getElementById('year-folders-section').style.display = 'block';
+
+    updateBreadcrumb();
+    filterTable();
+}
+
 function selectType(type) {
     currentType = type;
     currentDecadeStart = null;
+    updateBreadcrumb();
     currentYear = null;
     
     document.getElementById('parent-folders').style.display = 'none';
@@ -14,15 +59,15 @@ function selectType(type) {
     decadeSection.innerHTML = '';
     
     // Add "Back" folder
-    const backBtn = document.createElement('div');
-    backBtn.className = 'folder-card doc-type-folder';
-    backBtn.style.cursor = 'pointer';
-    backBtn.onclick = backToParents;
-    backBtn.innerHTML = `
-        <i class="fa-solid fa-arrow-left"></i>
-        <p>BACK</p>
-    `;
-    decadeSection.appendChild(backBtn);
+    // const backBtn = document.createElement('div');
+    // backBtn.className = 'folder-card doc-type-folder';
+    // backBtn.style.cursor = 'pointer';
+    // backBtn.onclick = backToParents;
+    // backBtn.innerHTML = `
+    //     <i class="fa-solid fa-arrow-left"></i>
+    //     <p>BACK</p>
+    // `;
+    // decadeSection.appendChild(backBtn);
     
     // Calculate Decades based on actual data mapped from archive.html inline script
     const typeArchives = archiveData.filter(a => a.type === type);
@@ -64,6 +109,7 @@ function selectDecade(decade, element) {
     } else {
         currentDecadeStart = decade;
         currentYear = null;
+        updateBreadcrumb();
         
         document.querySelectorAll('#decade-folders .folder-card').forEach(el => {
             el.classList.remove('selected-folder');
@@ -107,6 +153,7 @@ function selectYear(year, element) {
         element.classList.remove('selected-year');
     } else {
         currentYear = year;
+        updateBreadcrumb();
         document.querySelectorAll('.year-folder').forEach(el => {
             el.classList.remove('selected-year');
         });
@@ -119,6 +166,7 @@ function backToParents() {
     currentType = null;
     currentDecadeStart = null;
     currentYear = null;
+    updateBreadcrumb();
     
     document.getElementById('decade-folders').style.display = 'none';
     document.getElementById('parent-folders').style.display = 'grid';
@@ -135,7 +183,7 @@ function filterTable() {
         const rowType = row.getAttribute('data-type');
         const rowYear = parseInt(row.getAttribute('data-year'), 10);
         
-        let show = true;
+        let show = true;    
         if (currentType && rowType !== currentType) show = false;
         if (currentDecadeStart !== null && (rowYear < currentDecadeStart || rowYear > currentDecadeStart + 9)) show = false;
         if (currentYear && rowYear !== currentYear) show = false;
@@ -156,6 +204,7 @@ function filterTable() {
 
 window.addEventListener('DOMContentLoaded', () => {
     filterTable();
+    updateBreadcrumb();
 
     // Add Folder Modal Trigger
     const addFolderBtn = document.getElementById('btn-add-folder');
@@ -167,3 +216,5 @@ window.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+console.log("archive.js loaded");

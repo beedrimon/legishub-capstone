@@ -1,0 +1,152 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}  
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/archive.css' %}">
+{% endblock %}
+
+{% block title %}Archive - Marikina LegisHub{% endblock %}
+
+{% block main_content %}
+<header class="top-header">
+            <div class="search-bar">
+                <i class="fa-solid fa-magnifying-glass"></i>
+                <input type="text" placeholder="Search Archived Documents by Title, ID, or Keywords...">
+            </div>
+            <div class="header-actions">
+                    {% if not is_legislator %}
+                    <button type="button" class="btn-upload trigger-modal"><i class="fa-solid fa-plus"></i> Upload
+                        Document</button>
+                    {% endif %}
+                    <div class="notification-wrapper">
+                        <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer; font-size: 1.2rem;"></i>
+                        <span class="notif-badge"></span>
+                    </div>
+                    <i class="fa-regular fa-circle-question" title="Help"></i>
+                    <div class="profile">
+                        <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
+                    </div>
+                </div>
+            </header>
+
+    <div class="dashboard-body">
+            <div class="dashboard-header">
+            <div class="header-text">
+                    <h1>Digital Archives</h1>
+                    <p>Access and manage all archived legislative documents</p>
+            </div>
+            </div>
+    
+    <nav class="breadcrumb">
+        <a href="{% url 'documents' %}">Repository</a>
+        <a href="{% url 'archive' %}">Archive</a>
+        {% if current_view == 'year_list' %}
+            <a href="{% url 'resolutions' %}">Resolutions</a>
+            <span class="active">{{ selected_range }}</span>
+        {% elif current_view == 'doc_list' %}
+            <a href="{% url 'resolutions' %}">Resolutions</a>
+            <span class="active">{{ selected_year }}</span>
+        {% else %}
+            <span class="active">Resolutions</span>
+        {% endif %}
+    </nav>
+
+    <div class="folder-section">
+        <a href="{% if current_view == 'default' %}{% url 'archive' %}{% else %}{% url 'resolutions' %}{% endif %}" class="folder-card">
+            <i class="fa-solid fa-arrow-left"></i>
+            <span>BACK</span>
+        </a>
+        <a href="?range=1900-1999" class="folder-card {% if selected_range == '1900-1999' %}active-folder{% endif %}">
+            <i class="fa-regular fa-folder"></i>
+            <span>1900-1999</span>
+        </a>
+        <a href="?range=2000-2026" class="folder-card {% if selected_range == '2000-2026' %}active-folder{% endif %}">
+            <i class="fa-regular fa-folder"></i>
+            <span>2000-2026</span>
+        </a>
+        <div class="folder-card add-folder-card">
+            <i class="fa-solid fa-plus"></i>
+            <span>ADD FOLDER</span>
+        </div>
+    </div>
+
+    
+    <div class="archive-view-container">
+        <div class="filter-row">
+            <span class="table-title">
+                {% if current_view == 'year_list' %}Available Years ({{ selected_range }})
+                {% elif current_view == 'doc_list' %}Resolutions for Year {{ selected_year }}
+                {% else %}Recently Archived Resolutions{% endif %}
+            </span>
+
+<form method="GET" class="filter-controls">
+                {% if selected_range %}<input type="hidden" name="range" value="{{ selected_range }}">{% endif %}
+                {% if selected_year %}<input type="hidden" name="year" value="{{ selected_year }}">{% endif %}
+                
+                <input type="text" name="q" placeholder="Filter results..." value="{{ request.GET.q|default:'' }}">
+                
+                <select name="sort" onchange="this.form.submit()" class="sort-select">
+                    <option value="desc" {% if request.GET.sort == 'desc' %}selected{% endif %}>Newest</option>
+                    <option value="asc" {% if request.GET.sort == 'asc' %}selected{% endif %}>Oldest</option>
+                </select>
+            </form>
+        </div>
+
+        <table class="archive-table">
+            <thead>
+                <tr>
+                    {% if current_view == 'year_list' %}
+                        <th>ARCHIVE YEAR</th>
+                        <th>DOCUMENT COUNT</th>
+                        <th>ACTIONS</th>
+                    {% else %}
+                        <th>DOCUMENT TITLE</th>
+                        <th>ARCHIVE ID</th>
+                        <th>YEAR</th>
+                        <th>RETENTION</th>
+                        <th>ACTIONS</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% if current_view == 'year_list' %}
+                    {% for item in years_list %}
+                    <tr>
+                        <td>
+                            <a href="?year={{ item.year }}" class="year-link">
+                                <i class="fa-regular fa-folder-open"></i> {{ item.year }}
+                            </a>
+                        </td>
+                        <td><span class="doc-count-badge">{{ item.doc_count }} Files</span></td>
+                        <td>
+                            <a href="?year={{ item.year }}" class="action-icon" title="View Documents">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    {% for doc in archives %}
+                    <tr>
+                        <td><strong>{{ doc.doc_type }}:</strong> {{ doc.title }}</td>
+                        <td style="color: #aaa;">{{ doc.archive_id }}</td>
+                        <td>{{ doc.year }}</td>
+                        <td><span class="retention-pill permanent">PERMANENT</span></td>
+                        <td>
+                            <i class="fa-regular fa-eye action-icon"></i>
+                            <i class="fa-solid fa-arrow-up-from-bracket action-icon"></i>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 50px; color: #8a7b6a;">
+                            No archived documents found for this selection.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
