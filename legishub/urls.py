@@ -48,6 +48,7 @@ urlpatterns = [
     path('metadata_tags/', views.metadata_tags_view, name='metadata_tags'),
     path('security_policy/', views.security_policy_view, name='security_policy'),
     path('notifications/', views.notifications_view, name='notifications'),
+    path('api/notifications/', views.get_notifications, name='get_notifications'),
 
     path('upload/', views.upload_document, name='upload_document'),
     path('edit-doc/', views.edit_document, name='edit_document'),

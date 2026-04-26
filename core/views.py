@@ -1,4 +1,7 @@
 from django.shortcuts import render
+from django.http import JsonResponse
+from django.utils.timesince import timesince
+from django.utils.timezone import now
 
 # Create your views here.
 from django.shortcuts import render, redirect
@@ -180,7 +183,7 @@ def documents_view(request):
     return render(request, 'admin_panel/documents.html', context)
 
 # ==========================================
-# 4. ARCHIVE VIEW
+# 4. ARCHIVE VIEW 
 # ==========================================
 @login_required
 def archive_view(request):
@@ -196,6 +199,35 @@ def archive_view(request):
         'res_count': res_count,
         'ord_count': ord_count
     })
+@login_required(login_url='login')
+def archive_view(request):
+    # 1. Start with all archived records, ordered by Archive ID Ascending!
+    archive_list = ArchivedDocument.objects.all().order_by('-archive_id')
+    
+    # 2. Fetch the custom folders so they properly load in the UI
+    custom_folders = ArchiveFolder.objects.all().order_by('name')
+
+    # 3. Get the search query 'q' from the URL
+    search_query = request.GET.get('q', '')
+
+    # 4. Apply the Search filter
+    if search_query:
+        archive_list = archive_list.filter(
+            Q(title__icontains=search_query) | 
+            Q(archive_id__icontains=search_query) |
+            Q(sponsor__icontains=search_query) |
+            Q(keywords__icontains=search_query) |
+            Q(doc_type__icontains=search_query)
+        )
+
+    # 5. Pass all the data back to the template
+    context = {
+        'archives': archive_list, 
+        'custom_folders': custom_folders,
+        'is_legislator': is_legislator(request.user), 
+        'search_query': search_query,
+    }
+    return render(request, 'archives/archive.html', context)
 
 @login_required
 def ordinances_view(request):
@@ -705,7 +737,7 @@ def upload_document(request):
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
 # ==========================================
-# 9. EDIT DOCUMENT VIEW
+# 9. EDIT DOCUMENT VIEW (WITH SMART UPDATE)
 # ==========================================
 @login_required(login_url='login')
 def edit_document(request):
@@ -714,68 +746,80 @@ def edit_document(request):
         return redirect('documents')
 
     if request.method == 'POST':
-        # Grab the hidden ID so we know which document to update
         doc_id = request.POST.get('doc_id')
-        new_document_number = request.POST.get('document_number')
-        
-        # --- NEW SAFETY CHECK FOR EDITS ---
-        # Check if the number exists AND belongs to a DIFFERENT document
-        if LegislativeDocument.objects.filter(document_number=new_document_number).exclude(id=doc_id).exists():
-            messages.error(request, f'Update failed: The Legis Number "{new_document_number}" is already in use by another document!')
-            return redirect('documents')
-        # ----------------------------------
-        
-        # Fetch the exact document from the database
         doc = LegislativeDocument.objects.get(id=doc_id)
 
-        # Update the fields
-        doc.title = request.POST.get('title')
-        doc.document_number = new_document_number
-        doc.doc_type = request.POST.get('doc_type')
-        doc.year = request.POST.get('year')
+        # --- SMART UPDATE LOGIC ---
+        # If the user leaves a field blank, we ignore it and KEEP the existing database info!
         
-        date_enacted = request.POST.get('date_enacted')
-        doc.date_enacted = date_enacted if date_enacted else None
+        new_document_number = request.POST.get('document_number')
+        if new_document_number:
+            # Check if they are trying to change it to an ID that is already taken
+            if LegislativeDocument.objects.filter(document_number=new_document_number).exclude(id=doc_id).exists():
+                messages.error(request, f'Update failed: The Legis Number "{new_document_number}" is already in use by another document!')
+                return redirect('documents')
+            doc.document_number = new_document_number
 
-        doc.sponsor = request.POST.get('sponsor')
-        doc.co_sponsors = request.POST.get('co_sponsors')
-        doc.keywords = request.POST.get('keywords')
-        doc.status = request.POST.get('status')
-        doc.visibility = request.POST.get('visibility')
-        doc.physical_storage = request.POST.get('physical_storage')
+        new_title = request.POST.get('title')
+        if new_title: doc.title = new_title
 
-        # Only overwrite the file if they uploaded a new one!
-        new_file = request.FILES.get('file_attachment')
-        if new_file:
-            doc.file_attachment = new_file
+        new_type = request.POST.get('doc_type')
+        if new_type: doc.doc_type = new_type
 
-        # Update the fields
-        doc.title = request.POST.get('title')
-        doc.document_number = new_document_number
-        doc.doc_type = request.POST.get('doc_type')
-        doc.year = request.POST.get('year')
+        new_year = request.POST.get('year')
+        if new_year: doc.year = new_year
         
-        date_enacted = request.POST.get('date_enacted')
-        doc.date_enacted = date_enacted if date_enacted else None
+        new_date = request.POST.get('date_enacted')
+        if new_date: doc.date_enacted = new_date
 
-        doc.sponsor = request.POST.get('sponsor')
-        doc.co_sponsors = request.POST.get('co_sponsors')
-        doc.keywords = request.POST.get('keywords')
-        doc.visibility = request.POST.get('visibility')
-        doc.physical_storage = request.POST.get('physical_storage')
+        new_sponsor = request.POST.get('sponsor')
+        if new_sponsor: doc.sponsor = new_sponsor
 
-        # Check the new status
+        new_cosponsors = request.POST.get('co_sponsors')
+        if new_cosponsors: doc.co_sponsors = new_cosponsors
+
+        new_keywords = request.POST.get('keywords')
+        if new_keywords: doc.keywords = new_keywords
+        
+        new_visibility = request.POST.get('visibility')
+        if new_visibility: doc.visibility = new_visibility
+
+        new_storage = request.POST.get('physical_storage')
+        if new_storage: doc.physical_storage = new_storage
+
         new_status = request.POST.get('status')
-        
+        if not new_status: 
+            new_status = doc.status # Keep old status if left blank
+
         # ==========================================
         # ARCHIVAL TRIGGER LOGIC
         # ==========================================
         if new_status == 'Archived':
-            # 1. Generate a unique Archive ID (e.g., ARC-26-015)
             year_suffix = str(doc.year)[-2:]
-            archive_id = f"ARC-{year_suffix}-{doc.id:03d}"
+            prefix = f"ARC-{year_suffix}-"
             
-            # 2. Create the new record in the ArchivedDocument table
+            # 1. Find the highest existing Archive ID for this specific year
+            last_archive = ArchivedDocument.objects.filter(archive_id__startswith=prefix).order_by('-archive_id').first()
+            
+            if last_archive:
+                try:
+                    # Extract the number from the end (e.g., 'ARC-26-004' -> 4) and add 1
+                    last_count = int(last_archive.archive_id.split('-')[-1])
+                    count = last_count + 1
+                except ValueError:
+                    count = 1
+            else:
+                # If no archives exist for this year yet, start at 1
+                count = 1
+                
+            archive_id = f"{prefix}{count:03d}"
+            
+            # 2. Failsafe: Just in case of an unexpected collision, bump it up until it's perfectly unique
+            while ArchivedDocument.objects.filter(archive_id=archive_id).exists():
+                count += 1
+                archive_id = f"{prefix}{count:03d}"
+                
+            # 3. Create the new record in the ArchivedDocument table
             new_archive = ArchivedDocument.objects.create(
                 archive_id=archive_id,
                 original_document_number=doc.document_number,
@@ -785,7 +829,7 @@ def edit_document(request):
                 date_enacted=doc.date_enacted,
                 sponsor=doc.sponsor,
                 co_sponsors=doc.co_sponsors,
-                visibility='Internal Only', # Automatically locks privacy for archives
+                visibility='Internal Only',
                 keywords=doc.keywords,
                 physical_storage=doc.physical_storage,
                 retention_policy='Permanent',
@@ -793,31 +837,28 @@ def edit_document(request):
                 archived_by=request.user
             )
 
-            # 3. Transfer the PDF File to the new /archives/ folder
             from django.core.files.base import ContentFile
             if doc.file_attachment:
                 file_content = ContentFile(doc.file_attachment.read())
                 file_name = doc.file_attachment.name.split('/')[-1]
                 new_archive.file_attachment.save(file_name, file_content, save=True)
 
-            # 4. Log the archival and DELETE the active document
             AuditLog.objects.create(user=request.user, action=f'Archived Document: {archive_id}')
             doc.delete()
 
             messages.success(request, f'Document successfully moved to Archives as {archive_id}!')
-            return redirect('archive') # Send them to the archive page!
+            return redirect('archive')
 
-        # If it is NOT being archived, just save it normally as an Active/Pending document
+        # If NOT archived, save normally
         doc.status = new_status
 
-        # Only overwrite the file if they uploaded a new one!
+        # Only overwrite the file if they explicitly uploaded a new one
         new_file = request.FILES.get('file_attachment')
         if new_file:
             doc.file_attachment = new_file
 
         doc.save()
 
-        # Log the edit action
         AuditLog.objects.create(
             user=request.user,
             action='Edit',
@@ -827,3 +868,46 @@ def edit_document(request):
         messages.success(request, 'Document successfully updated!')
         
     return redirect('documents')
+
+# ==========================================
+# 11. API: REAL-TIME NOTIFICATIONS (UNIFIED & SCROLLABLE)
+# ==========================================
+@login_required(login_url='login')
+def get_notifications(request):
+    # 1. Grab the limit requested by the JavaScript button (default to 10)
+    limit = int(request.GET.get('limit', 10))
+    
+    # 2. Query the database but DON'T slice it to 5!
+    if is_legislator(request.user):
+        # Fetch one EXTRA log (+1) to check if there is more history left
+        logs_query = AuditLog.objects.filter(user=request.user).select_related('user', 'document').order_by('-timestamp')
+    else:
+        logs_query = AuditLog.objects.all().select_related('user', 'document').order_by('-timestamp')
+        
+    # 3. Apply the dynamic limit
+    logs = list(logs_query[:limit + 1])
+    
+    # 4. Check if we hit the end of the database
+    has_more = len(logs) > limit
+    
+    # 5. Trim it back down to the exact requested number for the frontend
+    logs = logs[:limit] 
+    
+    data = []
+    for log in logs:
+        doc_number = log.document.document_number if log.document else "a document"
+        if log.action == 'Upload':
+            msg = f"<strong>New Upload:</strong> {doc_number} was uploaded by <strong>{log.user.username}</strong>."
+        elif log.action == 'Edit':
+            msg = f"<strong>Document Updated:</strong> {doc_number} was modified by <strong>{log.user.username}</strong>."
+        else:
+            msg = f"<strong>System Action:</strong> {log.action} performed by <strong>{log.user.username}</strong>."
+        
+        time_ago = f"{timesince(log.timestamp, now())} ago"
+        data.append({'id': log.id, 'message': msg, 'time': time_ago})
+        
+    # 6. Return the logs AND the has_more flag!
+    return JsonResponse({
+        'notifications': data,
+        'has_more': has_more
+    })

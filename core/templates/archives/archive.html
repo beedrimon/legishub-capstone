@@ -95,3 +95,307 @@
     </div>
 </div>
 {% endblock %}
+
+    <div id="uploadExistingModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>NEW LEGISLATIVE ENTRY (EXISTING)</h2>
+                <button type="button" class="close-modal">&times;</button>
+            </div>
+            <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>DOCUMENT TITLE / SUBJECT</label>
+                        <input type="text" name="title" placeholder="Complete title of the Ordinance or Resolution" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>LEGIS NUMBER (REF NO.)</label>
+                        <input type="text" name="document_number" placeholder="e.g., ORD-2026-001" required>
+                    </div>
+                    <div class="form-group">
+                        <label>DOCUMENT TYPE</label>
+                        <select name="doc_type" required>
+                            <option value="Ordinance">Ordinance</option>
+                            <option value="Resolution">Resolution</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>SERIES YEAR</label>
+                        <input type="number" name="year" value="2026" required>
+                    </div>
+                    <div class="form-group">
+                        <label>DATE ENACTED / APPROVED</label>
+                        <input type="date" name="date_enacted">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>PRIMARY SPONSOR / AUTHOR</label>
+                        <input type="text" name="sponsor" placeholder="Hon. Name of Sponsor">
+                    </div>
+                    <div class="form-group">
+                        <label>KEYWORDS / TAGS</label>
+                        <input type="text" name="keywords" placeholder="e.g., Environment, Baha, Business">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>PROJECT CO-SPONSOR/S</label>
+                        <input type="text" name="co_sponsors" placeholder="Separate names with commas">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>STATUS</label>
+                        <select name="status" required>
+                            <option value="Pending">Pending</option>
+                            <option value="Active">Active</option>
+                            <option value="1st reading">1st reading</option>
+                            <option value="2nd reading">2nd reading</option>
+                            <option value="3rd reading">3rd reading</option>
+                            <option value="For Certification">For Certification</option>
+                            <option value="For Signing">For Signing</option>
+                            <option value="For Approval">For Approval</option>
+                            <option value="Vetoed">Vetoed</option>
+                            <option value="Archived">Archived</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>VISIBILITY / PRIVACY</label>
+                        <select name="visibility">
+                            <option value="Public Access">Public Access</option>
+                            <option value="Internal Only">Internal Only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>PHYSICAL STORAGE REF (OPTIONAL)</label>
+                        <input type="text" name="physical_storage" placeholder="e.g., Cabinet A, Shelf 2">
+                    </div>
+                </div>
+
+                <label class="upload-area" style="cursor: pointer; display: block;">
+                    <i class="fa-regular fa-file-pdf"></i>
+                    <p>Upload Certified PDF Copy</p>
+                    <span>Click here to browse files (Max 20MB)</span>
+                    <input type="file" name="file_attachment" hidden accept=".pdf">
+                </label>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-discard">Discard</button>
+                    <button type="submit" class="btn-add">Add Document</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <div id="notificationDropdown" class="notif-dropdown" style="display: none;">
+
+        <div class="notif-modal-header">
+            <h2>NOTIFICATIONS</h2>
+        </div>
+
+        <div class="notif-tabs-container">
+            <div class="notif-tabs">
+                <button class="notif-tab active" data-tab="all">ALL</button>
+                <button class="notif-tab" data-tab="unread">UNREAD</button>
+            </div>
+
+            <div class="notif-ellipsis-wrapper">
+                <i class="fa-solid fa-ellipsis notif-ellipsis" id="notifEllipsis"></i>
+                <div id="notifOptionsMenu" class="notif-options-menu">
+                    <div class="mark-all-read-btn">
+                        <i class="fa-solid fa-check" style="color: #888;"></i> Mark all as read
+                    </div>
+                    <a href="{% url 'audit_logs' %}" class="see-all-btn">
+                        <i class="fa-solid fa-list-ul" style="color: #888;"></i> See All
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-body" id="notifModalBody" style="padding: 0; max-height: 400px; overflow-y: auto;">
+        </div>
+
+        <div class="notif-modal-footer">
+            <button id="loadMoreNotifsBtn"
+                style="background: none; border: none; color: #7d6339; font-weight: bold; font-size: 0.85rem; cursor: pointer; display: none; padding: 5px; margin: 0 auto;">
+                See previous notifications <i class="fa-solid fa-angle-down" style="margin-left: 5px;"></i>
+            </button>
+            <a href="{% url 'audit_logs' %}" id="goToAuditLogsBtn"
+                style="display: none; color: #7d6339; font-weight: bold; font-size: 0.85rem; text-decoration: none;">
+                Go to Full Audit Logs <i class="fa-solid fa-arrow-right" style="margin-left: 5px;"></i>
+            </a>
+        </div>
+    </div>
+
+    <div id="viewModal" class="modal-overlay">
+        <div class="modal-container detail-view-container">
+            <div class="modal-header">
+                <h2>DOCUMENT DETAILED VIEW</h2>
+                <button class="close-modal" onclick="closeModal('viewModal')">&times;</button>
+            </div>
+            <div class="modal-body detail-view-body">
+                <div class="meta-sidebar">
+                    <div class="meta-group">
+                        <label>LEGIS NUMBER (REF NO.)</label>
+                        <p class="meta-val highlight" id="view-number"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>DOCUMENT TITLE / SUBJECT</label>
+                        <p class="meta-val" id="view-title"></p>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-group">
+                            <label>CATEGORY</label>
+                            <p class="meta-val" id="view-type"></p>
+                        </div>
+                        <div class="meta-group">
+                            <label>SERIES YEAR</label>
+                            <p class="meta-val" id="view-year"></p>
+                        </div>
+                    </div>
+                    <div class="meta-group">
+                        <label>DATE FILED</label>
+                        <p class="meta-val" id="view-date"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>PRIMARY AUTHOR / SPONSOR</label>
+                        <p class="meta-val" id="view-sponsor"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>KEYWORDS</label>
+                        <p class="meta-val abstract" id="view-keywords"></p>
+                    </div>
+                </div>
+
+                <div class="pdf-preview-container"
+                    style="padding: 0; background-color: #525659; border-radius: 0 8px 8px 0; overflow: hidden;">
+                    <iframe id="view-pdf-iframe" src="" width="100%" height="100%"
+                        style="border: none; display: none; min-height: 600px;"></iframe>
+
+                    <div id="view-pdf-missing"
+                        style="display: none; text-align: center; padding-top: 200px; color: #ccc;">
+                        <i class="fa-regular fa-file-pdf" style="font-size: 4rem; margin-bottom: 15px;"></i>
+                        <p>No PDF document attached to this record.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-discard" onclick="closeModal('viewModal')">Close View</button>
+                {% if not is_legislator %}
+                <button class="btn-tan trigger-edit">Edit Details</button>
+                {% endif %}
+                <button class="btn-add" id="view-download-btn">Download Original PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>EDIT LEGISLATIVE RECORD</h2>
+                <button class="close-modal" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <form class="modal-body" method="POST" action="{% url 'edit_document' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="doc_id" id="edit-doc-id">
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>DOCUMENT TITLE / SUBJECT</label>
+                        <input type="text" name="title" id="edit-title" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>LEGIS NUMBER (REF NO.)</label>
+                        <input type="text" name="document_number" id="edit-number" required>
+                    </div>
+                    <div class="form-group">
+                        <label>DOCUMENT TYPE</label>
+                        <select name="doc_type" id="edit-type" required>
+                            <option value="Ordinance">Ordinance</option>
+                            <option value="Resolution">Resolution</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>SERIES YEAR</label>
+                        <input type="number" name="year" id="edit-year" required>
+                    </div>
+                    <div class="form-group">
+                        <label>DATE ENACTED / APPROVED</label>
+                        <input type="date" name="date_enacted" id="edit-date">
+                    </div>
+                </div>
+
+                <label for="editFileInput" class="upload-area edit-mode" style="cursor: pointer; display: block;">
+                    <i class="fa-regular fa-file-pdf"></i>
+                    <p id="edit-file-text">Current File: <strong>None</strong></p>
+                    <span style="font-size: 0.8rem;">Click to upload a new PDF (Leave blank to keep existing
+                        file)</span>
+                    <input type="file" name="file_attachment" hidden id="editFileInput" accept=".pdf">
+                </label>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-discard">Discard Changes</button>
+                    <button type="submit" class="btn-add">Update Document</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Folder Modal -->
+    <div id="addFolderModal" class="modal-overlay">
+        <div class="modal-container" style="max-width: 450px;">
+            <div class="modal-header">
+                <h2>CREATE NEW FOLDER</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form class="modal-body" method="POST" action="{% url 'create_archive_folder' %}">
+                {% csrf_token %}
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>FOLDER NAME / CATEGORY</label>
+                        <input type="text" name="new_folder_name" placeholder="e.g., Executive Orders" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-discard close-modal" onclick="document.getElementById('addFolderModal').style.display='none'">Cancel</button>
+                    <button type="submit" class="btn-add">Create Folder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="{% static 'js/modals.js' %}?v=3"></script>
+    <script>
+        // Store basic metadata for filtering
+        const archiveData = [
+            {% for archive in archives %}
+            {
+                type: "{% if archive.custom_folder %}{{ archive.custom_folder.name|escapejs }}{% else %}{{ archive.doc_type|escapejs }}{% endif %}",
+                year: "{{ archive.year|escapejs }}"
+            },
+            {% endfor %}
+        ];
+    </script>
+    <script src="{% static 'js/archive.js' %}"></script>
+</body>
+
+</html>

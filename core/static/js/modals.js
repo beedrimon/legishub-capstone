@@ -4,7 +4,7 @@
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Elements
-    const bell = document.getElementById('notifBell');
+    const bell = document.querySelector('.notification-wrapper');
     const notifDropdown = document.getElementById('notificationDropdown');
     const uploadDropdownBtn = document.querySelector('.btn-upload-dropdown');
     const uploadDropdownWrapper = document.querySelector('.upload-dropdown');
@@ -21,10 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Helper to close all UI overlays
     const closeAllOverlays = () => {
-        Object.values(modals).forEach(m => { 
+        Object.values(modals).forEach(m => {
             if (m) {
-                m.style.display = 'none'; 
-                
+                m.style.display = 'none';
+
                 // Reset file inputs and their visual states to avoid caching old files across modals
                 const fileInputs = m.querySelectorAll('input[type="file"]');
                 fileInputs.forEach(input => {
@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // 5. Notification Logic
+    // 5. Notification Logic & Real-Time Polling
     if (bell && notifDropdown) {
         bell.addEventListener('click', (e) => {
             e.preventDefault();
@@ -84,8 +84,100 @@ document.addEventListener('DOMContentLoaded', () => {
             const isShowing = notifDropdown.style.display === 'block';
             closeAllOverlays();
             notifDropdown.style.display = isShowing ? 'none' : 'block';
+
+            // Hide the red badge when the user clicks the bell
+            const badge = document.querySelector('.notif-badge');
+            if (badge) badge.style.display = 'none';
         });
     }
+
+    // ==========================================
+    // UNIFIED AJAX FETCH LOGIC & INFINITE SCROLL
+    // ==========================================
+    let currentNotifLimit = 10; // Start by loading 10 items
+
+    function fetchNotifications() {
+        return fetch(`/api/notifications/?limit=${currentNotifLimit}`)
+            .then(response => response.json())
+            .then(data => {
+                const notifBody = document.getElementById('notifModalBody');
+                const notifBadge = document.querySelector('.notif-badge');
+
+                if (notifBody && data.notifications) {
+                    let htmlContent = '';
+
+                    // Grab the last read ID from browser memory (default to 0 if never clicked)
+                    const lastReadId = parseInt(localStorage.getItem('lastReadNotifId')) || 0;
+
+                    // Track the highest ID in this current batch so we can save it later
+                    window.highestNotifId = data.notifications.length > 0 ? Math.max(...data.notifications.map(n => n.id)) : 0;
+
+                    if (data.notifications.length > 0) {
+                        htmlContent += `<div class="notif-section-title">Recent Activity</div>`;
+
+                        data.notifications.forEach((notif) => {
+                            let iconClass = 'fa-desktop';
+                            if (notif.message.includes('Upload')) iconClass = 'fa-file-invoice';
+                            else if (notif.message.includes('Updated') || notif.message.includes('modified')) iconClass = 'fa-file-signature';
+
+                            // Determine if THIS specific notification is unread
+                            const isUnread = notif.id > lastReadId;
+                            const unreadClass = isUnread ? 'unread' : 'read';
+                            const redDotHtml = isUnread ? '<span class="red-dot"></span>' : '';
+                            const blueDotHtml = isUnread ? '<div class="unread-dot"></div>' : '';
+
+                            htmlContent += `
+                            <div class="notif-list-item ${unreadClass}">
+                                <div class="notif-icon">
+                                    <i class="fa-solid ${iconClass}"></i>
+                                    ${redDotHtml}
+                                </div>
+                                <div style="flex: 1;">
+                                    <p>${notif.message}</p>
+                                    <span class="notif-time">${notif.time}</span>
+                                </div>
+                                ${blueDotHtml}
+                            </div>`;
+                        });
+
+                        // Only show the red bell badge if there are ACTUALLY unread items
+                        const hasUnreadItems = data.notifications.some(n => n.id > lastReadId);
+                        if (notifBadge) {
+                            notifBadge.style.display = hasUnreadItems ? 'block' : 'none';
+                        }
+                    }
+
+                    htmlContent += `
+                    <div id="emptyNotifState" class="empty-notif-state" style="display: ${data.notifications.length === 0 ? 'block' : 'none'};">
+                        <i class="fa-solid fa-bell-slash"></i>
+                        <p>You have no notifications.</p>
+                    </div>`;
+
+                    notifBody.innerHTML = htmlContent;
+
+                    // ... (keep the rest of the button toggle logic here)
+                    const loadMoreBtn = document.getElementById('loadMoreNotifsBtn');
+                    const goToAuditLogsBtn = document.getElementById('goToAuditLogsBtn');
+
+                    if (loadMoreBtn && goToAuditLogsBtn) {
+                        if (data.has_more) {
+                            loadMoreBtn.style.display = 'inline-block';
+                            goToAuditLogsBtn.style.display = 'none';
+                        } else {
+                            loadMoreBtn.style.display = 'none';
+                            goToAuditLogsBtn.style.display = 'inline-block';
+                        }
+                    }
+
+                    const activeTab = document.querySelector('.notif-tab.active');
+                    if (activeTab) activeTab.click();
+                }
+            })
+            .catch(error => console.error('Error fetching notifications:', error));
+    }
+
+    fetchNotifications();
+    setInterval(fetchNotifications, 30000);
 
     // 5.5 Upload Dropdown Logic
     if (uploadDropdownBtn && uploadDropdownWrapper) {
@@ -111,7 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Close notification if clicking outside
         if (notifDropdown &&
             !notifDropdown.contains(event.target) &&
-            event.target !== bell) {
+            bell && !bell.contains(event.target)) {
             notifDropdown.style.display = 'none';
         }
     });
@@ -126,11 +218,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const fileInput = e.target;
             // Pinpoint the exact visual box directly surrounding this specific input
             const uploadArea = fileInput.closest('.upload-area');
-            
+
             if (uploadArea) {
                 const uploadText = uploadArea.querySelector('p');
                 const uploadSpan = uploadArea.querySelector('span');
-                
+
                 if (uploadText) {
                     if (fileInput.files && fileInput.files.length > 0) {
                         // Use innerHTML to preserve <strong> tags utilized by Edit Modals
@@ -138,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             uploadArea.setAttribute('data-default-html', uploadText.innerHTML);
                             if (uploadSpan) uploadArea.setAttribute('data-default-span', uploadSpan.innerText);
                         }
-                        
+
                         uploadText.innerHTML = `File attached: <strong style="color: #22C55E;">${fileInput.files[0].name}</strong>`;
                         if (uploadSpan) uploadSpan.innerText = 'Ready to upload';
                     } else {
@@ -183,11 +275,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('view-date').innerText = docDate;
             document.getElementById('view-sponsor').innerText = docSponsor;
             document.getElementById('view-keywords').innerText = docKeywords;
-            if(document.getElementById('view-enacted')) document.getElementById('view-enacted').innerText = docEnacted;
-            if(document.getElementById('view-cosponsors')) document.getElementById('view-cosponsors').innerText = docCosponsors;
-            if(document.getElementById('view-status')) document.getElementById('view-status').innerHTML = `<span class="badge ${docStatus ? docStatus.toLowerCase() : ''}">${docStatus}</span>`;
-            if(document.getElementById('view-visibility')) document.getElementById('view-visibility').innerText = docVisibility;
-            if(document.getElementById('view-storage')) document.getElementById('view-storage').innerText = docStorage;
+            if (document.getElementById('view-enacted')) document.getElementById('view-enacted').innerText = docEnacted;
+            if (document.getElementById('view-cosponsors')) document.getElementById('view-cosponsors').innerText = docCosponsors;
+            if (document.getElementById('view-status')) document.getElementById('view-status').innerHTML = `<span class="badge ${docStatus ? docStatus.toLowerCase() : ''}">${docStatus}</span>`;
+            if (document.getElementById('view-visibility')) document.getElementById('view-visibility').innerText = docVisibility;
+            if (document.getElementById('view-storage')) document.getElementById('view-storage').innerText = docStorage;
 
             // 3. Update the Download Button
             const downloadBtn = document.getElementById('view-download-btn');
@@ -295,7 +387,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('edit-user-last').value = userLast;
             document.getElementById('edit-user-email').value = userEmail;
             document.getElementById('edit-user-username').value = userUsername;
-            if(document.getElementById('edit-user-role')) {
+            if (document.getElementById('edit-user-role')) {
                 document.getElementById('edit-user-role').value = userRole;
             }
         });
@@ -315,6 +407,119 @@ document.addEventListener('DOMContentLoaded', () => {
             passwordInput.setAttribute('type', type);
             this.classList.toggle('fa-eye-slash');
             this.classList.toggle('fa-eye');
+        });
+    }
+
+    // ==========================================
+    // UNIFIED DROPDOWN UI LOGIC (Tabs, Ellipsis)
+    // ==========================================
+    const notifTabs = document.querySelectorAll('.notif-tab');
+    const emptyState = document.getElementById('emptyNotifState');
+    const sectionTitles = document.querySelectorAll('.notif-section-title');
+    const loadMoreBtn = document.getElementById('loadMoreNotifsBtn');
+
+    // Tabs
+    notifTabs.forEach(tab => {
+        tab.addEventListener('click', function () {
+            notifTabs.forEach(t => t.classList.remove('active'));
+            this.classList.add('active');
+
+            const tabType = this.getAttribute('data-tab');
+            let visibleCount = 0;
+            const dynamicNotifItems = document.querySelectorAll('.notif-list-item');
+
+            dynamicNotifItems.forEach(item => {
+                if (tabType === 'all') {
+                    item.style.display = 'flex';
+                    visibleCount++;
+                } else if (tabType === 'unread') {
+                    if (item.classList.contains('unread')) {
+                        item.style.display = 'flex';
+                        visibleCount++;
+                    } else {
+                        item.style.display = 'none';
+                    }
+                }
+            });
+
+            if (emptyState) emptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+            sectionTitles.forEach(title => {
+                title.style.display = (tabType === 'unread' || visibleCount === 0) ? 'none' : 'block';
+            });
+        });
+    });
+
+    // Ellipsis Menu
+    const notifEllipsis = document.getElementById('notifEllipsis');
+    const notifOptionsMenu = document.getElementById('notifOptionsMenu');
+    if (notifEllipsis && notifOptionsMenu) {
+        notifEllipsis.addEventListener('click', function (e) {
+            e.stopPropagation();
+            notifOptionsMenu.style.display = notifOptionsMenu.style.display === 'block' ? 'none' : 'block';
+        });
+        // Added to the global click listener
+    }
+
+    // Mark All Read
+    const markAllReadBtn = document.querySelector('.mark-all-read-btn');
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+
+            // 1. SAVE TO MEMORY: Remember that we have read everything up to the current highest ID!
+            if (window.highestNotifId) {
+                localStorage.setItem('lastReadNotifId', window.highestNotifId);
+            }
+
+            // 2. Hide the red bell badge instantly
+            const notifBadge = document.querySelector('.notif-badge');
+            if (notifBadge) notifBadge.style.display = 'none';
+
+            // 3. Clear the visual dots from the current list
+            const dynamicNotifItems = document.querySelectorAll('.notif-list-item');
+            dynamicNotifItems.forEach(item => {
+                item.classList.remove('unread');
+                item.classList.add('read');
+                const blueDot = item.querySelector('.unread-dot');
+                if (blueDot) blueDot.style.display = 'none';
+                const redDot = item.querySelector('.red-dot');
+                if (redDot) redDot.style.display = 'none';
+            });
+            notifOptionsMenu.style.display = 'none';
+            const activeTab = document.querySelector('.notif-tab.active');
+            if (activeTab && activeTab.getAttribute('data-tab') === 'unread') activeTab.click();
+        });
+    }
+
+    // ==========================================
+    // LOAD MORE BUTTON (SYNCHRONIZED SCROLL)
+    // ==========================================
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const originalText = this.innerHTML;
+            this.innerHTML = 'Loading... <i class="fa-solid fa-spinner fa-spin" style="margin-left: 5px;"></i>';
+            this.style.pointerEvents = 'none';
+            this.style.opacity = '0.7';
+
+            currentNotifLimit += 10;
+
+            // Use .then() to wait exactly until the fetch is 100% finished!
+            fetchNotifications().then(() => {
+                this.innerHTML = originalText;
+                this.style.pointerEvents = 'auto';
+                this.style.opacity = '1';
+
+                const notifBody = document.getElementById('notifModalBody');
+                if (notifBody) {
+                    notifBody.scrollTo({
+                        top: notifBody.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }
+            });
         });
     }
 });
