@@ -86,7 +86,23 @@
                         <td>{{ doc.archive_id }}</td>
                         <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
                         <td><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></td>
-                        <td><i class="fa-regular fa-eye" style="color: #888; cursor: pointer;"></i></td>
+                        <td class="action-icons">
+                            <i class="fa-regular fa-eye trigger-view" title="View Document"
+                                style="cursor: pointer; color: #888;" 
+                                data-number="{{ doc.archive_id }}"
+                                data-title="{{ doc.title }}" 
+                                data-type="{{ doc.doc_type }}"
+                                data-year="{{ doc.year }}" 
+                                data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
+                                data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
+                                data-keywords="{{ doc.keywords|default:'None' }}"
+                                data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
+                                data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
+                                data-status="Archived"
+                                data-visibility="{{ doc.visibility }}"
+                                data-storage="{{ doc.physical_storage|default:'Not specified' }}"
+                                {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}" {% endif %}></i>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -94,7 +110,7 @@
         </div>
     </div>
 </div>
-{% endblock %}
+{% endblock %} {% block modals %}
 
     <div id="uploadExistingModal" class="modal-overlay">
         <div class="modal-container">
@@ -245,13 +261,13 @@
     <div id="viewModal" class="modal-overlay">
         <div class="modal-container detail-view-container">
             <div class="modal-header">
-                <h2>DOCUMENT DETAILED VIEW</h2>
+                <h2>ARCHIVED RECORD DETAILS</h2>
                 <button class="close-modal" onclick="closeModal('viewModal')">&times;</button>
             </div>
             <div class="modal-body detail-view-body">
                 <div class="meta-sidebar">
                     <div class="meta-group">
-                        <label>LEGIS NUMBER (REF NO.)</label>
+                        <label>ARCHIVE ID</label>
                         <p class="meta-val highlight" id="view-number"></p>
                     </div>
                     <div class="meta-group">
@@ -268,13 +284,37 @@
                             <p class="meta-val" id="view-year"></p>
                         </div>
                     </div>
-                    <div class="meta-group">
-                        <label>DATE FILED</label>
-                        <p class="meta-val" id="view-date"></p>
+                    <div class="meta-row">
+                        <div class="meta-group">
+                            <label>ORIGINAL DATE FILED</label>
+                            <p class="meta-val" id="view-date"></p>
+                        </div>
+                        <div class="meta-group">
+                            <label>DATE ENACTED</label>
+                            <p class="meta-val" id="view-enacted"></p>
+                        </div>
                     </div>
                     <div class="meta-group">
                         <label>PRIMARY AUTHOR / SPONSOR</label>
                         <p class="meta-val" id="view-sponsor"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>CO-SPONSOR(S)</label>
+                        <p class="meta-val" id="view-cosponsors"></p>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-group">
+                            <label>STATUS</label>
+                            <p class="meta-val" id="view-status"></p>
+                        </div>
+                        <div class="meta-group">
+                            <label>RETENTION POLICY</label>
+                            <p class="meta-val"><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></p>
+                        </div>
+                    </div>
+                    <div class="meta-group">
+                        <label>PHYSICAL STORAGE</label>
+                        <p class="meta-val" id="view-storage"></p>
                     </div>
                     <div class="meta-group">
                         <label>KEYWORDS</label>
@@ -295,11 +335,9 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-discard" onclick="closeModal('viewModal')">Close View</button>
-                {% if not is_legislator %}
-                <button class="btn-tan trigger-edit">Edit Details</button>
-                {% endif %}
-                <button class="btn-add" id="view-download-btn">Download Original PDF</button>
+                <button type="button" class="btn-discard">Close View</button>
+                
+                <button type="button" class="btn-add" id="view-download-btn">Download PDF</button>
             </div>
         </div>
     </div>
@@ -382,8 +420,9 @@
             </form>
         </div>
     </div>
+{% endblock modals %}
 
-    <script src="{% static 'js/modals.js' %}?v=3"></script>
+{% block extra_js %}
     <script>
         // Store basic metadata for filtering
         const archiveData = [
@@ -396,6 +435,4 @@
         ];
     </script>
     <script src="{% static 'js/archive.js' %}"></script>
-</body>
-
-</html>
+{% endblock extra_js %}

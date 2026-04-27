@@ -1983,6 +1983,16 @@ body.page-dashboard .right-column {
 }
 
 /* ============================================================
+   DETAILED VIEW MODAL FOOTER FIX
+   ============================================================ */
+.detail-view-container .modal-footer {
+    margin-top: 0;
+    padding: 18px 25px;   /* Adds the missing breathing room! */
+    background: #FFFBF5;  /* Matches the modal background */
+    border-radius: 0 0 12px 12px;
+}
+
+/* ============================================================
    RESPONSIVE MODAL MEDIA QUERY
    ============================================================ */
 @media screen and (max-width: 600px) {
