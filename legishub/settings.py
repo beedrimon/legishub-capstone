@@ -24,7 +24,7 @@ load_dotenv(BASE_DIR / '.env')
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-dev-key')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(',')
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'legishub.marikina.gov.ph,localhost,127.0.0.1,192.168.0.173').split(',')
 
 
 # Application definition
@@ -80,9 +80,9 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
-        'OPTIONS': {
-           'sslmode': os.getenv('DB_SSLMODE', 'require'),
-        },
+        # 'OPTIONS': {
+        #    'sslmode': os.getenv('DB_SSLMODE', 'require'),
+        # },
     }
 }
 

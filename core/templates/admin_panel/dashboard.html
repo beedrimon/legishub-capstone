@@ -130,20 +130,6 @@
                     </div>
                     {% endif %}
 
-                    <div class="widget">
-                        <h3>Audit Log</h3>
-                        <ul class="audit-list">
-                            {% for log in audit_logs %}
-                            <li>
-                                <span class="time">{{ log.timestamp|date:"M d, Y" }}</span>
-                                <span><strong>{{ log.user.username }}</strong> {{ log.action }} <em>{{ log.document.document_number }}</em></span>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                        <a href="{% url 'audit_logs' %}"
-                            style="font-size: 0.8rem; color: var(--sidebar-bg); font-weight: bold; text-decoration: none; display: block; margin-top: 10px;">VIEW
-                            ALL LOGS →</a>
-                    </div>
-
+                    
                 </div>
 {% endblock %}

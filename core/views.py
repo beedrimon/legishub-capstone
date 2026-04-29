@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.utils.timesince import timesince
+from django.utils import timezone
 from django.utils.timezone import now
 
 # Create your views here.
@@ -316,8 +317,29 @@ def confidential_view(request):
     if is_legislator(request.user):
         return redirect('archive') # Legislators can't see this
         
+    # Check if session is already unlocked
+    unlocked = request.session.get('confidential_unlocked', False)
+    
+    if request.method == 'POST':
+        if 'lock' in request.POST:
+            request.session['confidential_unlocked'] = False
+            messages.info(request, 'Confidential archives safely locked.')
+            return redirect(request.path)
+            
+        password = request.POST.get('password')
+        # Verify the user's own password for security (Sudo Mode)
+        if request.user.check_password(password):
+            request.session['confidential_unlocked'] = True
+            messages.success(request, 'Confidential access granted.')
+            return redirect(request.path)
+        else:
+            messages.error(request, 'Incorrect password. Access denied.')
+            
+    if not unlocked:
+        return render(request, 'archives/confidential.html', {'unlocked': False})
+        
     archives = ArchivedDocument.objects.filter(visibility='Internal Only').order_by('-date_archived')
-    return render(request, 'archives/confidential.html', {'archives': archives})
+    return render(request, 'archives/confidential.html', {'archives': archives, 'unlocked': True})
 
 @login_required
 def vetoed_view(request):
@@ -737,6 +759,41 @@ def upload_document(request):
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
 # ==========================================
+# 10. NOTIFICATIONS API
+# ==========================================
+@login_required
+def get_notifications(request):
+    limit = int(request.GET.get('limit', 10))
+    
+    # Fetch recent audit logs. For simplicity, we'll use AuditLog as notifications.
+    # You might want to create a dedicated Notification model for more complex scenarios.
+    if is_legislator(request.user):
+        # Legislators only see their own activity
+        raw_notifications = AuditLog.objects.filter(user=request.user).order_by('-timestamp')[:limit + 1]
+    else:
+        # Admins/Staff see all activity
+        raw_notifications = AuditLog.objects.all().order_by('-timestamp')[:limit + 1]
+
+    has_more = len(raw_notifications) > limit
+    notifications_to_send = raw_notifications[:limit]
+
+    formatted_notifications = []
+    for notif in notifications_to_send:
+        # Format the message for display
+        message = f"User '{notif.user.username}' {notif.action.lower()}d document '{notif.document.title}' ({notif.document.document_number})." if notif.document else f"User '{notif.user.username}' {notif.action.lower()}d an item."
+        
+        formatted_notifications.append({
+            'id': notif.id,
+            'message': message,
+            'time': timesince(notif.timestamp, timezone.now()) + ' ago'
+        })
+
+    return JsonResponse({
+        'notifications': formatted_notifications,
+        'has_more': has_more
+    })
+
+# ==========================================
 # 9. EDIT DOCUMENT VIEW (WITH SMART UPDATE)
 # ==========================================
 @login_required(login_url='login')
@@ -752,162 +809,4 @@ def edit_document(request):
         # --- SMART UPDATE LOGIC ---
         # If the user leaves a field blank, we ignore it and KEEP the existing database info!
         
-        new_document_number = request.POST.get('document_number')
-        if new_document_number:
-            # Check if they are trying to change it to an ID that is already taken
-            if LegislativeDocument.objects.filter(document_number=new_document_number).exclude(id=doc_id).exists():
-                messages.error(request, f'Update failed: The Legis Number "{new_document_number}" is already in use by another document!')
-                return redirect('documents')
-            doc.document_number = new_document_number
-
-        new_title = request.POST.get('title')
-        if new_title: doc.title = new_title
-
-        new_type = request.POST.get('doc_type')
-        if new_type: doc.doc_type = new_type
-
-        new_year = request.POST.get('year')
-        if new_year: doc.year = new_year
-        
-        new_date = request.POST.get('date_enacted')
-        if new_date: doc.date_enacted = new_date
-
-        new_sponsor = request.POST.get('sponsor')
-        if new_sponsor: doc.sponsor = new_sponsor
-
-        new_cosponsors = request.POST.get('co_sponsors')
-        if new_cosponsors: doc.co_sponsors = new_cosponsors
-
-        new_keywords = request.POST.get('keywords')
-        if new_keywords: doc.keywords = new_keywords
-        
-        new_visibility = request.POST.get('visibility')
-        if new_visibility: doc.visibility = new_visibility
-
-        new_storage = request.POST.get('physical_storage')
-        if new_storage: doc.physical_storage = new_storage
-
-        new_status = request.POST.get('status')
-        if not new_status: 
-            new_status = doc.status # Keep old status if left blank
-
-        # ==========================================
-        # ARCHIVAL TRIGGER LOGIC
-        # ==========================================
-        if new_status == 'Archived':
-            year_suffix = str(doc.year)[-2:]
-            prefix = f"ARC-{year_suffix}-"
-            
-            # 1. Find the highest existing Archive ID for this specific year
-            last_archive = ArchivedDocument.objects.filter(archive_id__startswith=prefix).order_by('-archive_id').first()
-            
-            if last_archive:
-                try:
-                    # Extract the number from the end (e.g., 'ARC-26-004' -> 4) and add 1
-                    last_count = int(last_archive.archive_id.split('-')[-1])
-                    count = last_count + 1
-                except ValueError:
-                    count = 1
-            else:
-                # If no archives exist for this year yet, start at 1
-                count = 1
-                
-            archive_id = f"{prefix}{count:03d}"
-            
-            # 2. Failsafe: Just in case of an unexpected collision, bump it up until it's perfectly unique
-            while ArchivedDocument.objects.filter(archive_id=archive_id).exists():
-                count += 1
-                archive_id = f"{prefix}{count:03d}"
-                
-            # 3. Create the new record in the ArchivedDocument table
-            new_archive = ArchivedDocument.objects.create(
-                archive_id=archive_id,
-                original_document_number=doc.document_number,
-                title=doc.title,
-                doc_type=doc.doc_type,
-                year=doc.year,
-                date_enacted=doc.date_enacted,
-                sponsor=doc.sponsor,
-                co_sponsors=doc.co_sponsors,
-                visibility='Internal Only',
-                keywords=doc.keywords,
-                physical_storage=doc.physical_storage,
-                retention_policy='Permanent',
-                original_date_filed=doc.date_filed,
-                archived_by=request.user
-            )
-
-            from django.core.files.base import ContentFile
-            if doc.file_attachment:
-                file_content = ContentFile(doc.file_attachment.read())
-                file_name = doc.file_attachment.name.split('/')[-1]
-                new_archive.file_attachment.save(file_name, file_content, save=True)
-
-            AuditLog.objects.create(user=request.user, action=f'Archived Document: {archive_id}')
-            doc.delete()
-
-            messages.success(request, f'Document successfully moved to Archives as {archive_id}!')
-            return redirect('archive')
-
-        # If NOT archived, save normally
-        doc.status = new_status
-
-        # Only overwrite the file if they explicitly uploaded a new one
-        new_file = request.FILES.get('file_attachment')
-        if new_file:
-            doc.file_attachment = new_file
-
-        doc.save()
-
-        AuditLog.objects.create(
-            user=request.user,
-            action='Edit',
-            document=doc
-        )
-
-        messages.success(request, 'Document successfully updated!')
-        
-    return redirect('documents')
-
-# ==========================================
-# 11. API: REAL-TIME NOTIFICATIONS (UNIFIED & SCROLLABLE)
-# ==========================================
-@login_required(login_url='login')
-def get_notifications(request):
-    # 1. Grab the limit requested by the JavaScript button (default to 10)
-    limit = int(request.GET.get('limit', 10))
-    
-    # 2. Query the database but DON'T slice it to 5!
-    if is_legislator(request.user):
-        # Fetch one EXTRA log (+1) to check if there is more history left
-        logs_query = AuditLog.objects.filter(user=request.user).select_related('user', 'document').order_by('-timestamp')
-    else:
-        logs_query = AuditLog.objects.all().select_related('user', 'document').order_by('-timestamp')
-        
-    # 3. Apply the dynamic limit
-    logs = list(logs_query[:limit + 1])
-    
-    # 4. Check if we hit the end of the database
-    has_more = len(logs) > limit
-    
-    # 5. Trim it back down to the exact requested number for the frontend
-    logs = logs[:limit] 
-    
-    data = []
-    for log in logs:
-        doc_number = log.document.document_number if log.document else "a document"
-        if log.action == 'Upload':
-            msg = f"<strong>New Upload:</strong> {doc_number} was uploaded by <strong>{log.user.username}</strong>."
-        elif log.action == 'Edit':
-            msg = f"<strong>Document Updated:</strong> {doc_number} was modified by <strong>{log.user.username}</strong>."
-        else:
-            msg = f"<strong>System Action:</strong> {log.action} performed by <strong>{log.user.username}</strong>."
-        
-        time_ago = f"{timesince(log.timestamp, now())} ago"
-        data.append({'id': log.id, 'message': msg, 'time': time_ago})
-        
-    # 6. Return the logs AND the has_more flag!
-    return JsonResponse({
-        'notifications': data,
-        'has_more': has_more
-    })
+       
