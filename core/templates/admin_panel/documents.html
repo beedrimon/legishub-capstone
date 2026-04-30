@@ -104,11 +104,21 @@
                         </thead>
                         <tbody>
                             {% for doc in documents %}
+                            
                             <tr>
-                                <td>
-                                    <strong>{{ doc.document_number }}: {{ doc.title }}</strong><br>
-                                    <small>{{ doc.sponsor|default:"No Sponsor Listed" }}</small>
-                                </td>
+                                <tr {% if doc.status|lower == 'urgent' %}style="background-color: #fff9e6;"{% endif %}>
+    <td>
+        <strong>{{ doc.document_number }}: {{ doc.title }}</strong>
+        {% if doc.status|lower == 'urgent' %}
+            <span style="color: #d9534f; font-size: 0.7rem; margin-left: 5px;">
+                <i class="fa-solid fa-triangle-exclamation"></i> URGENT
+            </span>
+        {% endif %}
+        <br>
+        <small>{{ doc.sponsor|default:"No Sponsor Listed" }}</small>
+    </td>
+    <!-- ... rest of your columns ... -->
+    
                                 <td>{{ doc.doc_type }}</td>
                                 <td>{{ doc.date_filed|date:"M d, Y" }}</td>
                                 <td><span class="badge {{ doc.status|lower }}">{{ doc.status|upper }}</span></td>
@@ -147,12 +157,14 @@
                                     </a>
                                     {% endif %}
                                 </td>
+                              
                             </tr>
                             {% empty %}
                             <tr>
                                 <td colspan="5" style="text-align: center; padding: 20px;">No legislative documents
                                     found in
                                     the repository.</td>
+                                    
                             </tr>
                             {% endfor %}
                         </tbody>

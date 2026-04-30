@@ -12,7 +12,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Case, IntegerField, Value, When
 from django.db.models.functions import ExtractYear
 from django.db.models import Count
 
@@ -124,7 +124,14 @@ def dashboard_view(request):
 @login_required(login_url='login')
 def documents_view(request):
     # 1. Start with ALL documents
-    doc_list = LegislativeDocument.objects.all().order_by('-date_filed')
+    # Annotate with priority: 'Urgent' gets 0 (top), others get 1
+    doc_list = LegislativeDocument.objects.annotate(
+        priority=Case(
+            When(status__iexact='Urgent', then=Value(0)),
+            default=Value(1),
+            output_field=IntegerField(),
+        )
+    ).order_by('priority', '-date_filed')
     
     # 2. Grab the search and filter terms from the URL
     search_query = request.GET.get('q', '')
