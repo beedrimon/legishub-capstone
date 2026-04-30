@@ -8,7 +8,7 @@
     <title>{% block title %}Marikina LegisHub{% endblock %}</title>
     <link rel="icon" href="{% static 'images/legishub-logo-light.png' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="{% static 'css/main.css' %}">
+    <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2">
     {% block extra_css %}{% endblock %}
 </head>
 
@@ -136,14 +136,13 @@
                     <div class="form-group">
                         <label>STATUS</label>
                         <select name="status" required>
+                            <option value="" disabled selected hidden>-- Select a Status --</option>
                             <option value="1st reading">1st reading</option>
                             <option value="2nd reading">2nd reading</option>
                             <option value="3rd reading">3rd reading</option>
                             <option value="For Certification">For Certification</option>
                             <option value="For Signing">For Signing</option>
                             <option value="For Approval">For Approval</option>
-                            <option value="Vetoed">Vetoed</option>
-                            <option value="Archived">Archived</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -240,14 +239,7 @@
                     <div class="form-group">
                         <label>STATUS</label>
                         <select name="status" required>
-                            <option value="Pending">Pending</option>
-                            <option value="Active">Active</option>
-                            <option value="1st reading">1st reading</option>
-                            <option value="2nd reading">2nd reading</option>
-                            <option value="3rd reading">3rd reading</option>
-                            <option value="For Certification">For Certification</option>
-                            <option value="For Signing">For Signing</option>
-                            <option value="For Approval">For Approval</option>
+                            <option value="" disabled selected hidden>-- Select a Status --</option>
                             <option value="Vetoed">Vetoed</option>
                             <option value="Archived">Archived</option>
                         </select>
