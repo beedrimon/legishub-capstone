@@ -799,14 +799,47 @@ def get_notifications(request):
 @login_required(login_url='login')
 def edit_document(request):
     if is_legislator(request.user):
-        messages.error(request, 'Action Denied: Legislators have read-only access and cannot edit documents.')
+        messages.error(request, 'Action Denied: Legislators have read-only access.')
         return redirect('documents')
 
     if request.method == 'POST':
         doc_id = request.POST.get('doc_id')
-        doc = LegislativeDocument.objects.get(id=doc_id)
-
-        # --- SMART UPDATE LOGIC ---
-        # If the user leaves a field blank, we ignore it and KEEP the existing database info!
+        try:
+            doc = LegislativeDocument.objects.get(id=doc_id)
+        except LegislativeDocument.DoesNotExist:
+            messages.error(request, 'Document not found.')
+            return redirect('documents')
         
+        # --- SMART UPDATE LOGIC ---
+        # Update fields only if they are present in the POST data
+        doc.title = request.POST.get('title') or doc.title
+        doc.document_number = request.POST.get('document_number') or doc.document_number
+        doc.doc_type = request.POST.get('doc_type') or doc.doc_type
+        doc.year = request.POST.get('year') or doc.year
+        doc.date_enacted = request.POST.get('date_enacted') or doc.date_enacted
+        doc.sponsor = request.POST.get('sponsor') or doc.sponsor
+        doc.co_sponsors = request.POST.get('co_sponsors') or doc.co_sponsors
+        doc.keywords = request.POST.get('keywords') or doc.keywords
+        doc.visibility = request.POST.get('visibility') or doc.visibility
+        doc.physical_storage = request.POST.get('physical_storage') or doc.physical_storage
+        
+        new_status = request.POST.get('status')
+        doc.status = new_status or doc.status
+
+        # Handle new file upload if provided
+        if 'file_attachment' in request.FILES:
+            doc.file_attachment = request.FILES['file_attachment']
+
+        if doc.status == 'Archived':
+            doc.save()
+            messages.success(request, f'Document {doc.document_number} has been moved to Archive.')
+            return redirect('archive')
+
+        # Standard Save
+        doc.save()
+        messages.success(request, 'Document successfully updated!')
+        return redirect('documents')
+
+    # Catch-all for GET requests
+    return redirect('documents')
        
