@@ -213,7 +213,7 @@ def archive_view(request):
             Q(doc_type__icontains=search_query)
         )
     if doc_type:
-        archive_list = archive_list.filter(doc_type=doc_type)
+        archive_list = archive_list.filter(doc_type__iexact=doc_type)
     if year:
         archive_list = archive_list.filter(year=year)
     if author:
@@ -225,17 +225,15 @@ def archive_view(request):
     custom_folders = ArchiveFolder.objects.all().order_by('name')
 
     # Pagination
-    paginator = Paginator(archive_list, 10)
+    paginator = Paginator(archive_list, 5)
     page_number = request.GET.get('page')
     archives_paged = paginator.get_page(page_number)
 
     context = {
-        'archives': archives_paged,
+        'archives': archives_paged, 
         'res_count': res_count,
         'ord_count': ord_count,
         'custom_folders': custom_folders,
-        # 'available_years': available_years,
-        # 'available_authors': available_authors,
         'is_legislator': is_legislator(request.user),
         'search_query': search_query,
         'curent_filters': request.GET,
@@ -381,32 +379,6 @@ def create_archive_folder(request):
                 
     return redirect('archive')
 
-# ARCHIVE SEARCH
-@login_required(login_url='login')
-def archive_view(request):
-    # 1. Start with all archived records
-    archive_list = ArchivedDocument.objects.all().order_by('-original_date_filed')
-
-    # 2. Get the search query 'q' from the URL
-    search_query = request.GET.get('q', '')
-
-    # 3. Apply the Logic Tier filter
-    if search_query:
-        archive_list = archive_list.filter(
-            Q(title__icontains=search_query) | 
-            Q(archive_id__icontains=search_query) |
-            Q(sponsor__icontains=search_query) |
-            Q(keywords__icontains=search_query) |
-            Q(doc_type__icontains=search_query)
-        )
-
-    # 4. Return the filtered list to the Template
-    context = {
-        'archives': archive_list, # This matches the {% for archive in archives %} in your HTML
-        'is_legislator': is_legislator(request.user), 
-        'search_query': search_query,
-    }
-    return render(request, 'archives/archive.html', context)
 
 # ==========================================
 # 5. AUDIT LOGS VIEW
@@ -719,16 +691,6 @@ def upload_document(request):
         title = request.POST.get('title')
         document_number = request.POST.get('document_number')
         status = request.POST.get('status', '1st Reading') # Default to '1st Reading' if not provided
-        
-        # --- NEW SAFETY CHECK FOR UPLOADS ---
-        # Check if a document with this number already exists
-        if LegislativeDocument.objects.filter(document_number=document_number).exists() or \
-            ArchivedDocument.objects.filter(original_document_number=document_number).exists():
-            messages.error(request, f'Upload failed: The Legis Number "{document_number}" is already in use!')
-            # Bounce them back to the exact page they were on (Dashboard or Documents)
-            return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
-        # ------------------------------------
-
         doc_type = request.POST.get('doc_type')
         year = request.POST.get('year')
         date_enacted = request.POST.get('date_enacted')
@@ -738,6 +700,11 @@ def upload_document(request):
         keywords = request.POST.get('keywords')
         physical_storage = request.POST.get('physical_storage')
         file_attachment = request.FILES.get('file_attachment')
+
+        if LegislativeDocument.objects.filter(document_number=document_number).exists() or \
+           ArchivedDocument.objects.filter(original_document_number=document_number).exists():
+            messages.error(request, f'Upload failed: The Number "{document_number}" is already in use!')
+            return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
         
         if status == 'Archived':
             ArchivedDocument.objects.create(
@@ -753,7 +720,7 @@ def upload_document(request):
                 keywords=keywords,
                 physical_storage=physical_storage,
                 file_attachment=file_attachment,
-                original_date_filed=timezone.now().date(), # Set current date as filing date
+                original_date_filed=timezone.now().date(), 
                 archived_by=request.user
             )
             messages.success(request, f'Document {document_number} uploaded directly to Archives.')
@@ -857,6 +824,7 @@ def edit_document(request):
         doc.visibility = request.POST.get('visibility') or doc.visibility
         doc.physical_storage = request.POST.get('physical_storage') or doc.physical_storage
         
+        old_status = doc.status
         new_status = request.POST.get('status')
         doc.status = new_status or doc.status
 
@@ -867,36 +835,46 @@ def edit_document(request):
         if doc.status == 'Archived':
             # Create the archive record first
             ArchivedDocument.objects.create(
-                title=doc.title,
+                archive_id=f"ARC-{doc.document_number}",
                 original_document_number=doc.document_number,
+                title=doc.title,
                 doc_type=doc.doc_type,
                 year=doc.year,
+                date_enacted=doc.date_enacted,
                 sponsor=doc.sponsor,
                 co_sponsors=doc.co_sponsors,
-                keywords=doc.keywords,
                 visibility=doc.visibility,
+                keywords=doc.keywords,
                 physical_storage=doc.physical_storage,
                 file_attachment=doc.file_attachment,
                 original_date_filed=doc.date_filed,
-                date_enacted=doc.date_enacted,
-                archive_id=f"ARC-{doc.document_number}"
+                archived_by=request.user
+                
             )
             
             # Record the removal in the Audit Log before deleting the object
             AuditLog.objects.create(
                 user=request.user,
-                action='Archived',
+                action='Delete',
                 document=None  # Can't link to a deleted doc, or link to Archive model if preferred
             )
 
             doc.delete() # Now delete the active record
+
             messages.success(request, f'Document {doc.document_number} moved to Archive.')
             return redirect('archive')
+        
 
         # Standard Save for non-archived updates
-        doc.save()
+        else:
+            doc.save()
+            AuditLog.objects.create(
+                user=request.user,
+                action='Edit',
+                document=doc
+            )
         messages.success(request, 'Document successfully updated!')
         return redirect('documents')
 
     return redirect('documents')
-       
+      
