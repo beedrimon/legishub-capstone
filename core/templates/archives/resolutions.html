@@ -125,19 +125,21 @@
                         <th style="padding: 15px;">No.</th>
                         <th>ARCHIVE ID</th>
                         <th>DOCUMENT TITLE</th>
+                        <th>AUTHOR</th>
                         <th>REFERENCE NO.</th>
                         <th>DATE ENACTED</th>
-                        <th>AUTHOR</th>
+                        <th>STATUS</th>
                         <th>ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for doc in archives %}
                     <tr style="border-bottom: 1px solid #eee;">
-                        <td style="padding: 15px;"><strong>{{ forloop.counter }}:</strong> {{ forloop.counter }}</td>
+                        <td>{{ forloop.counter }}</td>
                         <td>{{ doc.archive_id }}</td>
                         <td>{{ doc.title }}</td>
-                        <td>{{ doc.original_document_number }}</td>
+                        <td>{{ doc.sponsor|default:'No Sponsor Listed' }}</td>
+                        <td>{{ doc.original_document_number }}</td> 
                         <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
                         <td><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></td>
                         <td class="action-icons">
@@ -156,7 +158,7 @@
                                 data-visibility="{{ doc.visibility }}"
                                 data-storage="{{ doc.physical_storage|default:'Not specified' }}"
                                 {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}" {% endif %}></i>
-                        </td>
+                       </td>
     </tr>
     {% empty %}
     <tr>

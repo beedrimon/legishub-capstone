@@ -48,21 +48,43 @@
             <table>
                 <thead>
                     <tr>
-                        <th>TITLE</th>
-                        <th>REF NO.</th>
-                        <th>DATE ARCHIVED</th>
-                        <th style="text-align: center;">ACTION</th>
+                        <th style="padding: 15px;">No.</th>
+                        <th>ARCHIVE ID</th>
+                        <th>DOCUMENT TITLE</th>
+                        <th>AUTHOR</th>
+                        <th>REFERENCE NO.</th>
+                        <th>DATE ENACTED</th>
+                        <th>STATUS</th>
+                        <th>ACTIONS</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for archive in archives %}
-                    <tr>
-                        <td><strong>[RESTRICTED]</strong> {{ archive.title }}</td>
-                        <td>{{ archive.archive_id }}</td>
-                        <td>{{ archive.date_archived|date:"M d, Y" }}</td>
-                        <td style="text-align: center;">
-                            <i class="fa-solid fa-lock" style="color: #d9534f;"></i>
-                        </td>
+                    {% for doc in archives %}
+                    <tr style="border-bottom: 1px solid #eee;">
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ doc.archive_id }}</td>
+                        <td>{{ doc.title }}</td>
+                        <td>{{ doc.sponsor|default:'No Sponsor Listed' }}</td>
+                        <td>{{ doc.original_document_number }}</td> 
+                        <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
+                        <td><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></td>
+                        <td class="action-icons">
+                            <i class="fa-regular fa-eye trigger-view" title="View Document"
+                                style="cursor: pointer; color: #888;" 
+                                data-number="{{ doc.archive_id }}"
+                                data-title="{{ doc.title }}" 
+                                data-type="{{ doc.doc_type }}"
+                                data-year="{{ doc.year }}" 
+                                data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
+                                data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
+                                data-keywords="{{ doc.keywords|default:'None' }}"
+                                data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
+                                data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
+                                data-status="Archived"
+                                data-visibility="{{ doc.visibility }}"
+                                data-storage="{{ doc.physical_storage|default:'Not specified' }}"
+                                {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}" {% endif %}></i>
+                       </td>
                     </tr>
                     {% empty %}
                     <tr><td colspan="4" style="text-align: center; padding: 20px;">No confidential records.</td></tr>

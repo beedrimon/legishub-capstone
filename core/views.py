@@ -125,7 +125,7 @@ def dashboard_view(request):
 def documents_view(request):
     # 1. Start with ALL documents
     # Annotate with priority: 'Urgent' gets 0 (top), others get 1
-    doc_list = LegislativeDocument.objects.annotate(
+    doc_list = LegislativeDocument.objects.exclude(status__iexact='Archived').annotate(
         priority=Case(
             When(status__iexact='Urgent', then=Value(0)),
             default=Value(1),
@@ -193,32 +193,17 @@ def documents_view(request):
 # ==========================================
 # 4. ARCHIVE VIEW 
 # ==========================================
-@login_required
-def archive_view(request):
-    # This pulls EVERYTHING for the main table
-    all_archives = LegislativeDocument.objects.all().order_by('-date_archived')[:10]
-    
-    # These counts determine if the folders feel "alive"
-    res_count = LegislativeDocument.objects.filter(doc_type__iexact='Resolution').count()
-    ord_count = LegislativeDocument.objects.filter(doc_type__iexact='Ordinance').count()
-    
-    return render(request, 'archives/archive.html', {
-        'archives': all_archives,
-        'res_count': res_count,
-        'ord_count': ord_count
-    })
 @login_required(login_url='login')
 def archive_view(request):
-    # 1. Start with all archived records, ordered by Archive ID Ascending!
-    archive_list = ArchivedDocument.objects.all().order_by('-archive_id')
+    # Start with all archived records
+    archive_list = ArchivedDocument.objects.all().order_by('-original_date_filed')
     
-    # 2. Fetch the custom folders so they properly load in the UI
-    custom_folders = ArchiveFolder.objects.all().order_by('name')
-
-    # 3. Get the search query 'q' from the URL
+    # Fetch search query
     search_query = request.GET.get('q', '')
+    doc_type = request.GET.get('doc_type', '')
+    year = request.GET.get('year', '')
+    author = request.GET.get('author', '')
 
-    # 4. Apply the Search filter
     if search_query:
         archive_list = archive_list.filter(
             Q(title__icontains=search_query) | 
@@ -227,13 +212,33 @@ def archive_view(request):
             Q(keywords__icontains=search_query) |
             Q(doc_type__icontains=search_query)
         )
+    if doc_type:
+        archive_list = archive_list.filter(doc_type=doc_type)
+    if year:
+        archive_list = archive_list.filter(year=year)
+    if author:
+        archive_list = archive_list.filter(sponsor__icontains=author)
+    
+    # UI Data: Counts and Folders
+    res_count = ArchivedDocument.objects.filter(doc_type__iexact='Resolution').count()
+    ord_count = ArchivedDocument.objects.filter(doc_type__iexact='Ordinance').count()
+    custom_folders = ArchiveFolder.objects.all().order_by('name')
 
-    # 5. Pass all the data back to the template
+    # Pagination
+    paginator = Paginator(archive_list, 10)
+    page_number = request.GET.get('page')
+    archives_paged = paginator.get_page(page_number)
+
     context = {
-        'archives': archive_list, 
+        'archives': archives_paged,
+        'res_count': res_count,
+        'ord_count': ord_count,
         'custom_folders': custom_folders,
-        'is_legislator': is_legislator(request.user), 
+        # 'available_years': available_years,
+        # 'available_authors': available_authors,
+        'is_legislator': is_legislator(request.user),
         'search_query': search_query,
+        'curent_filters': request.GET,
     }
     return render(request, 'archives/archive.html', context)
 
@@ -713,10 +718,12 @@ def upload_document(request):
         # 1. Grab all text data from the HTML form
         title = request.POST.get('title')
         document_number = request.POST.get('document_number')
+        status = request.POST.get('status', '1st Reading') # Default to '1st Reading' if not provided
         
         # --- NEW SAFETY CHECK FOR UPLOADS ---
         # Check if a document with this number already exists
-        if LegislativeDocument.objects.filter(document_number=document_number).exists():
+        if LegislativeDocument.objects.filter(document_number=document_number).exists() or \
+            ArchivedDocument.objects.filter(original_document_number=document_number).exists():
             messages.error(request, f'Upload failed: The Legis Number "{document_number}" is already in use!')
             # Bounce them back to the exact page they were on (Dashboard or Documents)
             return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
@@ -724,26 +731,42 @@ def upload_document(request):
 
         doc_type = request.POST.get('doc_type')
         year = request.POST.get('year')
-        
-        # New fields from your modal
         date_enacted = request.POST.get('date_enacted')
         sponsor = request.POST.get('sponsor')
         co_sponsors = request.POST.get('co_sponsors')
-        status = request.POST.get('status', 'Pending')
         visibility = request.POST.get('visibility')
         keywords = request.POST.get('keywords')
         physical_storage = request.POST.get('physical_storage')
-        
-        # 2. Grab the file
         file_attachment = request.FILES.get('file_attachment')
+        
+        if status == 'Archived':
+            ArchivedDocument.objects.create(
+                archive_id=f"ARC-{document_number}",
+                original_document_number=document_number,
+                title=title,
+                doc_type=doc_type,
+                year=year,
+                date_enacted=date_enacted if date_enacted else None,
+                sponsor=sponsor,
+                co_sponsors=co_sponsors,
+                visibility=visibility,
+                keywords=keywords,
+                physical_storage=physical_storage,
+                file_attachment=file_attachment,
+                original_date_filed=timezone.now().date(), # Set current date as filing date
+                archived_by=request.user
+            )
+            messages.success(request, f'Document {document_number} uploaded directly to Archives.')
+            return redirect('archive')
 
         # 3. Save the document to the database
-        new_doc = LegislativeDocument.objects.create(
+        else:
+            new_doc = LegislativeDocument.objects.create(
             title=title,
             document_number=document_number,
             doc_type=doc_type,
-            year=year,
-            date_enacted=date_enacted if date_enacted else None, # Handles empty dates safely
+            year=year,                
+            date_enacted=date_enacted if date_enacted else None, 
             sponsor=sponsor,
             co_sponsors=co_sponsors,
             visibility=visibility,
@@ -818,12 +841,16 @@ def edit_document(request):
             return redirect('documents')
         
         # --- SMART UPDATE LOGIC ---
-        # Update fields only if they are present in the POST data
         doc.title = request.POST.get('title') or doc.title
         doc.document_number = request.POST.get('document_number') or doc.document_number
         doc.doc_type = request.POST.get('doc_type') or doc.doc_type
         doc.year = request.POST.get('year') or doc.year
-        doc.date_enacted = request.POST.get('date_enacted') or doc.date_enacted
+        
+        # Handle dates safely: if the string is empty, keep the old date
+        new_enacted = request.POST.get('date_enacted')
+        if new_enacted:
+            doc.date_enacted = new_enacted
+
         doc.sponsor = request.POST.get('sponsor') or doc.sponsor
         doc.co_sponsors = request.POST.get('co_sponsors') or doc.co_sponsors
         doc.keywords = request.POST.get('keywords') or doc.keywords
@@ -833,20 +860,43 @@ def edit_document(request):
         new_status = request.POST.get('status')
         doc.status = new_status or doc.status
 
-        # Handle new file upload if provided
         if 'file_attachment' in request.FILES:
             doc.file_attachment = request.FILES['file_attachment']
 
+        # --- ARCHIVING LOGIC ---
         if doc.status == 'Archived':
-            doc.save()
-            messages.success(request, f'Document {doc.document_number} has been moved to Archive.')
+            # Create the archive record first
+            ArchivedDocument.objects.create(
+                title=doc.title,
+                original_document_number=doc.document_number,
+                doc_type=doc.doc_type,
+                year=doc.year,
+                sponsor=doc.sponsor,
+                co_sponsors=doc.co_sponsors,
+                keywords=doc.keywords,
+                visibility=doc.visibility,
+                physical_storage=doc.physical_storage,
+                file_attachment=doc.file_attachment,
+                original_date_filed=doc.date_filed,
+                date_enacted=doc.date_enacted,
+                archive_id=f"ARC-{doc.document_number}"
+            )
+            
+            # Record the removal in the Audit Log before deleting the object
+            AuditLog.objects.create(
+                user=request.user,
+                action='Archived',
+                document=None  # Can't link to a deleted doc, or link to Archive model if preferred
+            )
+
+            doc.delete() # Now delete the active record
+            messages.success(request, f'Document {doc.document_number} moved to Archive.')
             return redirect('archive')
 
-        # Standard Save
+        # Standard Save for non-archived updates
         doc.save()
         messages.success(request, 'Document successfully updated!')
         return redirect('documents')
 
-    # Catch-all for GET requests
     return redirect('documents')
        

@@ -95,7 +95,9 @@
                     <table>
                         <thead>
                             <tr>
+                                <th>No.</th>
                                 <th>TITLE & TRACKING NO.</th>
+                                <th>KEYWORDS</th>
                                 <th>CATEGORY</th>
                                 <th>DATE FILED</th>
                                 <th>STATUS</th>
@@ -106,21 +108,26 @@
                             {% for doc in documents %}
                             
                             <tr>
-                                <tr {% if doc.status|lower == 'urgent' %}style="background-color: #fff9e6;"{% endif %}>
-    <td>
-        <strong>{{ doc.document_number }}: {{ doc.title }}</strong>
-        {% if doc.status|lower == 'urgent' %}
-            <span style="color: #d9534f; font-size: 0.7rem; margin-left: 5px;">
-                <i class="fa-solid fa-triangle-exclamation"></i> URGENT
-            </span>
-        {% endif %}
-        <br>
+                                <!-- Numbering -->
+                                <td>{{ forloop.counter }}</td>
+                                <!-- Title and Tracking Number with Urgency Highlight -->
+                                <td>
+                                    <strong>{{ doc.document_number }}: {{ doc.title }}</strong>
+                                    {% if doc.status|lower == 'urgent' %}
+                                        <span style="color: #d9534f; font-size: 0.7rem; margin-left: 5px;">
+                                            <i class="fa-solid fa-triangle-exclamation"></i> URGENT
+                                        </span>
+                                    {% endif %}
+                <br>
         <small>{{ doc.sponsor|default:"No Sponsor Listed" }}</small>
     </td>
-    <!-- ... rest of your columns ... -->
-    
+                                <!-- Keywords -->
+                                <td>{{ doc.keywords|default:"None" }}</td>
+                                <!-- Category -->
                                 <td>{{ doc.doc_type }}</td>
+                                <!-- date     -->
                                 <td>{{ doc.date_filed|date:"M d, Y" }}</td>
+                                <!-- status -->
                                 <td><span class="badge {{ doc.status|lower }}">{{ doc.status|upper }}</span></td>
                                 <td class="action-icons">
                                     <i class="fa-regular fa-eye trigger-view" title="View Document"
