@@ -95,4 +95,88 @@
         {% endif %}
     </div>
 </div>
+
+<div id="viewModal" class="modal-overlay">
+        <div class="modal-container detail-view-container">
+            <div class="modal-header">
+                <h2>ARCHIVED RECORD DETAILS</h2>
+                <button class="close-modal" onclick="closeModal('viewModal')">&times;</button>
+            </div>
+            <div class="modal-body detail-view-body">
+                <div class="meta-sidebar">
+                    <div class="meta-group">
+                        <label>ARCHIVE ID</label>
+                        <p class="meta-val highlight" id="view-number"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>DOCUMENT TITLE / SUBJECT</label>
+                        <p class="meta-val" id="view-title"></p>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-group">
+                            <label>CATEGORY</label>
+                            <p class="meta-val" id="view-type"></p>
+                        </div>
+                        <div class="meta-group">
+                            <label>SERIES YEAR</label>
+                            <p class="meta-val" id="view-year"></p>
+                        </div>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-group">
+                            <label>ORIGINAL DATE FILED</label>
+                            <p class="meta-val" id="view-date"></p>
+                        </div>
+                        <div class="meta-group">
+                            <label>DATE ENACTED</label>
+                            <p class="meta-val" id="view-enacted"></p>
+                        </div>
+                    </div>
+                    <div class="meta-group">
+                        <label>PRIMARY AUTHOR / SPONSOR</label>
+                        <p class="meta-val" id="view-sponsor"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>CO-SPONSOR(S)</label>
+                        <p class="meta-val" id="view-cosponsors"></p>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-group">
+                            <label>STATUS</label>
+                            <p class="meta-val" id="view-status"></p>
+                        </div>
+                        <div class="meta-group">
+                            <label>RETENTION POLICY</label>
+                            <p class="meta-val"><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></p>
+                        </div>
+                    </div>
+                    <div class="meta-group">
+                        <label>PHYSICAL STORAGE</label>
+                        <p class="meta-val" id="view-storage"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>KEYWORDS</label>
+                        <p class="meta-val abstract" id="view-keywords"></p>
+                    </div>
+                </div>
+
+                <div class="pdf-preview-container"
+                    style="padding: 0; background-color: #525659; border-radius: 0 8px 8px 0; overflow: hidden;">
+                    <iframe id="view-pdf-iframe" src="" width="100%" height="100%"
+                        style="border: none; display: none; min-height: 600px;"></iframe>
+
+                    <div id="view-pdf-missing"
+                        style="display: none; text-align: center; padding-top: 200px; color: #ccc;">
+                        <i class="fa-regular fa-file-pdf" style="font-size: 4rem; margin-bottom: 15px;"></i>
+                        <p>No PDF document attached to this record.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-discard">Close View</button>
+                
+                <button type="button" class="btn-add" id="view-download-btn">Download Archive PDF</button>
+            </div>
+        </div>
+    </div>
 {% endblock %}
