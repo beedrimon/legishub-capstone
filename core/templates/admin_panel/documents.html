@@ -131,7 +131,7 @@
                                 <td><span class="badge {{ doc.status|lower }}">{{ doc.status|upper }}</span></td>
                                 <td class="action-icons">
                                     <i class="fa-regular fa-eye trigger-view" title="View Document"
-                                        style="cursor: pointer;" data-number="{{ doc.document_number }}"
+                                        style="cursor: pointer;" data-id="{{ doc.id }}" data-number="{{ doc.document_number }}"
                                         data-title="{{ doc.title }}" data-type="{{ doc.doc_type }}"
                                         data-year="{{ doc.year }}" data-date="{{ doc.date_filed|date:'M d, Y' }}"
                                         data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
@@ -413,5 +413,35 @@
             document.getElementById('pageInput').value = pageNum;
             document.getElementById('filterForm').submit();
         }
+
+        // --- NEW: GHOST CLICK LOGIC FOR VIEW MODAL ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const viewButtons = document.querySelectorAll('.trigger-view');
+            const modalEditBtn = document.getElementById('modal-edit-btn');
+            
+            // 1. When an Eye icon is clicked, secretly store the document's ID on the modal's Edit button
+            viewButtons.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    if (modalEditBtn) {
+                        modalEditBtn.setAttribute('data-target-id', this.getAttribute('data-id'));
+                    }
+                });
+            });
+
+            // 2. When the user clicks "Edit Details" inside the modal...
+            if (modalEditBtn) {
+                modalEditBtn.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target-id');
+                    
+                    // Find the real pencil icon for this document on the table
+                    const realPencilIcon = document.querySelector(`.trigger-edit[data-id="${targetId}"]`);
+                    
+                    if (realPencilIcon) {
+                        // Click it for them! This automatically closes the View modal and populates the Edit Modal perfectly!
+                        realPencilIcon.click(); 
+                    }
+                });
+            }
+        });
     </script>
 {% endblock %}

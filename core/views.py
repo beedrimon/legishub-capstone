@@ -356,8 +356,10 @@ def vetoed_view(request):
     if is_legislator(request.user):
         return redirect('archive') # Legislators can't see this
         
-    archives = ArchivedDocument.objects.filter(status='Vetoed').order_by('-date_archived')
-    return render(request, 'archives/vetoed.html', {'archives': archives})
+    # FIX: Query the main LegislativeDocument table where status='Vetoed'
+    vetoed_docs = LegislativeDocument.objects.filter(status='Vetoed').order_by('-date_filed')
+    
+    return render(request, 'archives/vetoed.html', {'archives': vetoed_docs})
 
 #CREATE ARCHIVE FOLDER VIEW
 @login_required(login_url='login')
