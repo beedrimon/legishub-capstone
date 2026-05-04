@@ -140,3 +140,9 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'jayveemoral0319@gmail.com' # Your actual Gmail address
 EMAIL_HOST_PASSWORD = 'fcrryepxusvjnwtd' # The 16-character App Password (no spaces)
 DEFAULT_FROM_EMAIL = 'Marikina LegisHub <your.email@gmail.com>'
+
+# ==========================================
+# LOGIN REDIRECT URL
+# ==========================================
+# Tells @login_required to redirect here instead of the default /accounts/login/
+LOGIN_URL = 'login'

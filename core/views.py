@@ -12,9 +12,8 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder
 from django.core.paginator import Paginator
-from django.db.models import Q, Case, IntegerField, Value, When
-from django.db.models.functions import ExtractYear
-from django.db.models import Count
+from django.db.models import Q, Case, IntegerField, Value, When, Count
+from django.db import transaction, IntegrityError
 
 
 # ==========================================
@@ -758,8 +757,11 @@ def upload_document(request):
 # ==========================================
 # 10. NOTIFICATIONS API
 # ==========================================
-@login_required
 def get_notifications(request):
+    # Return 401 JSON for unauthenticated API requests instead of an HTML redirect
+    if not request.user.is_authenticated:
+        return JsonResponse({'error': 'Unauthorized'}, status=401)
+
     limit = int(request.GET.get('limit', 10))
     
     # Fetch recent audit logs. For simplicity, we'll use AuditLog as notifications.
@@ -833,48 +835,46 @@ def edit_document(request):
 
         # --- ARCHIVING LOGIC ---
         if doc.status == 'Archived':
-            # Create the archive record first
-            ArchivedDocument.objects.create(
-                archive_id=f"ARC-{doc.document_number}",
-                original_document_number=doc.document_number,
-                title=doc.title,
-                doc_type=doc.doc_type,
-                year=doc.year,
-                date_enacted=doc.date_enacted,
-                sponsor=doc.sponsor,
-                co_sponsors=doc.co_sponsors,
-                visibility=doc.visibility,
-                keywords=doc.keywords,
-                physical_storage=doc.physical_storage,
-                file_attachment=doc.file_attachment,
-                original_date_filed=doc.date_filed,
-                archived_by=request.user
-                
-            )
-            
-            # Record the removal in the Audit Log before deleting the object
-            AuditLog.objects.create(
-                user=request.user,
-                action='Delete',
-                document=None  # Can't link to a deleted doc, or link to Archive model if preferred
-            )
+            try:
+                with transaction.atomic():
+                    archive_record = ArchivedDocument.objects.create(
+                        archive_id=f"ARC-{doc.document_number}",
+                        original_document_number=doc.document_number,
+                        title=doc.title,
+                        doc_type=doc.doc_type,
+                        year=doc.year,
+                        date_enacted=doc.date_enacted,
+                        sponsor=doc.sponsor,
+                        co_sponsors=doc.co_sponsors,
+                        visibility=doc.visibility,
+                        keywords=doc.keywords,
+                        physical_storage=doc.physical_storage,
+                        original_date_filed=doc.date_filed,
+                        archived_by=request.user
+                    )
 
-            doc.delete() # Now delete the active record
-
-            messages.success(request, f'Document {doc.document_number} moved to Archive.')
-            return redirect('archive')
-        
-
-        # Standard Save for non-archived updates
+                    # Safely attempt to copy the file. If missing locally, it fails gracefully.
+                    if doc.file_attachment and doc.file_attachment.name:
+                        try:
+                            archive_record.file_attachment.save(
+                                doc.file_attachment.name.split('/')[-1],
+                                doc.file_attachment.file,
+                                save=True
+                            )
+                        except FileNotFoundError:
+                            pass # Missing local file, continue archiving without it
+                    
+                    doc.delete() # Remove original document after successful archive
+                    messages.success(request, f'Document successfully moved to Archives.')
+                    return redirect('archive')
+                    
+            except IntegrityError:
+                messages.error(request, f'An archive for {doc.document_number} already exists.')
+                return redirect(request.META.get('HTTP_REFERER', 'documents'))
+            except Exception as e:
+                messages.error(request, f'Failed to archive: {str(e)}')
+                return redirect(request.META.get('HTTP_REFERER', 'documents'))
         else:
             doc.save()
-            AuditLog.objects.create(
-                user=request.user,
-                action='Edit',
-                document=doc
-            )
-        messages.success(request, 'Document successfully updated!')
-        return redirect('documents')
-
-    return redirect('documents')
-      
+            messages.success(request, 'Document successfully updated.')
+            return redirect(request.META.get('HTTP_REFERER', 'documents'))

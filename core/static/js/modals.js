@@ -176,8 +176,11 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(error => console.error('Error fetching notifications:', error));
     }
 
-    fetchNotifications();
-    setInterval(fetchNotifications, 30000);
+    // Only fetch notifications if the notifications modal exists on the current page
+    if (document.getElementById('notifModalBody')) {
+        fetchNotifications();
+        setInterval(fetchNotifications, 30000);
+    }
 
     // 5.5 Upload Dropdown Logic
     if (uploadDropdownBtn && uploadDropdownWrapper) {
