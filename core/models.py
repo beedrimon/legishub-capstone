@@ -54,6 +54,7 @@ class LegislativeDocument(models.Model):
     visibility = models.CharField(max_length=50, choices=VISIBILITY_CHOICES, default='Public Access')
     keywords = models.CharField(max_length=255, null=True, blank=True)
     physical_storage = models.CharField(max_length=255, null=True, blank=True)
+    veto_reason = models.TextField(blank=True, null=True)
     
     # Original system columns
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Pending')
@@ -112,6 +113,7 @@ class ArchivedDocument(models.Model):
     visibility = models.CharField(max_length=50, choices=LegislativeDocument.VISIBILITY_CHOICES, default='Internal Only')
     keywords = models.CharField(max_length=255, null=True, blank=True)
     physical_storage = models.CharField(max_length=255, null=True, blank=True)
+    veto_reason = models.TextField(blank=True, null=True)
     
     # 3. Archive-Specific Attributes
     retention_policy = models.CharField(max_length=50, choices=RETENTION_CHOICES, default='Permanent')

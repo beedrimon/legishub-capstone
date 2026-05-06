@@ -383,6 +383,14 @@
                     </div>
                 </div>
 
+                <!-- NEW: HIDDEN VETO REASON BOX -->
+                <div class="form-row" id="veto-reason-row" style="display: none;">
+                    <div class="form-group full-width">
+                        <label style="color: #C62828;"><i class="fa-solid fa-triangle-exclamation"></i> REASON FOR VETO (REQUIRED)</label>
+                        <input type="text" name="veto_reason" id="edit-veto-reason" style="border-color: #C62828;" placeholder="Provide a short note on why this is being vetoed...">
+                    </div>
+                </div>
+
                 <div class="form-row">
                     <div class="form-group full-width">
                         <label>PHYSICAL STORAGE REF (OPTIONAL)</label>
@@ -439,6 +447,25 @@
                     if (realPencilIcon) {
                         // Click it for them! This automatically closes the View modal and populates the Edit Modal perfectly!
                         realPencilIcon.click(); 
+                    }
+                });
+            }
+        });
+
+        // --- NEW: DYNAMIC VETO BOX TOGGLE ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const statusSelect = document.getElementById('edit-status');
+            const vetoRow = document.getElementById('veto-reason-row');
+            const vetoInput = document.getElementById('edit-veto-reason');
+
+            if (statusSelect && vetoRow && vetoInput) {
+                statusSelect.addEventListener('change', function() {
+                    if (this.value === 'Vetoed') {
+                        vetoRow.style.display = 'flex';
+                        vetoInput.setAttribute('required', 'required'); // Force them to type a note!
+                    } else {
+                        vetoRow.style.display = 'none';
+                        vetoInput.removeAttribute('required');
                     }
                 });
             }

@@ -69,7 +69,8 @@
                             <td><span style="background: #FFEBEE; color: #C62828; padding: 4px 10px; border-radius: 4px; font-weight: 800; font-size: 0.7rem; letter-spacing: 0.5px;">VETOED</span></td>
                             <td class="action-icons">
                                 <i class="fa-regular fa-eye trigger-view" title="View Document"
-                                    style="cursor: pointer; color: #888;" 
+                                    style="cursor: pointer; color: #888;"
+                                    data-vetoreason="{{ doc.veto_reason|default:'No reason provided.' }}" 
                                     data-number="{{ doc.document_number }}"
                                     data-title="{{ doc.title }}" 
                                     data-type="{{ doc.doc_type }}"
@@ -106,6 +107,12 @@
         </div>
         <div class="modal-body detail-view-body">
             <div class="meta-sidebar">
+                <!-- NEW: DISPLAY VETO REASON -->
+                <div class="meta-group" style="background: #FFEBEE; padding: 10px; border-radius: 6px; border-left: 4px solid #C62828; margin-bottom: 15px;">
+                    <label style="color: #C62828;">REASON FOR VETO</label>
+                    <p class="meta-val highlight" id="view-veto-reason" style="color: #C62828; font-style: italic; margin-top: 5px;"></p>
+                </div>
+                
                 <div class="meta-group">
                     <label>REFERENCE NO.</label>
                     <p class="meta-val highlight" id="view-number"></p>

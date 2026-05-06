@@ -284,6 +284,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (document.getElementById('view-visibility')) document.getElementById('view-visibility').innerText = docVisibility;
             if (document.getElementById('view-storage')) document.getElementById('view-storage').innerText = docStorage;
 
+            const docVetoReason = this.getAttribute('data-vetoreason');
+            
+            if (document.getElementById('view-veto-reason')) {
+                document.getElementById('view-veto-reason').innerText = docVetoReason;
+            }
+
             // 3. Update the Download Button
             const downloadBtn = document.getElementById('view-download-btn');
             if (fileUrl) {

@@ -832,6 +832,13 @@ def edit_document(request):
         new_status = request.POST.get('status')
         doc.status = new_status or doc.status
 
+        # --- NEW: SAVE VETO REASON ---
+        if doc.status == 'Vetoed':
+            veto_note = request.POST.get('veto_reason')
+            if veto_note:
+                doc.veto_reason = veto_note
+        # -----------------------------
+
         if 'file_attachment' in request.FILES:
             doc.file_attachment = request.FILES['file_attachment']
 
