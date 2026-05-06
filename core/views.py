@@ -12,8 +12,11 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder
 from django.core.paginator import Paginator
-from django.db.models import Q, Case, IntegerField, Value, When, Count
+from django.db.models import Q, Case, IntegerField, Value, When
 from django.db import transaction, IntegrityError
+from django.db.models import Min, Max, Count
+import math
+
 
 
 # ==========================================
@@ -241,84 +244,113 @@ def archive_view(request):
 
 @login_required
 def ordinances_view(request):
-    selected_range = request.GET.get('range') # e.g., "2000-2026"
-    selected_year = request.GET.get('year')   # e.g., "2026"
+    selected_range = request.GET.get('range') # e.g., "1900-1909"
+    selected_year = request.GET.get('year')   # e.g., "1905"
     search_query = request.GET.get('q', '')
-    sort_order = request.GET.get('sort', 'desc')
 
     ordinances = ArchivedDocument.objects.filter(doc_type__iexact='Ordinance')
 
-    # Step 1: Handle Year Range Selection (Shows list of Years)
-    if selected_range:
-        start_year, end_year = map(int, selected_range.split('-'))
-        years_list = ordinances.filter(year__range=(start_year, end_year)) \
-                               .values('year') \
-                               .annotate(doc_count=Count('id'))
-        
+    # LEVEL 3: Show Document Table for a specific Year
+    if selected_year or search_query:
+        docs = ordinances
+        if selected_year:
+            docs = docs.filter(year=selected_year)
         if search_query:
-            years_list = years_list.filter(year__icontains=search_query)
-        
-        years_list = years_list.order_by('year' if sort_order == 'asc' else '-year')
-        
-        return render(request, 'archives/ordinances.html', {
-            'years_list': years_list,
-            'selected_range': selected_range,
-            'current_view': 'year_list'
-        })
+            docs = docs.filter(
+                Q(title__icontains=search_query) | 
+                Q(archive_id__icontains=search_query) |
+                Q(sponsor__icontains=search_query) |
+                Q(keywords__icontains=search_query)
+            )
 
-    # Step 2: Handle Specific Year Selection (Shows list of Documents)
-    if selected_year:
-        docs = ordinances.filter(year=selected_year)
         return render(request, 'archives/ordinances.html', {
-            'archives': docs,
+            'archives': docs.order_by('-date_enacted'), # Matches {% for doc in archives %}
             'selected_year': selected_year,
+            'selected_range': selected_range,
+            'search_query': search_query,
             'current_view': 'doc_list'
         })
+        
 
-    # Default View: Show all or summary
-    archives = ordinances.order_by('-year')
-    return render(request, 'archives/ordinances.html', {'archives': archives, 'current_view': 'default'})
+    # LEVEL 2: Show Year Folders for a specific Decade
+    if selected_range:
+        try:
+            start_year, end_year = map(int, selected_range.split('-'))
+            # Get years in this decade that actually have documents
+            years_in_range = ordinances.filter(year__range=(start_year, end_year)) \
+                                .values_list('year', flat=True) \
+                                .distinct().order_by('year')
+            
+        except ValueError:
+            years_in_range = []
+                                
+        
+        return render(request, 'archives/ordinances.html', {
+            'years_in_range': years_in_range,
+            'selected_range': selected_range,
+            'current_view': 'year_folders'
+        })
+
+    # LEVEL 1: Default View - Show Decade Folders (1900-1909, 1910-1919, etc.)
+    # Automatically calculate decades based on available data
+    year_bounds = ordinances.aggregate(min_y=Min('year'), max_y=Max('year'))
+    decade_ranges = []
+
+    if year_bounds['min_y'] and year_bounds['max_y']:
+        # Round min year down to start of decade (e.g., 1905 -> 1900)
+        start_decade = (year_bounds['min_y'] // 10) * 10
+        # Round max year up to end of decade
+        end_decade = (year_bounds['max_y'] // 10) * 10
+        
+        for d in range(start_decade, end_decade + 10, 10):
+            decade_ranges.append(f"{d}-{d+9}")
+
+    return render(request, 'archives/ordinances.html', {
+        'decade_ranges': decade_ranges,
+        'current_view': 'decade_folders'
+    })
 
 @login_required
 def resolutions_view(request):
-    selected_range = request.GET.get('range') # e.g., "2000-2026"
-    selected_year = request.GET.get('year')   # e.g., "2026"
-    search_query = request.GET.get('q', '')
-    sort_order = request.GET.get('sort', 'desc')
-
-
+    selected_range = request.GET.get('range')
+    selected_year = request.GET.get('year')
+    
     resolutions = ArchivedDocument.objects.filter(doc_type__iexact='Resolution')
 
-    # Step 1: Handle Year Range Selection (Shows list of Years)
+    if selected_year:
+        docs = resolutions.filter(year=selected_year).order_by('-date_enacted')
+        return render(request, 'archives/resolutions.html', {
+            'archives': docs,
+            'selected_year': selected_year,
+            'selected_range': selected_range,
+            'current_view': 'doc_list'
+        })
+
     if selected_range:
         start_year, end_year = map(int, selected_range.split('-'))
         years_list = resolutions.filter(year__range=(start_year, end_year)) \
-                               .values('year') \
-                               .annotate(doc_count=Count('id'))
-        
-        if search_query:
-            years_list = years_list.filter(year__icontains=search_query)
-        
-        years_list = years_list.order_by('year' if sort_order == 'asc' else '-year')
+                                .values('year') \
+                                .annotate(doc_count=Count('id')) \
+                                .order_by('year')
         
         return render(request, 'archives/resolutions.html', {
             'years_list': years_list,
             'selected_range': selected_range,
-            'current_view': 'year_list'
+            'current_view': 'year_folders'
         })
 
-    # Step 2: Handle Specific Year Selection (Shows list of Documents)
-    if selected_year:
-        docs = resolutions.filter(year=selected_year)
-        return render(request, 'archives/resolutions.html', {
-            'archives': docs,
-            'selected_year': selected_year,
-            'current_view': 'doc_list'
-        })
+    year_bounds = resolutions.aggregate(min_y=Min('year'), max_y=Max('year'))
+    decades = []
+    if year_bounds['min_y'] and year_bounds['max_y']:
+        start_decade = (year_bounds['min_y'] // 10) * 10
+        end_decade = (year_bounds['max_y'] // 10) * 10
+        for d in range(start_decade, end_decade + 10, 10):
+            decades.append(f"{d}-{d+9}")
 
-    # Default View: Show all or summary
-    archives = resolutions.order_by('-year')
-    return render(request, 'archives/resolutions.html', {'archives': archives, 'current_view': 'default'})
+    return render(request, 'archives/resolutions.html', {
+        'decades': decades,
+        'current_view': 'decade_folders'
+    })
 
 @login_required
 def confidential_view(request):

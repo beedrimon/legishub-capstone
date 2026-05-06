@@ -26,8 +26,9 @@
 
 /* Folder Section Grid - Forces 4-column layout */
 .folder-section {
-    display: flex;
+    display: grid;
     align-items: center;
+    grid-template-columns: repeat(5, 1fr);
     gap: 20px;
     margin-bottom: 30px;
     width: 100%;
