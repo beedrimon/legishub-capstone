@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="{% static 'css/archive.css' %}">
 {% endblock %}
 
-{% block title %}Archive - Marikina LegisHub{% endblock %}
+{% block title %}Archived Resolutions - Marikina LegisHub{% endblock %}
 
 {% block main_content %}
 <header class="top-header">
@@ -39,96 +39,63 @@
     
     <nav class="breadcrumb">
         <a href="{% url 'documents' %}">Repository /</a>
-        <a href="{% url 'archive' %}">Archive /</a>
-        {% if current_view == 'year_list' %}
+        <a href="{% url 'archive' %}">Archive /</a> 
+        {% if selected_range or selected_year %}
             <a href="{% url 'resolutions' %}">Resolutions</a>
-            <span class="active">/ {{ selected_range }}</span>
-        {% elif current_view == 'doc_list' %}
-            <a href="{% url 'resolutions' %}">Resolutions</a>
-            <span class="active">/ {{ selected_year }}</span>
+            {% if selected_year %}
+                / <a href="{% url 'resolutions' %}?range={{ selected_range }}"> {{ selected_range }}</a>
+                <span class="active">/ {{ selected_year }}</span>
+            {% else %}
+                <span class="active">/ {{ selected_range }}</span>
+            {% endif %}
         {% else %}
             <span class="active">Resolutions</span>
         {% endif %}
     </nav>
 
-    <div class="folder-section">
-        <a href="{% if current_view == 'default' %}{% url 'archive' %}{% else %}{% url 'resolutions' %}{% endif %}" class="folder-card">
+        <div class="folder-section">
+        <a href="{% if selected_year %}{% url 'resolutions' %}?range={{ selected_range }}{% elif selected_range %}{% url 'resolutions' %}{% else %}{% url 'archive' %}{% endif %}" class="folder-card back-card">
             <i class="fa-solid fa-arrow-left"></i>
             <span>BACK</span>
         </a>
-        <a href="?range=1900-1999" class="folder-card {% if selected_range == '1900-1999' %}active-folder{% endif %}">
-            <i class="fa-regular fa-folder"></i>
-            <span>1900-1999</span>
-        </a>
-        <a href="?range=2000-2026" class="folder-card {% if selected_range == '2000-2026' %}active-folder{% endif %}">
-            <i class="fa-regular fa-folder"></i>
-            <span>2000-2026</span>
-        </a>
-        <div class="folder-card add-folder-card">
+
+        
+
+        {% if not selected_range and not selected_year %}
+            {% for range in decade_ranges %}
+                <a href="?range={{ range }}" class="folder-card">
+                    <i class="fa-regular fa-folder"></i>
+                    <span>{{ range }}</span>
+                </a>
+            {% endfor %}
+
+        {% elif selected_range and not selected_year %}
+            {% for year in years_in_range %}
+                <a href="?range={{ selected_range }}&year={{ year }}" class="folder-card year-card">
+                    <i class="fa-regular fa-folder-open"></i>
+                    <span>{{ year }}</span>
+                </a>
+            {% endfor %}
+        {% endif %}
+        <div class="folder-card add-folder-card trigger-modal" style="cursor: pointer;">
             <i class="fa-solid fa-plus"></i>
             <span>ADD FOLDER</span>
         </div>
     </div>
 
-    
+    <!-- Document Table: Only shows when a Year is selected or a Search is performed -->
     <div class="archive-view-container">
-     
-        <section class="filter-card">
-                    <div class="filter-group">
-                        <label>DOCUMENT TYPE</label>
-                        <select name="doc_type" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Types</option>
-                            <option value="Ordinance" {% if current_filters.doc_type == 'Ordinance' %}selected{% endif %}>
-                                Ordinance</option>
-                            <option value="Resolution" {% if current_filters.doc_type == 'Resolution' %}selected{% endif %}>
-                                Resolution</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Document Number</label>
-                        <select name="original_document_number" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Document No.</option>
-                            {% for num in available_document_numbers %}
-                            <option value="{{ num }}" {% if current_filters.original_document_number == num %}selected{% endif %}>
-                                {{ num }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>YEAR</label>
-                        <select name="year" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Years</option>
-                            {% for y in available_years %}
-                            <option value="{{ y }}" {% if current_filters.year == y|stringformat:"s" %}selected{% endif %}>
-                                {{ y }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>AUTHOR</label>
-                        <select name="author" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Authors</option>
-                            {% for a in available_authors %}
-                            <option value="{{ a }}" {% if current_filters.author == a %}selected{% endif %}>{{ a }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <a href="{% url 'documents' %}" class="btn-reset"
-                        style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Reset
-                        Filters</a>
-                </section>
-        
-        <div class="year-grid-scroll" style="padding: 0;"> <table class="archive-table" style="width: 100%; border-collapse: collapse;">
+        {% if selected_year or search_query %}
+        <div class="year-grid-scroll" style="padding: 0;"> 
+            <table class="archive-table" style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr>
                         <th style="padding: 15px;">No.</th>
                         <th>ARCHIVE ID</th>
-                        <th>DOCUMENT TITLE</th>
+                        <th>TITLE</th>
                         <th>AUTHOR</th>
-                        <th>REFERENCE NO.</th>
-                        <th>DATE ENACTED</th>
-                        <th>STATUS</th>
+                        <th>REF NO.</th>
+                        <th>DATE FILED</th>
                         <th>ACTIONS</th>
                     </tr>
                 </thead>
@@ -138,38 +105,31 @@
                         <td>{{ forloop.counter }}</td>
                         <td>{{ doc.archive_id }}</td>
                         <td>{{ doc.title }}</td>
-                        <td>{{ doc.sponsor|default:'No Sponsor Listed' }}</td>
+                        <td>{{ doc.sponsor|default:'--' }}</td>
                         <td>{{ doc.original_document_number }}</td> 
                         <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
-                        <td><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></td>
                         <td class="action-icons">
-                            <i class="fa-regular fa-eye trigger-view" title="View Document"
-                                style="cursor: pointer; color: #888;" 
-                                data-number="{{ doc.archive_id }}"
-                                data-title="{{ doc.title }}" 
-                                data-type="{{ doc.doc_type }}"
-                                data-year="{{ doc.year }}" 
-                                data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
-                                data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
-                                data-keywords="{{ doc.keywords|default:'None' }}"
-                                data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
-                                data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
-                                data-status="Archived"
-                                data-visibility="{{ doc.visibility }}"
-                                data-storage="{{ doc.physical_storage|default:'Not specified' }}"
-                                {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}" {% endif %}></i>
-                       </td>
-    </tr>
-    {% empty %}
-    <tr>
-        <td colspan="7" style="text-align: center; padding: 50px; color: #8a7b6a;">
-            No archived documents found for this selection.
-        </td>
-    </tr>
-    {% endfor %}
-</tbody>
-</table>
-</div>
-
+                            <i class="fa-regular fa-eye trigger-view" 
+                               data-number="{{ doc.archive_id }}"
+                               data-title="{{ doc.title }}"
+                               style="cursor: pointer;"></i>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 50px;">No documents found for {{ selected_year }}.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+            <!-- Information state when no year is selected -->
+            <div class="empty-state-info" style="text-align: center; padding: 40px; color: #666;">
+                <i class="fa-solid fa-folder-tree" style="font-size: 3rem; margin-bottom: 15px; opacity: 0.3;"></i>
+                <p>Select a year folder above to view specific resolutions.</p>
+            </div>
+        {% endif %}
     </div>
+</div>
 {% endblock %}

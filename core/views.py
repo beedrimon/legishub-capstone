@@ -312,43 +312,69 @@ def ordinances_view(request):
 
 @login_required
 def resolutions_view(request):
-    selected_range = request.GET.get('range')
-    selected_year = request.GET.get('year')
-    
+    selected_range = request.GET.get('range') # e.g., "1900-1909"
+    selected_year = request.GET.get('year')   # e.g., "1905"
+    search_query = request.GET.get('q', '')
+
     resolutions = ArchivedDocument.objects.filter(doc_type__iexact='Resolution')
 
-    if selected_year:
-        docs = resolutions.filter(year=selected_year).order_by('-date_enacted')
+    # LEVEL 3: Show Document Table for a specific Year
+    if selected_year or search_query:
+        docs = resolutions
+        if selected_year:
+            docs = docs.filter(year=selected_year)
+        if search_query:
+            docs = docs.filter(
+                Q(title__icontains=search_query) | 
+                Q(archive_id__icontains=search_query) |
+                Q(sponsor__icontains=search_query) |
+                Q(keywords__icontains=search_query)
+            )
+
         return render(request, 'archives/resolutions.html', {
-            'archives': docs,
+            'archives': docs.order_by('-date_enacted'), # Matches {% for doc in archives %}
             'selected_year': selected_year,
             'selected_range': selected_range,
+            'search_query': search_query,
             'current_view': 'doc_list'
         })
+        
 
+    # LEVEL 2: Show Year Folders for a specific Decade
     if selected_range:
-        start_year, end_year = map(int, selected_range.split('-'))
-        years_list = resolutions.filter(year__range=(start_year, end_year)) \
-                                .values('year') \
-                                .annotate(doc_count=Count('id')) \
-                                .order_by('year')
+        try:
+            start_year, end_year = map(int, selected_range.split('-'))
+            # Get years in this decade that actually have documents
+            years_in_range = resolutions.filter(year__range=(start_year, end_year)) \
+                                .values_list('year', flat=True) \
+                                .distinct().order_by('year')
+            
+        except ValueError:
+            years_in_range = []
+                                
         
         return render(request, 'archives/resolutions.html', {
-            'years_list': years_list,
+            'years_in_range': years_in_range,
             'selected_range': selected_range,
             'current_view': 'year_folders'
         })
 
+    # LEVEL 1: Default View - Show Decade Folders (1900-1909, 1910-1919, etc.)
+    # Automatically calculate decades based on available data
     year_bounds = resolutions.aggregate(min_y=Min('year'), max_y=Max('year'))
-    decades = []
+    decade_ranges = []
+
     if year_bounds['min_y'] and year_bounds['max_y']:
+        # Round min year down to start of decade (e.g., 1905 -> 1900)
         start_decade = (year_bounds['min_y'] // 10) * 10
+        # Round max year up to end of decade
         end_decade = (year_bounds['max_y'] // 10) * 10
+        
         for d in range(start_decade, end_decade + 10, 10):
-            decades.append(f"{d}-{d+9}")
+            decade_ranges.append(f"{d}-{d+9}")
 
     return render(request, 'archives/resolutions.html', {
-        'decades': decades,
+        'decade_ranges': decade_ranges,
         'current_view': 'decade_folders'
     })
 

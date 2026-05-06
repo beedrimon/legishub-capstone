@@ -131,7 +131,7 @@
                 <tbody>
                     {% for doc in archives %}
                     <tr style="border-bottom: 1px solid #eee;">
-                        <td>{{ forloop.counter }}</td>
+                        <td>{{ forloop.counter0|add:archives.start_index }}</td>
                         <td>{{ doc.archive_id }}</td>
                         <td>{{ doc.title }}</td>
                         <td>{{ doc.sponsor|default:'No Sponsor Listed' }}</td>
@@ -165,6 +165,24 @@
     {% endfor %}
                 </tbody>
             </table>
+            <div class="pagination-container" style="margin-top: 20px; text-align: center;">
+        {% if archives.has_other_pages %}
+            <div class="pagination">
+                {% if archives.has_previous %}
+                    <a href="?page={{ archives.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">&laquo; Previous</a>
+                {% endif %}
+
+                <span class="current-page">
+                    Page {{ archives.number }} of {{ archives.paginator.num_pages }}
+                </span>
+
+                {% if archives.has_next %}
+                    <a href="?page={{ archives.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Next &raquo;</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
         </div>
     </div>
 </div>
