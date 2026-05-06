@@ -292,11 +292,13 @@
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-discard" onclick="closeModal('viewModal')">Close View</button>
+                <button type="button" class="btn-discard close-modal">Close View</button>
+                
                 {% if not is_legislator %}
-                <button class="btn-tan trigger-edit">Edit Details</button>
+                <button type="button" class="btn-tan" id="modal-edit-btn">Edit Details</button>
                 {% endif %}
-                <button class="btn-add" id="view-download-btn">Download Original PDF</button>
+                
+                <button type="button" class="btn-add" id="view-download-btn">Download Original PDF</button>
             </div>
         </div>
     </div>
