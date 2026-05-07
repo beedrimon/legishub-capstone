@@ -531,4 +531,28 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // ==========================================
+    // TOAST NOTIFICATION LOGIC (Auto-dismiss)
+    // ==========================================
+    const toasts = document.querySelectorAll('.toast');
+    toasts.forEach(toast => {
+        // Auto dismiss after 5 seconds
+        const autoDismissTimer = setTimeout(() => {
+            if (toast && !toast.classList.contains('hiding')) {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300); // Wait for transition
+            }
+        }, 5000);
+
+        // Manual dismiss
+        const closeBtn = toast.querySelector('.close-toast');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                clearTimeout(autoDismissTimer); // Stop the auto-dismiss if closed manually
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            });
+        }
+    });
 });

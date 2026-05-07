@@ -19,7 +19,21 @@
         {% if messages %}
         {% for message in messages %}
         <div class="toast {{ message.tags }}">
-            <span>{{ message }}</span>
+            <div class="toast-progress"></div>
+            <div class="toast-icon">
+                {% if message.tags == 'success' %}
+                <i class="fa-solid fa-circle-check"></i>
+                {% elif message.tags == 'error' %}
+                <i class="fa-solid fa-circle-xmark"></i>
+                {% elif message.tags == 'info' %}
+                <i class="fa-solid fa-circle-info"></i>
+                {% else %}
+                <i class="fa-solid fa-bell"></i>
+                {% endif %}
+            </div>
+            <div class="toast-content">
+                <span>{{ message }}</span>
+            </div>
             <button class="close-toast">&times;</button>
         </div>
         {% endfor %}

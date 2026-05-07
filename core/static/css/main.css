@@ -1998,3 +1998,110 @@ body.page-dashboard .right-column {
     margin-bottom: 12px;
   }
 }
+
+/* ============================================================
+   17. TOAST NOTIFICATIONS (BOTTOM RIGHT)
+   ============================================================ */
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toast {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  width: 320px;
+  max-width: calc(100vw - 40px);
+  overflow: hidden;
+  animation: slideInRight 0.4s ease forwards;
+  opacity: 1;
+  transition: opacity 0.3s, transform 0.3s;
+  position: relative; /* For progress bar */
+}
+
+.toast.hiding {
+  opacity: 0;
+  transform: translateX(100%);
+}
+
+.toast-icon {
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  color: white;
+}
+
+.toast.success .toast-icon {
+  background: #2e7d32;
+}
+
+.toast.error .toast-icon {
+  background: #d9534f;
+}
+
+.toast.info .toast-icon {
+  background: #1e88e5;
+}
+
+.toast-content {
+  padding: 10px 16px;
+  flex-grow: 1;
+  font-size: 0.82rem;
+  color: #333;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.close-toast {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #999;
+  cursor: pointer;
+  padding: 0 14px;
+  transition: color 0.2s;
+}
+
+.close-toast:hover {
+  color: #333;
+}
+
+/* Progress bar inside the toast */
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 4px;
+  width: 100%;
+  animation: shrink 5s linear forwards;
+}
+
+.toast.success .toast-progress { background: #1a551e; }
+.toast.error .toast-progress { background: #a02c28; }
+.toast.info .toast-progress { background: #115293; }
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes shrink {
+  from { width: 100%; }
+  to { width: 0%; }
+}
