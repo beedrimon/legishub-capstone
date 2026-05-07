@@ -81,11 +81,15 @@
                         <tr>
                             <td>{{ log.timestamp|date:"h:i a, M d, Y " }}</td>
                             <td>{{ log.user.username }}</td>
-                            <td>{{ log.action }}</td>
+                            <td>
+                                <strong>{{ log.action }}</strong>
+                                {% if log.details %}
+                                    <br><small style="color: #7d6339;"><i>{{ log.details }}</i></small>
+                                {% endif %}
+                            </td>
                             <td>{{ log.document.document_number }}</td>
                         </tr>
                         {% endfor %}
-                   
                     </tbody>
                 </table>
             </section>

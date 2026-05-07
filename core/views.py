@@ -838,8 +838,18 @@ def get_notifications(request):
 
     formatted_notifications = []
     for notif in notifications_to_send:
-        # Format the message for display
-        message = f"User '{notif.user.username}' {notif.action.lower()}d document '{notif.document.title}' ({notif.document.document_number})." if notif.document else f"User '{notif.user.username}' {notif.action.lower()}d an item."
+        
+        # --- NEW: INCLUDE EXACT CHANGES IN NOTIFICATION ---
+        doc_number = notif.document.document_number if notif.document else "a document"
+        
+        if notif.action == 'Upload':
+            message = f"<strong>New Upload:</strong> {doc_number} was uploaded by <strong>{notif.user.username}</strong>."
+        elif notif.action == 'Edit':
+            details_text = f"<br><span style='font-size:0.75rem; color:#888;'>{notif.details}</span>" if getattr(notif, 'details', None) else ""
+            message = f"<strong>Document Updated:</strong> {doc_number} was modified by <strong>{notif.user.username}</strong>.{details_text}"
+        else:
+            message = f"<strong>System Action:</strong> {notif.action} performed by <strong>{notif.user.username}</strong>."
+        # ------------------------------------------------
         
         formatted_notifications.append({
             'id': notif.id,
@@ -869,32 +879,39 @@ def edit_document(request):
             messages.error(request, 'Document not found.')
             return redirect('documents')
         
-        # --- SMART UPDATE LOGIC ---
-        doc.title = request.POST.get('title') or doc.title
-        doc.document_number = request.POST.get('document_number') or doc.document_number
-        doc.doc_type = request.POST.get('doc_type') or doc.doc_type
-        doc.year = request.POST.get('year') or doc.year
+ # --- SMART UPDATE & TRACKING LOGIC ---
+        changes = []
         
-        # Handle dates safely: if the string is empty, keep the old date
-        new_enacted = request.POST.get('date_enacted')
-        if new_enacted:
-            doc.date_enacted = new_enacted
+        def update_field(attr_name, form_val, display_name):
+            old_val = getattr(doc, attr_name)
+            # Only update and log if the form provided a value AND it's different
+            if form_val and str(old_val) != str(form_val):
+                changes.append(f"{display_name} to '{form_val}'")
+                setattr(doc, attr_name, form_val)
 
-        doc.sponsor = request.POST.get('sponsor') or doc.sponsor
-        doc.co_sponsors = request.POST.get('co_sponsors') or doc.co_sponsors
-        doc.keywords = request.POST.get('keywords') or doc.keywords
-        doc.visibility = request.POST.get('visibility') or doc.visibility
-        doc.physical_storage = request.POST.get('physical_storage') or doc.physical_storage
+        update_field('title', request.POST.get('title'), 'Title')
+        update_field('document_number', request.POST.get('document_number'), 'Ref No.')
+        update_field('doc_type', request.POST.get('doc_type'), 'Category')
+        update_field('year', request.POST.get('year'), 'Year')
+        update_field('date_enacted', request.POST.get('date_enacted'), 'Date Enacted')
+        update_field('sponsor', request.POST.get('sponsor'), 'Author')
+        update_field('co_sponsors', request.POST.get('co_sponsors'), 'Co-Sponsors')
+        update_field('keywords', request.POST.get('keywords'), 'Keywords')
+        update_field('visibility', request.POST.get('visibility'), 'Visibility')
+        update_field('physical_storage', request.POST.get('physical_storage'), 'Storage')
         
         old_status = doc.status
         new_status = request.POST.get('status')
-        doc.status = new_status or doc.status
+        if new_status and new_status != old_status:
+            changes.append(f"Status to '{new_status}'")
+            doc.status = new_status
 
-        # --- NEW: SAVE VETO REASON ---
+        # --- SAVE VETO REASON ---
         if doc.status == 'Vetoed':
             veto_note = request.POST.get('veto_reason')
-            if veto_note:
+            if veto_note and veto_note != getattr(doc, 'veto_reason', ''):
                 doc.veto_reason = veto_note
+                changes.append("added a Veto Reason")
         # -----------------------------
 
         if 'file_attachment' in request.FILES:
@@ -943,5 +960,18 @@ def edit_document(request):
                 return redirect(request.META.get('HTTP_REFERER', 'documents'))
         else:
             doc.save()
+
+            # Combine all changes into one string
+            change_summary = "Changed " + ", ".join(changes) if changes else "No fields were changed"
+
+            # --- NEW: CREATE AUDIT LOG FOR EDITS & STATUS CHANGES ---
+            AuditLog.objects.create(
+                user=request.user,
+                action='Edit',
+                document=doc,
+                details=change_summary  # <-- Saves exactly what happened!
+            )
+            # --------------------------------------------------------
+
             messages.success(request, 'Document successfully updated.')
             return redirect(request.META.get('HTTP_REFERER', 'documents'))

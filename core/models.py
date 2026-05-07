@@ -137,6 +137,9 @@ class AuditLog(models.Model):
 
     timestamp = models.DateTimeField(auto_now_add=True)
     action = models.CharField(max_length=50, choices=ACTION_CHOICES)
+
+    # --- NEW FIELD TO STORE EXACT CHANGES ---
+    details = models.TextField(null=True, blank=True)
     
     # --- Missing Foreign Keys added here ---
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
