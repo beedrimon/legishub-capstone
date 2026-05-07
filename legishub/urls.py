@@ -18,12 +18,18 @@ from django.contrib import admin
 from django.urls import path
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views
 from core import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.login_view, name='login'),
+    path('forgot-password/', views.forgot_password_view, name='forgot_password'),
     path('logout/', views.logout_view, name='logout'),
+    
+    # Django built-in views for processing the reset link from the email
+    path('reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='admin_panel/password_reset_confirm.html'), name='password_reset_confirm'),
+    path('reset/done/', auth_views.PasswordResetCompleteView.as_view(template_name='admin_panel/password_reset_complete.html'), name='password_reset_complete'),
 
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('documents/', views.documents_view, name='documents'),

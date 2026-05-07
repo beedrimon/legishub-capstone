@@ -95,13 +95,43 @@ document.addEventListener('DOMContentLoaded', () => {
     // UNIFIED AJAX FETCH LOGIC & INFINITE SCROLL
     // ==========================================
     let currentNotifLimit = 10; // Start by loading 10 items
+    let isInitialNotifLoad = true; // Track first load for skeleton
 
     function fetchNotifications() {
+        const notifBody = document.getElementById('notifModalBody');
+
+        // Inject animated skeleton loader on the first fetch
+        if (isInitialNotifLoad && notifBody) {
+            let skeletonHtml = `
+            <style>
+                @keyframes pulse {
+                    0% { opacity: 0.6; }
+                    50% { opacity: 1; }
+                    100% { opacity: 0.6; }
+                }
+                .skeleton-bg { background: #e0e0e0; animation: pulse 1.5s infinite; border-radius: 4px; }
+            </style>
+            <div class="notif-section-title">Recent Activity</div>`;
+            
+            for (let i = 0; i < 4; i++) {
+                skeletonHtml += `
+                <div class="notif-list-item" style="display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #eee;">
+                    <div class="skeleton-bg" style="width: 35px; height: 35px; border-radius: 50%; margin-right: 15px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton-bg" style="width: 85%; height: 12px; margin-bottom: 8px;"></div>
+                        <div class="skeleton-bg" style="width: 40%; height: 10px;"></div>
+                    </div>
+                </div>`;
+            }
+            notifBody.innerHTML = skeletonHtml;
+        }
+
         return fetch(`/api/notifications/?limit=${currentNotifLimit}`)
             .then(response => response.json())
             .then(data => {
-                const notifBody = document.getElementById('notifModalBody');
                 const notifBadge = document.querySelector('.notif-badge');
+
+                isInitialNotifLoad = false; // Mark initial load as complete
 
                 if (notifBody && data.notifications) {
                     let htmlContent = '';
@@ -515,6 +545,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentNotifLimit += 10;
 
+            // Append skeleton loader to the bottom before fetching the next page
+            const notifBody = document.getElementById('notifModalBody');
+            if (notifBody) {
+                const moreSkeleton = `
+                <div class="notif-list-item" style="display: flex; align-items: center; padding: 12px 15px; border-bottom: 1px solid #eee;">
+                    <div class="skeleton-bg" style="width: 35px; height: 35px; border-radius: 50%; background: #e0e0e0; animation: pulse 1.5s infinite; margin-right: 15px;"></div>
+                    <div style="flex: 1;">
+                        <div class="skeleton-bg" style="width: 85%; height: 12px; background: #e0e0e0; animation: pulse 1.5s infinite; margin-bottom: 8px; border-radius: 4px;"></div>
+                        <div class="skeleton-bg" style="width: 40%; height: 10px; background: #e0e0e0; animation: pulse 1.5s infinite; border-radius: 4px;"></div>
+                    </div>
+                </div>`;
+                notifBody.insertAdjacentHTML('beforeend', moreSkeleton.repeat(2));
+                notifBody.scrollTo({ top: notifBody.scrollHeight, behavior: 'smooth' });
+            }
+
             // Use .then() to wait exactly until the fetch is 100% finished!
             fetchNotifications().then(() => {
                 this.innerHTML = originalText;
@@ -554,5 +599,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => toast.remove(), 300);
             });
         }
+    });
+
+    // ==========================================
+    // PAGE TRANSITION SKELETON LOADER
+    // ==========================================
+    const navLinks = document.querySelectorAll('.nav-links a:not(.logout-link a)');
+    
+    // Create the overlay once and append to body
+    const skeletonOverlay = document.createElement('div');
+    skeletonOverlay.className = 'page-skeleton-overlay';
+    skeletonOverlay.innerHTML = `
+        <div class="skel-header"></div>
+        <div class="skel-grid">
+            <div class="skel-card"></div>
+            <div class="skel-card"></div>
+            <div class="skel-card"></div>
+            <div class="skel-card"></div>
+        </div>
+        <div class="skel-table"></div>
+    `;
+    document.body.appendChild(skeletonOverlay);
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            if (this.target !== '_blank' && !this.getAttribute('href').startsWith('#') && !this.classList.contains('active')) {
+                skeletonOverlay.classList.add('show');
+            }
+        });
     });
 });

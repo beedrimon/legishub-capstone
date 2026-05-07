@@ -139,7 +139,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'jayveemoral0319@gmail.com' # Your actual Gmail address
 EMAIL_HOST_PASSWORD = 'fcrryepxusvjnwtd' # The 16-character App Password (no spaces)
-DEFAULT_FROM_EMAIL = 'Marikina LegisHub <your.email@gmail.com>'
+DEFAULT_FROM_EMAIL = 'Marikina LegisHub <jakehafalla1@gmail.com>'
 
 # ==========================================
 # LOGIN REDIRECT URL

@@ -15,6 +15,12 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Case, IntegerField, Value, When
 from django.db import transaction, IntegrityError
 from django.db.models import Min, Max, Count
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.core.mail import send_mail
+from django.conf import settings
+from django.urls import reverse
 import math
 
 
@@ -76,6 +82,36 @@ def logout_view(request):
     
     # Send them back to the login page (Remember: we named this 'login' in urls.py!)
     return redirect('login')
+
+# ==========================================
+# 2.5 FORGOT PASSWORD VIEW
+# ==========================================
+def forgot_password_view(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        if email:
+            # Look up any users with this exact email
+            users = User.objects.filter(email__iexact=email)
+            for user in users:
+                # Generate a secure one-time-use token and user ID
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                token = default_token_generator.make_token(user)
+                
+                # Build the absolute URL for the reset link that goes in the email
+                reset_link = request.build_absolute_uri(
+                    reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
+                )
+                
+                # Send the actual email through Gmail SMTP
+                subject = "Password Reset Request - Marikina LegisHub"
+                message = f"Hello {user.first_name or user.username},\n\nYou recently requested to reset your password for your Marikina LegisHub account.\n\nPlease click the link below to set a new password:\n{reset_link}\n\nIf you did not request this, please ignore this email."
+                
+                send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
+
+            messages.success(request, f"If an account exists for {email}, a password reset link has been sent.")
+            return redirect('login')
+            
+    return render(request, 'admin_panel/forgot_password.html')
 
 # ==========================================
 # 3. DASHBOARD VIEW
