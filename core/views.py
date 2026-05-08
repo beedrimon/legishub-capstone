@@ -878,14 +878,16 @@ def get_notifications(request):
         # --- NEW: INCLUDE EXACT CHANGES IN NOTIFICATION ---
         doc_number = notif.document.document_number if notif.document else "a document"
         
+        # SAFEGUARD: Provide a fallback name if the user account was deleted
+        actor_name = notif.user.username if notif.user else "Unknown/Deleted User"
+        
         if notif.action == 'Upload':
-            message = f"<strong>New Upload:</strong> {doc_number} was uploaded by <strong>{notif.user.username}</strong>."
+            message = f"<strong>New Upload:</strong> {doc_number} was uploaded by <strong>{actor_name}</strong>."
         elif notif.action == 'Edit':
             details_text = f"<br><span style='font-size:0.75rem; color:#888;'>{notif.details}</span>" if getattr(notif, 'details', None) else ""
-            message = f"<strong>Document Updated:</strong> {doc_number} was modified by <strong>{notif.user.username}</strong>.{details_text}"
+            message = f"<strong>Document Updated:</strong> {doc_number} was modified by <strong>{actor_name}</strong>.{details_text}"
         else:
-            message = f"<strong>System Action:</strong> {notif.action} performed by <strong>{notif.user.username}</strong>."
-        # ------------------------------------------------
+            message = f"<strong>System Action:</strong> {notif.action} document <strong>\"{doc_number}\"</strong>."
         
         formatted_notifications.append({
             'id': notif.id,
