@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'core',
+    'django_q',
 ]
 
 MIDDLEWARE = [
@@ -146,3 +147,19 @@ DEFAULT_FROM_EMAIL = 'Marikina LegisHub <jakehafalla1@gmail.com>'
 # ==========================================
 # Tells @login_required to redirect here instead of the default /accounts/login/
 LOGIN_URL = 'login'
+
+# ==========================================
+# DJANGO Q2 BACKGROUND TASK SETTINGS
+# ==========================================
+Q_CLUSTER = {
+    'name': 'legishub_cluster',
+    'workers': 2,           # How many tasks can run at the exact same time
+    'recycle': 500,         # Restarts workers to prevent memory leaks
+    'timeout': 60,          # Max seconds a task is allowed to run
+    'compress': True,       # Compresses database logs to save space
+    'save_limit': 250,      # Keeps the last 250 task logs in the database
+    'queue_limit': 500,
+    'cpu_affinity': 1,
+    'label': 'Django Q2',   # Name it will show in the Django Admin
+    'orm': 'default'        # <--- CRITICAL: Tells it to use your PostgreSQL DB!
+}
