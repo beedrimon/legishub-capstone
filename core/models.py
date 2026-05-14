@@ -169,3 +169,31 @@ def enforce_unique_credentials(sender, instance, **kwargs):
     if instance.username:
         if User.objects.filter(username__iexact=instance.username).exclude(id=instance.id).exists():
             raise ValidationError(f"Account creation failed: The username '{instance.username}' is already taken. Please choose another.")
+        
+# ==========================================
+# VETOED DOCUMENT MODEL
+# ==========================================
+class VetoedDocument(models.Model):
+    # Mirrors the main table so we don't lose any data
+    document_number = models.CharField(max_length=100, unique=True)
+    title = models.CharField(max_length=255)
+    doc_type = models.CharField(max_length=50, choices=LegislativeDocument.DOCUMENT_TYPES)
+    year = models.IntegerField()
+    date_enacted = models.DateField(null=True, blank=True)
+    sponsor = models.CharField(max_length=255, null=True, blank=True)
+    co_sponsors = models.CharField(max_length=500, null=True, blank=True)
+    visibility = models.CharField(max_length=50, choices=LegislativeDocument.VISIBILITY_CHOICES, default='Public Access')
+    keywords = models.CharField(max_length=255, null=True, blank=True)
+    physical_storage = models.CharField(max_length=255, null=True, blank=True)
+    veto_reason = models.TextField(blank=True, null=True)
+    
+    # Time tracking
+    date_filed = models.DateField(null=True, blank=True) # Keeps the original date it was filed
+    date_vetoed = models.DateField(auto_now_add=True)    # Records the exact day it was vetoed
+    
+    # Store the file in a separate 'vetoed' folder to keep things organized
+    file_attachment = models.FileField(upload_to='vetoed/', null=True, blank=True)
+    vetoed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='vetoed_docs')
+
+    def __str__(self):
+        return f"VETOED - {self.document_number}: {self.title}"

@@ -299,6 +299,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const docVisibility = this.getAttribute('data-visibility');
             const docStorage = this.getAttribute('data-storage');
             const fileUrl = this.getAttribute('data-file');
+            const vetoReason = this.getAttribute('data-vetoreason');
 
             // 2. Inject the data into the modal's HTML
             document.getElementById('view-number').innerText = docNumber;
@@ -389,6 +390,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('edit-status').value = docStatus || 'Pending';
             document.getElementById('edit-visibility').value = docVisibility || 'Public Access';
             document.getElementById('edit-physical-storage').value = docStorage || '';
+
+            // --- ADDED THIS BLOCK ---
+            if (document.getElementById('edit-veto-reason')) {
+                document.getElementById('edit-veto-reason').value = vetoReason || '';
+            }
+            // ------------------------
 
             // 3. Update the File Text UI
             const fileText = document.getElementById('edit-file-text');
