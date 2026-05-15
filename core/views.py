@@ -1367,7 +1367,17 @@ def edit_document(request):
                         except FileNotFoundError:
                             pass # Missing local file, continue archiving without it
                     
+                    # Store the doc number before deleting it so we can log it!
+                    deleted_doc_number = doc.document_number 
                     doc.delete() # Remove original document after successful archive
+
+                    # --- NEW: LOG THE ARCHIVE ACTION ---
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action='Edit',
+                        details=f"Changed Status to 'Archived' and transferred '{deleted_doc_number}' to Archives."
+                    )
+
                     messages.success(request, f'Document successfully moved to Archives.')
                     return redirect('archive')
                     
@@ -1408,8 +1418,20 @@ def edit_document(request):
                             )
                         except FileNotFoundError:
                             pass 
+
+                    # 1. STORE THE NUMBER BEFORE DELETING!
+                    deleted_doc_number = doc.document_number 
                     
-                    doc.delete() # Deletes it from the main Document page forever
+                    # 2. DELETE FROM MAIN TABLE
+                    doc.delete() 
+
+                    # 3. CREATE THE AUDIT LOG!
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action='Edit',
+                        details=f"Transferred document '{deleted_doc_number}' to Vetoed Records."
+                    )
+
                     messages.success(request, f'Document successfully moved to Vetoed Records.')
                     return redirect('vetoed')
                     
