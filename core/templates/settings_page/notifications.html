@@ -318,4 +318,21 @@ if (testBtn) {
     });
 }
 </script>
+
+<!-- IMPORTANT: Override the modals block to prevent base modals from loading -->
+{% block modals %}
+<!-- Modals are disabled on settings pages -->
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Additional safety: hide any modals that might still appear
+document.addEventListener('DOMContentLoaded', function() {
+    const modals = document.querySelectorAll('.modal-overlay');
+    modals.forEach(modal => {
+        modal.style.display = 'none';
+    });
+});
+</script>
+{% endblock %}
 {% endblock %}

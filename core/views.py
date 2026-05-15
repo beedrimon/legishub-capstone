@@ -989,9 +989,9 @@ def security_policy_view(request):
     
     # Get purge history
     purge_history = request.session.get('purge_history', [
-        {'date': 'May 1, 2026 02:00:00 AM', 'records_deleted': 452, 'triggered_by': 'System (Auto)', 'status': 'success'},
-        {'date': 'Apr 24, 2026 02:00:00 AM', 'records_deleted': 389, 'triggered_by': 'System (Auto)', 'status': 'success'},
-        {'date': 'Apr 17, 2026 02:00:00 AM', 'records_deleted': 421, 'triggered_by': 'System (Auto)', 'status': 'success'},
+        # {'date': 'May 1, 2026 02:00:00 AM', 'records_deleted': 452, 'triggered_by': 'System (Auto)', 'status': 'success'},
+        # {'date': 'Apr 24, 2026 02:00:00 AM', 'records_deleted': 389, 'triggered_by': 'System (Auto)', 'status': 'success'},
+        # {'date': 'Apr 17, 2026 02:00:00 AM', 'records_deleted': 421, 'triggered_by': 'System (Auto)', 'status': 'success'},
     ])
     
     context = {
