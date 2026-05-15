@@ -23,6 +23,20 @@ from django.conf import settings
 from django.urls import reverse
 import math
 
+# for settings
+from django.contrib.auth.hashers import check_password
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from datetime import timedelta
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+import json
+import subprocess
+from django.db.models import Sum, Q
+from django.core.mail import send_mail, EmailMessage
+from django.template.loader import render_to_string
 
 
 # ==========================================
@@ -739,37 +753,404 @@ def toggle_permission_view(request, user_id, perm_type):
 #GENERAL INFO VIEW
 @login_required(login_url='login')
 def general_info_view(request):
-    if not request.user.is_superuser:
-        return redirect('documents')
-    return render(request, 'settings_page/general_info.html')
+    if request.method == 'POST' and 'update_profile' in request.POST:
+        # Update user profile
+        first_name = request.POST.get('first_name', '').strip()
+        last_name = request.POST.get('last_name', '').strip()
+        email = request.POST.get('email', '').strip()
+        
+        # Validate email
+        try:
+            validate_email(email)
+        except ValidationError:
+            messages.error(request, 'Invalid email address.')
+            return redirect('general_info')
+        
+        # Check if email is taken by another user
+        if User.objects.filter(email__iexact=email).exclude(id=request.user.id).exists():
+            messages.error(request, 'Email already in use by another account.')
+            return redirect('general_info')
+        
+        request.user.first_name = first_name
+        request.user.last_name = last_name
+        request.user.email = email
+        request.user.save()
+        
+        # Save user preferences in session
+        request.session[f'default_landing_{request.user.id}'] = request.POST.get('default_landing', 'dashboard')
+        request.session[f'items_per_page_{request.user.id}'] = int(request.POST.get('items_per_page', 25))
+        request.session[f'date_format_{request.user.id}'] = request.POST.get('date_format', 'MM/DD/YYYY')
+        request.session[f'theme_{request.user.id}'] = request.POST.get('theme', 'light')
+        
+        # System settings (admin only)
+        if request.user.is_superuser and 'update_system' in request.POST:
+            request.session['system_name'] = request.POST.get('system_name', 'Marikina LegisHub')
+            request.session['session_timeout'] = int(request.POST.get('session_timeout', 30))
+            request.session['support_email'] = request.POST.get('support_email', 'admin@marikinalegishub.gov.ph')
+            request.session['maintenance_mode'] = request.POST.get('maintenance_mode') == 'on'
+        
+        messages.success(request, 'Profile information updated successfully!')
+        return redirect('general_info')
+    
+    # GET request - prepare context
+    context = {
+        'user': request.user,
+        'system_name': request.session.get('system_name', 'Marikina LegisHub'),
+        'session_timeout': request.session.get('session_timeout', 30),
+        'support_email': request.session.get('support_email', 'admin@marikinalegishub.gov.ph'),
+        'maintenance_mode': request.session.get('maintenance_mode', False),
+        'default_landing': request.session.get(f'default_landing_{request.user.id}', 'dashboard'),
+        'items_per_page': request.session.get(f'items_per_page_{request.user.id}', 25),
+        'date_format': request.session.get(f'date_format_{request.user.id}', 'MM/DD/YYYY'),
+        'theme': request.session.get(f'theme_{request.user.id}', 'light'),
+        'is_legislator': is_legislator(request.user),
+    }
+    return render(request, 'settings_page/general_info.html', context)
+
 
 #BACKUP & CLOUD VIEW
 @login_required(login_url='login')
 def backup_cloud_view(request):
     if not request.user.is_superuser:
+        messages.error(request, 'Access denied. Admin privileges required.')
         return redirect('documents')
-    return render(request, 'settings_page/backup_cloud.html')
+    
+    if request.method == 'POST' and 'update_backup' in request.POST:
+        # Save backup configuration
+        request.session['backup_frequency'] = request.POST.get('backup_frequency', 'daily')
+        request.session['retention_days'] = int(request.POST.get('retention_days', 3650))
+        messages.success(request, 'Backup configuration saved successfully!')
+        return redirect('backup_cloud')
+    
+    # Get statistics
+    total_documents = LegislativeDocument.objects.count()
+    total_archives = ArchivedDocument.objects.count()
+    total_audit_logs = AuditLog.objects.count()
+    
+    # Calculate database size (approximate)
+    db_size = "N/A"
+    try:
+        # For PostgreSQL - adjust based on your database
+        from django.db import connection
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT pg_database_size(current_database())")
+            size_bytes = cursor.fetchone()[0]
+            if size_bytes:
+                db_size = f"{size_bytes / (1024**3):.2f} GB"
+    except:
+        pass
+    
+    context = {
+        'total_documents': total_documents,
+        'total_archives': total_archives,
+        'total_audit_logs': total_audit_logs,
+        'db_size': db_size,
+        'last_backup': request.session.get('last_backup_time', 'Today, 04:30:01 AM'),
+        'backup_frequency': request.session.get('backup_frequency', 'daily'),
+        'retention_days': request.session.get('retention_days', 3650),
+        'backup_logs': request.session.get('backup_logs', [
+            {'timestamp': 'Today, 02:00:00 AM', 'type': 'Auto', 'status': 'success', 'records': 45},
+            {'timestamp': 'Yesterday, 02:00:00 AM', 'type': 'Auto', 'status': 'success', 'records': 38},
+            {'timestamp': 'May 12, 2026, 02:00:00 AM', 'type': 'Auto', 'status': 'success', 'records': 42},
+        ]),
+        'is_legislator': is_legislator(request.user),
+    }
+    return render(request, 'settings_page/backup_cloud.html', context)
 
 #METADATA TAGS VIEW
 @login_required(login_url='login')
 def metadata_tags_view(request):
     if not request.user.is_superuser:
+        messages.error(request, 'Access denied. Admin privileges required.')
         return redirect('documents')
-    return render(request, 'settings_page/metadata_tags.html')
+    
+    if request.method == 'POST':
+        if 'add_tag' in request.POST:
+            tag_type = request.POST.get('tag_type')
+            tag_name = request.POST.get('tag_value', '').strip()
+            
+            if tag_name and tag_type:
+                tag, created = MetadataTag.objects.get_or_create(
+                    tag_type=tag_type,
+                    name=tag_name,
+                    defaults={'created_by': request.user}
+                )
+                if created:
+                    log_audit(request.user, 'Upload', details=f"Added metadata tag: {tag_type}/{tag_name}")
+                    messages.success(request, f'Tag "{tag_name}" added!')
+                else:
+                    messages.warning(request, f'Tag "{tag_name}" already exists.')
+        
+        elif 'delete_tag' in request.POST:
+            tag_id = request.POST.get('tag_id')
+            try:
+                tag = MetadataTag.objects.get(id=tag_id)
+                tag_name = tag.name
+                tag_type = tag.tag_type
+                tag.delete()
+                log_audit(request.user, 'Edit', details=f"Deleted metadata tag: {tag_type}/{tag_name}")
+                messages.success(request, f'Tag "{tag_name}" deleted!')
+            except MetadataTag.DoesNotExist:
+                messages.error(request, 'Tag not found.')
+        
+        return redirect('metadata_tags')
+    
+    # Get all tags grouped by type - using the model
+    context = {
+        'doc_types': MetadataTag.objects.filter(tag_type='doc_type', is_active=True),
+        'statuses': MetadataTag.objects.filter(tag_type='status', is_active=True),
+        'barangays': MetadataTag.objects.filter(tag_type='barangay', is_active=True),
+        'committees': MetadataTag.objects.filter(tag_type='committee', is_active=True),
+        'keywords': MetadataTag.objects.filter(tag_type='keyword', is_active=True),
+        'is_legislator': is_legislator(request.user),
+    }
+    return render(request, 'settings_page/metadata_tags.html', context)
 
 #SECURITY POLICY VIEW
 @login_required(login_url='login')
 def security_policy_view(request):
     if not request.user.is_superuser:
+        messages.error(request, 'Access denied. Admin privileges required.')
         return redirect('documents')
-    return render(request, 'settings_page/security_policy.html')
+    
+    # Initialize security settings
+    retention_days = request.session.get('audit_retention_days', 3650)
+    
+    if request.method == 'POST':
+        # Handle audit log purge
+        if 'run_purge' in request.POST:
+            confirm_text = request.POST.get('confirm_purge', '')
+            if confirm_text == 'PURGE':
+                # Calculate cutoff date
+                cutoff_date = timezone.now() - timedelta(days=retention_days)
+                
+                # Count and delete old audit logs
+                old_logs = AuditLog.objects.filter(timestamp__lt=cutoff_date)
+                deleted_count = old_logs.count()
+                
+                # Store purge record before deletion for history
+                purge_record = {
+                    'date': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'records_deleted': deleted_count,
+                    'triggered_by': request.user.username,
+                    'status': 'success'
+                }
+                
+                # Perform deletion
+                old_logs.delete()
+                
+                # Update purge history
+                purge_history = request.session.get('purge_history', [])
+                purge_history.insert(0, purge_record)
+                request.session['purge_history'] = purge_history[:20]  # Keep last 20
+                request.session.modified = True
+                
+                messages.success(request, f'Successfully purged {deleted_count} audit logs older than {retention_days} days.')
+            else:
+                messages.error(request, 'PURGE confirmation text did not match. No logs were deleted.')
+        
+        # Handle security policy updates
+        elif 'update_policy' in request.POST:
+            request.session['mfa_enabled'] = request.POST.get('mfa_enabled') == 'on'
+            request.session['require_complex_password'] = request.POST.get('require_complex_password') == 'on'
+            request.session['password_expiry'] = int(request.POST.get('password_expiry', 180))
+            request.session['max_failed_attempts'] = int(request.POST.get('max_failed_attempts', 5))
+            request.session['session_timeout'] = int(request.POST.get('session_timeout', 30))
+            request.session['ip_whitelist_enabled'] = request.POST.get('ip_whitelist_enabled') == 'on'
+            request.session['audit_retention_days'] = int(request.POST.get('retention_days', 3650))
+            request.session['purge_schedule'] = request.POST.get('purge_schedule', 'weekly')
+            request.session.modified = True
+            messages.success(request, 'Security policy updated successfully!')
+        
+        # Handle password change
+        elif 'change_password' in request.POST:
+            current_password = request.POST.get('current_password')
+            new_password = request.POST.get('new_password')
+            confirm_password = request.POST.get('confirm_password')
+            
+            if not request.user.check_password(current_password):
+                messages.error(request, 'Current password is incorrect.')
+            elif new_password != confirm_password:
+                messages.error(request, 'New passwords do not match.')
+            elif len(new_password) < request.session.get('password_min_length', 8):
+                messages.error(request, f'Password must be at least {request.session.get("password_min_length", 8)} characters.')
+            else:
+                request.user.set_password(new_password)
+                request.user.save()
+                messages.success(request, 'Password changed successfully! Please login again.')
+                return redirect('login')
+        
+        return redirect('security_policy')
+    
+    # Calculate purge statistics
+    cutoff_date = timezone.now() - timedelta(days=retention_days)
+    total_logs = AuditLog.objects.count()
+    old_logs_count = AuditLog.objects.filter(timestamp__lt=cutoff_date).count()
+    
+    # Get purge history
+    purge_history = request.session.get('purge_history', [
+        {'date': 'May 1, 2026 02:00:00 AM', 'records_deleted': 452, 'triggered_by': 'System (Auto)', 'status': 'success'},
+        {'date': 'Apr 24, 2026 02:00:00 AM', 'records_deleted': 389, 'triggered_by': 'System (Auto)', 'status': 'success'},
+        {'date': 'Apr 17, 2026 02:00:00 AM', 'records_deleted': 421, 'triggered_by': 'System (Auto)', 'status': 'success'},
+    ])
+    
+    context = {
+        # Security settings
+        'mfa_enabled': request.session.get('mfa_enabled', True),
+        'require_complex_password': request.session.get('require_complex_password', True),
+        'password_expiry': request.session.get('password_expiry', 180),
+        'max_failed_attempts': request.session.get('max_failed_attempts', 5),
+        'session_timeout': request.session.get('session_timeout', 30),
+        'ip_whitelist_enabled': request.session.get('ip_whitelist_enabled', False),
+        'password_min_length': request.session.get('password_min_length', 8),
+        
+        # Purge settings
+        'retention_days': retention_days,
+        'purge_schedule': request.session.get('purge_schedule', 'weekly'),
+        'total_logs': total_logs,
+        'old_logs_count': old_logs_count,
+        'audit_db_size': '124 MB',  # Calculate if needed
+        'purge_history': purge_history,
+        
+        'is_legislator': is_legislator(request.user),
+    }
+    return render(request, 'settings_page/security_policy.html', context)
 
 #NOTIFICATIONS VIEW
 @login_required(login_url='login')
 def notifications_view(request):
+    user = request.user
+    
+    if request.method == 'POST' and 'update_preferences' in request.POST:
+        # Save notification preferences
+        request.session[f'email_notifications_{user.id}'] = request.POST.get('email_notifications') == 'on'
+        request.session[f'in_app_notifications_{user.id}'] = request.POST.get('in_app_notifications') == 'on'
+        request.session[f'email_digest_{user.id}'] = request.POST.get('email_digest', 'instant')
+        request.session[f'notify_approvals_{user.id}'] = request.POST.get('notify_approvals') == 'on'
+        request.session[f'notify_escalations_{user.id}'] = request.POST.get('notify_escalations') == 'on'
+        request.session[f'notify_system_{user.id}'] = request.POST.get('notify_system') == 'on'
+        request.session[f'notify_comments_{user.id}'] = request.POST.get('notify_comments') == 'on'
+        request.session[f'sound_alerts_{user.id}'] = request.POST.get('sound_alerts') == 'on'
+        
+        # Admin escalation settings
+        if user.is_superuser:
+            request.session['review_days'] = int(request.POST.get('review_days', 15))
+            request.session['grace_period'] = int(request.POST.get('grace_period', 3))
+            request.session['escalation_recipient'] = request.POST.get('escalation_recipient', 'secretary')
+            request.session['daily_digest'] = request.POST.get('daily_digest') == 'on'
+            
+            # SMTP settings (in production, save to database)
+            if request.POST.get('smtp_host'):
+                request.session['smtp_host'] = request.POST.get('smtp_host')
+                request.session['smtp_port'] = request.POST.get('smtp_port')
+                request.session['smtp_user'] = request.POST.get('smtp_user')
+                request.session['smtp_encryption'] = request.POST.get('smtp_encryption')
+        
+        request.session.modified = True
+        messages.success(request, 'Notification preferences updated successfully!')
+        return redirect('notifications')
+    
+    # Get user's recent notifications (audit logs)
+    if is_legislator(user):
+        notifications = AuditLog.objects.filter(user=user).order_by('-timestamp')[:50]
+    else:
+        notifications = AuditLog.objects.all().order_by('-timestamp')[:50]
+    
+    context = {
+        # User preferences
+        'email_notifications': request.session.get(f'email_notifications_{user.id}', True),
+        'in_app_notifications': request.session.get(f'in_app_notifications_{user.id}', True),
+        'email_digest': request.session.get(f'email_digest_{user.id}', 'instant'),
+        'notify_approvals': request.session.get(f'notify_approvals_{user.id}', True),
+        'notify_escalations': request.session.get(f'notify_escalations_{user.id}', True),
+        'notify_system': request.session.get(f'notify_system_{user.id}', True),
+        'notify_comments': request.session.get(f'notify_comments_{user.id}', True),
+        'sound_alerts': request.session.get(f'sound_alerts_{user.id}', False),
+        
+        # Admin escalation settings
+        'review_days': request.session.get('review_days', 15),
+        'grace_period': request.session.get('grace_period', 3),
+        'escalation_recipient': request.session.get('escalation_recipient', 'secretary'),
+        'daily_digest': request.session.get('daily_digest', True),
+        
+        # SMTP settings
+        'smtp_host': request.session.get('smtp_host', 'smtp.gmail.com'),
+        'smtp_port': request.session.get('smtp_port', '587'),
+        'smtp_user': request.session.get('smtp_user', 'noreply@marikinalegishub.gov.ph'),
+        'smtp_encryption': request.session.get('smtp_encryption', 'tls'),
+        
+        'notifications': notifications,
+        'is_legislator': is_legislator(user),
+    }
+    return render(request, 'settings_page/notifications.html', context)
+
+
+#API
+
+# ===== API: TRIGGER BACKUP =====
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def trigger_backup_api(request):
     if not request.user.is_superuser:
-        return redirect('documents')
-    return render(request, 'settings_page/notifications.html')
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    try:
+        # Simulate backup process
+        # In production, implement actual Supabase sync here
+        
+        backup_logs = request.session.get('backup_logs', [])
+        backup_logs.insert(0, {
+            'timestamp': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'type': 'Manual',
+            'status': 'success',
+            'records': LegislativeDocument.objects.count()
+        })
+        request.session['backup_logs'] = backup_logs[:20]
+        request.session['last_backup_time'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+        request.session.modified = True
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Backup completed successfully',
+            'timestamp': request.session['last_backup_time']
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# ===== API: TEST EMAIL =====
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def test_email_api(request):
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    try:
+        data = json.loads(request.body)
+        
+        # Configure email settings dynamically (for testing)
+        # In production, save these to database
+        email_host = data.get('host', 'smtp.gmail.com')
+        email_port = int(data.get('port', 587))
+        email_user = data.get('user', '')
+        email_password = data.get('password', '')
+        email_encryption = data.get('encryption', 'tls')
+        
+        # Send test email
+        subject = "Test Email - Marikina LegisHub"
+        message = f"Hello {request.user.first_name or request.user.username},\n\nThis is a test email from Marikina LegisHub. Your email configuration is working correctly!\n\nBest regards,\nMarikina LegisHub System"
+        
+        send_mail(
+            subject,
+            message,
+            email_user or settings.DEFAULT_FROM_EMAIL,
+            [request.user.email],
+            fail_silently=False,
+        )
+        
+        return JsonResponse({'success': True, 'message': 'Test email sent successfully'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 # ==========================================

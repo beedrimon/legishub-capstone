@@ -1,5 +1,9 @@
+/* ============================================
+   SETTINGS PAGE STYLES - Marikina LegisHub
+   Version: 2.0 - No inline styles, all in CSS
+   ============================================ */
 
-/* --- 1. LAYOUT --- */
+/* --- 1. LAYOUT & CONTAINERS --- */
 .settings-container {
     display: grid;
     grid-template-columns: 280px 1fr;
@@ -7,14 +11,14 @@
     align-items: start;
 }
 
-/* --- 2. NAVIGATION (Internal Sidebar) --- */
+/* --- 2. NAVIGATION SIDEBAR --- */
 .settings-nav {
     background: var(--card-bg);
     border-radius: 12px;
     overflow: hidden;
     box-shadow: var(--shadow-md);
-    position: sticky; /* Keep navigation visible on long pages */
-    top: 100px; 
+    position: sticky;
+    top: 100px;
 }
 
 .settings-nav-item {
@@ -42,9 +46,8 @@
     color: var(--sidebar-bg);
 }
 
-/* This class is applied via Django: {% if request.resolver_match.url_name == '...' %}active{% endif %} */
 .settings-nav-item.active {
-    background-color: #fdfaf5; /* Light tan highlight */
+    background-color: #fdfaf5;
     color: var(--sidebar-bg);
     border-left-color: var(--sidebar-bg);
 }
@@ -53,7 +56,7 @@
     color: var(--sidebar-bg);
 }
 
-/* --- 3. CONTENT CARD --- */
+/* --- 3. MAIN CONTENT CARD --- */
 .settings-card {
     background: var(--card-bg);
     padding: 32px;
@@ -71,8 +74,17 @@
     gap: 10px;
 }
 
-/* --- 4. FORMS --- */
-.config-group { margin-bottom: 24px; }
+/* Section Divider */
+.section-divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 30px 0;
+}
+
+/* --- 4. FORM CONTROLS --- */
+.config-group {
+    margin-bottom: 24px;
+}
 
 .config-group label {
     display: block;
@@ -101,7 +113,62 @@
     background-color: #fff;
 }
 
-/* --- 5. SECURITY & TOGGLES --- */
+.config-control:disabled,
+.config-control[readonly] {
+    background-color: #f5f5f5;
+    cursor: not-allowed;
+}
+
+.italic-hint {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--text-light);
+    margin-top: 5px;
+    font-style: italic;
+}
+
+/* Two Column Grid Layout */
+.two-column-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+/* Profile Layout */
+.profile-layout {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+.profile-fields {
+    flex: 2;
+}
+
+.profile-avatar {
+    flex: 1;
+    text-align: center;
+}
+
+.avatar-container {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto;
+    border-radius: 50%;
+}
+
+.avatar-icon {
+    font-size: 60px;
+    color: var(--sidebar-bg);
+}
+
+.avatar-change-text {
+    font-size: 0.75rem;
+    margin-top: 8px;
+}
+
+/* --- 5. SECURITY ITEMS (Toggle Switches) --- */
 .security-item {
     display: flex;
     justify-content: space-between;
@@ -110,31 +177,92 @@
     border-bottom: 1px solid var(--border-color);
 }
 
-.security-text h5 { margin: 0; font-size: 1rem; color: var(--text-main); }
-.security-text p { font-size: 0.85rem; color: var(--text-light); margin-top: 5px; max-width: 500px; }
+.security-text {
+    flex: 1;
+}
 
-.switch { position: relative; display: inline-block; width: 48px; height: 24px; }
-.switch input { opacity: 0; width: 0; height: 0; }
+.security-text h5 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-main);
+}
+
+.security-text p {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-top: 5px;
+    max-width: 500px;
+}
+
+/* Toggle Switch */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 52px;
+    height: 26px;
+    flex-shrink: 0;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
 .slider {
-    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #E0E0E0; transition: .4s; border-radius: 34px;
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #E0E0E0;
+    transition: 0.3s;
+    border-radius: 34px;
 }
+
 .slider:before {
-    position: absolute; content: ""; height: 18px; width: 18px;
-    left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%;
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
 }
 
-/* Updated to match your theme brown instead of green */
-input:checked + .slider { background-color: var(--sidebar-bg); }
-input:checked + .slider:before { transform: translateX(24px); }
+input:checked + .slider {
+    background-color: var(--sidebar-bg);
+}
 
-/* --- 6. METADATA TAGS --- */
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+/* Timeout Dropdown */
+.timeout-dropdown {
+    padding: 10px 16px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    background-color: #FAFAFA;
+    font-family: inherit;
+    font-size: 0.9rem;
+    min-width: 140px;
+    flex-shrink: 0;
+}
+
+/* --- 6. METADATA TAGS (Tag Cloud) --- */
 .tag-cloud {
     background-color: #FDF9F3;
     border: 1.5px dashed var(--sidebar-active);
     border-radius: 12px;
-    padding: 25px;
-    display: flex; flex-wrap: wrap; gap: 12px;
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 25px;
 }
 
 .tag-item {
@@ -142,15 +270,802 @@ input:checked + .slider:before { transform: translateX(24px); }
     border: 1.5px solid var(--border-color);
     border-radius: 50px;
     padding: 8px 16px;
-    display: flex; align-items: center; gap: 8px;
-    font-size: 0.88rem; font-weight: 600; color: var(--sidebar-bg);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--sidebar-bg);
 }
 
-/* --- 7. FOOTER --- */
+.tag-item i {
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.tag-item i:hover {
+    opacity: 1;
+}
+
+.tag-item input {
+    font-size: 0.85rem;
+    padding: 4px 0;
+    border: none;
+    background: transparent;
+    outline: none;
+    width: 100px;
+}
+
+.tag-add-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--sidebar-bg);
+}
+
+/* Add Tag Item (Dashed Border) */
+.tag-item-add {
+    background: transparent;
+    border: 2px dashed var(--border-color);
+}
+
+/* --- 7. BACKUP & CLOUD SECTION --- */
+.cloud-status-card {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.cloud-status-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.status-label {
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 5px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-dot.connected {
+    background-color: #28a745;
+    animation: pulse 2s infinite;
+}
+
+.status-dot.disconnected {
+    background-color: #dc3545;
+}
+
+.status-text-success {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.status-text-success i {
+    margin-right: 5px;
+}
+
+.storage-info {
+    margin-bottom: 20px;
+}
+
+.storage-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+}
+
+.storage-bar {
+    width: 100%;
+    height: 8px;
+    background-color: #dee2e6;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.storage-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--sidebar-bg), var(--sidebar-active));
+    border-radius: 10px;
+    transition: width 0.3s ease;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: flex;
+    gap: 25px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+/* Backup Logs Table */
+.backup-logs-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.backup-logs-table th {
+    text-align: left;
+    padding: 12px 8px;
+    border-bottom: 2px solid var(--border-color);
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+}
+
+.backup-logs-table td {
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+}
+
+.status-success {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.status-failed {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+/* Manual Sync Card */
+.manual-sync-card {
+    background: #e3f2fd;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.manual-sync-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.manual-sync-text strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.manual-sync-text p {
+    margin: 5px 0 0;
+    font-size: 0.8rem;
+    color: #1565c0;
+}
+
+.sync-button {
+    background: #1976d2;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s;
+}
+
+.sync-button:hover {
+    background: #1565c0;
+}
+
+.sync-button:disabled {
+    background: #90caf9;
+    cursor: not-allowed;
+}
+
+/* Encryption Badge */
+.encryption-badge {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.encryption-badge i {
+    margin-right: 8px;
+}
+
+/* --- 8. DANGER ZONE (Purge Section) --- */
+.danger-zone {
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 2px solid #ffebee;
+}
+
+.danger-zone h5 {
+    color: #c62828;
+    font-size: 0.9rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 15px;
+}
+
+.danger-card {
+    background: #fff5f5;
+    border: 1px solid #ffcdd2;
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.danger-card strong {
+    color: #c62828;
+}
+
+.danger-card p {
+    margin: 5px 0 0;
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.btn-danger {
+    background: transparent;
+    border: 2px solid #dc3545;
+    color: #dc3545;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-danger:hover {
+    background: #dc3545;
+    color: white;
+}
+
+/* Purge Status Box */
+.purge-status-box {
+    background: #f8f9fa;
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+}
+
+.purge-stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+.purge-stat {
+    text-align: center;
+}
+
+.purge-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+}
+
+.purge-stat-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+.purge-stat-value.warning {
+    color: #e65100;
+}
+
+.purge-info-text {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    margin-top: 10px;
+}
+
+.purge-info-text i {
+    margin-right: 5px;
+}
+
+/* Purge Confirmation Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-container {
+    background: white;
+    border-radius: 16px;
+    width: 450px;
+    max-width: 90%;
+    padding: 0;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #c62828;
+}
+
+.modal-header h3 i {
+    margin-right: 10px;
+}
+
+.modal-close-btn {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-light);
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.warning-text {
+    background: #fff3e0;
+    padding: 12px;
+    border-radius: 8px;
+    margin: 15px 0;
+    font-size: 0.85rem;
+}
+
+.warning-text strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.modal-body p {
+    margin: 10px 0;
+}
+
+.confirm-text {
+    margin-top: 15px;
+}
+
+.confirm-code {
+    background: #f0f0f0;
+    padding: 2px 6px;
+    font-family: monospace;
+    font-weight: bold;
+}
+
+.purge-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: monospace;
+    text-transform: uppercase;
+    margin-top: 5px;
+}
+
+.modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Purge History Table */
+.purge-history {
+    margin-top: 25px;
+}
+
+.purge-history h6 {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-bottom: 12px;
+}
+
+.purge-history h6 i {
+    margin-right: 5px;
+}
+
+.purge-history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.purge-history-table th,
+.purge-history-table td {
+    padding: 8px 6px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.purge-history-table th {
+    font-weight: 700;
+    color: var(--text-light);
+}
+
+/* Change Password Section */
+.change-password-section {
+    max-width: 400px;
+}
+
+/* Active Sessions & Login History Tables */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.data-table th {
+    text-align: left;
+    padding: 10px 5px;
+    border-bottom: 2px solid var(--border-color);
+    font-weight: 700;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    text-transform: uppercase;
+}
+
+.data-table td {
+    padding: 10px 5px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+}
+
+.current-session-badge {
+    background: #e3f2fd;
+    color: #1565c0;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.terminate-btn {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.terminate-btn:hover {
+    background: #f5f5f5;
+}
+
+/* --- 9. NOTIFICATIONS SECTION --- */
+.notification-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-text {
+    flex: 1;
+}
+
+.notification-text h5 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.notification-text p {
+    margin: 5px 0 0;
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+/* Notification Badge */
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.badge-success {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.badge-warning {
+    background: #fff3e0;
+    color: #e65100;
+}
+
+.badge-info {
+    background: #e3f2fd;
+    color: #1565c0;
+}
+
+/* Notification List */
+.notification-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notification-entry {
+    padding: 12px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+}
+
+.notification-entry.unread {
+    background: #fdfaf5;
+    border-left: 3px solid var(--sidebar-bg);
+}
+
+.notification-entry:hover {
+    background: #f5f5f5;
+}
+
+.notification-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.notification-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.notification-message {
+    margin: 5px 0 0;
+    font-size: 0.8rem;
+    color: var(--text-light);
+}
+
+.notification-time {
+    font-size: 0.7rem;
+    color: var(--text-light);
+    text-align: right;
+}
+
+/* Empty Notification State */
+.empty-notifications {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-light);
+}
+
+.empty-notifications i {
+    font-size: 3rem;
+    margin-bottom: 10px;
+    display: block;
+}
+
+/* Email Server Config Grid */
+.email-config-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+/* Test Email Button */
+.test-email-btn {
+    background: #6c757d;
+    width: 100%;
+}
+
+/* --- 10. FOOTER ACTIONS --- */
 .settings-footer {
-    display: flex; justify-content: flex-end; align-items: center;
-    gap: 30px; margin-top: 40px; padding-top: 20px; border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 30px;
+    margin-top: 40px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
 }
 
-.discard-link { color: var(--text-light); text-decoration: none; font-size: 0.9rem; font-weight: 600; }
-.discard-link:hover { color: var(--text-main); text-decoration: underline; }
+.discard-link {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.discard-link:hover {
+    color: var(--text-main);
+    text-decoration: underline;
+}
+
+.btn-apply {
+    background: var(--sidebar-bg);
+    color: white;
+    border: none;
+    padding: 12px 28px;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-apply:hover {
+    background: var(--sidebar-active);
+}
+
+.btn-discard {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-discard:hover {
+    background: #f5f5f5;
+}
+
+/* --- 11. SEAL UPLOAD COMPONENT --- */
+.seal-upload-container {
+    width: 120px;
+    height: 120px;
+    border: 2px dashed var(--border-color);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fafafa;
+}
+
+.seal-upload-container:hover {
+    border-color: var(--sidebar-bg);
+    background: #fdfaf5;
+}
+
+.seal-upload-container i {
+    font-size: 32px;
+    color: var(--text-light);
+    margin-bottom: 8px;
+}
+
+.seal-upload-container p {
+    font-size: 0.7rem;
+    margin: 0;
+    color: var(--text-light);
+}
+
+/* --- 12. ANIMATIONS --- */
+@keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+/* --- 13. RESPONSIVE DESIGN --- */
+@media (max-width: 992px) {
+    .settings-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .settings-nav {
+        position: relative;
+        top: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0;
+    }
+    
+    .settings-nav-item {
+        flex: 1;
+        min-width: 150px;
+    }
+}
+
+@media (max-width: 768px) {
+    .settings-card {
+        padding: 20px;
+    }
+    
+    .security-item {
+        flex-direction: column;
+        gap: 15px;
+    }
+    
+    .settings-footer {
+        flex-direction: column-reverse;
+        gap: 15px;
+    }
+    
+    .btn-apply,
+    .btn-discard {
+        width: 100%;
+        text-align: center;
+    }
+    
+    .danger-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .two-column-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .profile-layout {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .profile-fields {
+        width: 100%;
+    }
+    
+    .purge-stats {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .email-config-grid {
+        grid-template-columns: 1fr;
+    }
+}

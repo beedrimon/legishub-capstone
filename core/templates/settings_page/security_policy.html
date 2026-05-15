@@ -3,94 +3,373 @@
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/settings.css' %}">
 {% endblock %}
-{% block title %}Settings - Marikina LegisHub{% endblock %}
+{% block title %}Security Policy - Marikina LegisHub{% endblock %}
 
 {% block top_header_content %}
+<div class="header-title">System Configuration v.1.0</div>
+<div class="header-actions">
+    <i class="fa-regular fa-circle-question"></i>
+    <div class="profile">
+        <i class="fa-regular fa-circle-user"></i> {{ request.user.username }}
+    </div>
+</div>
+{% endblock %}
 
-            <div class="header-title">System Configuration v.1.0</div>
-                <div class="header-actions">
-                    <i class="fa-regular fa-circle-question"></i>
-                <div class="profile">
-                    <i class="fa-regular fa-circle-user"></i> {{ request.user.username }}
-                </div>
-            </div>
-{% endblock %} {% block content %}
-<div class="breadcrumb">Settings / <span>General Info</span></div>
+{% block content %}
+<div class="breadcrumb">Settings / <span>Security Policy</span></div>
 
+<div class="settings-container">
+    <div class="settings-nav">
+        <a href="{% url 'general_info' %}" class="settings-nav-item">
+            <i class="fa-solid fa-building"></i> General Info
+        </a>
+        <a href="{% url 'backup_cloud' %}" class="settings-nav-item">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Backup & Cloud
+        </a>
+        <a href="{% url 'metadata_tags' %}" class="settings-nav-item">
+            <i class="fa-solid fa-tags"></i> Metadata Tags
+        </a>
+        <a href="{% url 'security_policy' %}" class="settings-nav-item active">
+            <i class="fa-solid fa-shield-halved"></i> Security Policy
+        </a>
+        <a href="{% url 'notifications' %}" class="settings-nav-item">
+            <i class="fa-solid fa-bell"></i> Notifications
+        </a>
+    </div>
+
+    <div class="settings-card">
+        <form method="POST" action="{% url 'security_policy' %}">
+            {% csrf_token %}
             
-            <div class="settings-container">
-                <div class="settings-nav">
-                    <a href="{% url 'general_info' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-building"></i> General Info
-                    </a>
-                    <a href="{% url 'backup_cloud' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> Backup & Cloud
-                    </a>
-                    <a href="{% url 'metadata_tags' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-tags"></i> Metadata Tags
-                    </a>
-                    <a href="{% url 'security_policy' %}" class="settings-nav-item active">
-                        <i class="fa-solid fa-shield-halved"></i> Security Policy
-                    </a>
-                    <a href="{% url 'notifications' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-bell"></i> Notifications
-                    </a>
+            <!-- SECTION 1: AUTHENTICATION SECURITY -->
+            <h4><i class="fa-solid fa-key"></i> Authentication Security</h4>
+            
+            <div class="security-item">
+                <div class="security-text">
+                    <h5>Two-Factor Authentication (2FA)</h5>
+                    <p>Require a secondary verification code for all administrator logins to enhance account security.</p>
                 </div>
+                <label class="switch">
+                    <input type="checkbox" name="mfa_enabled" {% if mfa_enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
 
-                <div class="settings-card">
-                    <h4>Security & Access Control</h4>
-                    <p style="color: #888; font-size: 0.85rem; margin-top: -10px; margin-bottom: 30px;">Manage system-wide security protocols and authentication requirements.</p>
+            <div class="security-item">
+                <div class="security-text">
+                    <h5>Password Complexity Requirement</h5>
+                    <p>Enforce passwords to include symbols, numbers, and uppercase characters (min. {{ password_min_length|default:8 }} chars).</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="require_complex_password" {% if require_complex_password %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
 
-                    <div class="security-item">
-                        <div class="security-text">
-                            <h5>Two-Factor Authentication (2FA)</h5>
-                            <p>Require a secondary verification code for all administrator logins to enhance account security.</p>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" checked>
-                            <span class="slider"></span>
-                        </label>
+            <div class="security-item">
+                <div class="security-text">
+                    <h5>Password Expiry (Days)</h5>
+                    <p>Force users to change their password after specified period.</p>
+                </div>
+                <select name="password_expiry" class="timeout-dropdown">
+                    <option value="0" {% if password_expiry == 0 %}selected{% endif %}>Never</option>
+                    <option value="90" {% if password_expiry == 90 %}selected{% endif %}>90 days</option>
+                    <option value="180" {% if password_expiry == 180 %}selected{% endif %} selected>180 days</option>
+                    <option value="365" {% if password_expiry == 365 %}selected{% endif %}>365 days</option>
+                </select>
+            </div>
+
+            <div class="security-item">
+                <div class="security-text">
+                    <h5>Failed Login Attempts</h5>
+                    <p>Lock account after specified number of failed attempts.</p>
+                </div>
+                <select name="max_failed_attempts" class="timeout-dropdown">
+                    <option value="3" {% if max_failed_attempts == 3 %}selected{% endif %}>3 attempts</option>
+                    <option value="5" {% if max_failed_attempts == 5 %}selected{% endif %} selected>5 attempts</option>
+                    <option value="10" {% if max_failed_attempts == 10 %}selected{% endif %}>10 attempts</option>
+                </select>
+            </div>
+
+            <div class="security-item">
+                <div class="security-text">
+                    <h5>Inactivity Session Timeout</h5>
+                    <p>Automatically log out the user after a specified period of inactivity.</p>
+                </div>
+                <select name="session_timeout" class="timeout-dropdown">
+                    <option value="15" {% if session_timeout == 15 %}selected{% endif %}>15 Minutes</option>
+                    <option value="30" {% if session_timeout == 30 %}selected{% endif %} selected>30 Minutes</option>
+                    <option value="60" {% if session_timeout == 60 %}selected{% endif %}>60 Minutes</option>
+                    <option value="120" {% if session_timeout == 120 %}selected{% endif %}>120 Minutes</option>
+                </select>
+            </div>
+
+            <div class="security-item">
+                <div class="security-text">
+                    <h5>IP Whitelisting (Geo-fencing)</h5>
+                    <p>Restrict system access only within the Marikina City Hall local network.</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="ip_whitelist_enabled" {% if ip_whitelist_enabled %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- SECTION 2: AUDIT LOG RETENTION & PURGE (10-YEAR COMPLIANCE) -->
+            <h4><i class="fa-solid fa-clock"></i> Audit Log Retention & Purge</h4>
+            
+            <div class="security-item">
+                <div class="security-text">
+                    <h5>Retention Period</h5>
+                    <p>Logs older than the specified period are automatically flagged for deletion (RA 10173 Data Privacy Act compliant).</p>
+                </div>
+                <select name="retention_days" class="timeout-dropdown">
+                    <option value="1825" {% if retention_days == 1825 %}selected{% endif %}>5 Years</option>
+                    <option value="3650" {% if retention_days == 3650 %}selected{% endif %} selected>10 Years (Default)</option>
+                    <option value="7300" {% if retention_days == 7300 %}selected{% endif %}>20 Years</option>
+                    <option value="0" {% if retention_days == 0 %}selected{% endif %}>Permanent (Not Recommended)</option>
+                </select>
+            </div>
+
+            <div class="security-item">
+                <div class="security-text">
+                    <h5>Auto-Purge Schedule</h5>
+                    <p>Automatically delete expired audit logs on a recurring schedule.</p>
+                </div>
+                <select name="purge_schedule" class="timeout-dropdown">
+                    <option value="daily" {% if purge_schedule == 'daily' %}selected{% endif %}>Daily at 2:00 AM</option>
+                    <option value="weekly" {% if purge_schedule == 'weekly' %}selected{% endif %} selected>Weekly (Sunday, 2:00 AM)</option>
+                    <option value="monthly" {% if purge_schedule == 'monthly' %}selected{% endif %}>Monthly (1st of month)</option>
+                    <option value="never" {% if purge_schedule == 'never' %}selected{% endif %}>Never (Manual Only)</option>
+                </select>
+            </div>
+
+            <!-- Current Audit Log Status -->
+            <div class="purge-status-box">
+                <div class="purge-stats">
+                    <div class="purge-stat">
+                        <div class="purge-stat-label">Total Audit Logs</div>
+                        <div class="purge-stat-value">{{ total_logs|default:"0" }}</div>
                     </div>
-
-                    <div class="security-item">
-                        <div class="security-text">
-                            <h5>Password Complexity Requirement</h5>
-                            <p>Enforce passwords to include symbols, numbers, and uppercase characters for all staff members.</p>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox" checked>
-                            <span class="slider"></span>
-                        </label>
+                    <div class="purge-stat">
+                        <div class="purge-stat-label">Logs Older than {{ retention_days|default:"3650" }} days</div>
+                        <div class="purge-stat-value warning">{{ old_logs_count|default:"0" }}</div>
                     </div>
-
-                    <div class="security-item">
-                        <div class="security-text">
-                            <h5>Inactivity Session Timeout</h5>
-                            <p>Automatically log out the user after a specified period of inactivity to prevent unauthorized access.</p>
-                        </div>
-                        <select class="timeout-dropdown">
-                            <option value="15">15 Minutes</option>
-                            <option value="30" selected>30 Minutes</option>
-                            <option value="60">60 Minutes</option>
-                        </select>
+                    <div class="purge-stat">
+                        <div class="purge-stat-label">Database Size (Audit)</div>
+                        <div class="purge-stat-value">{{ audit_db_size|default:"124 MB" }}</div>
                     </div>
+                </div>
+                <div class="storage-bar">
+                    <div class="storage-bar-fill" style="width: {% widthratio old_logs_count total_logs 100|default:0 %}%;"></div>
+                </div>
+                <p class="purge-info-text">
+                    <i class="fa-solid fa-info-circle"></i> 
+                    {% if old_logs_count > 0 %}
+                        {{ old_logs_count }} records are scheduled for automatic deletion based on your retention policy.
+                    {% else %}
+                        No records exceed the retention period.
+                    {% endif %}
+                </p>
+            </div>
 
-                    <div class="security-item">
-                        <div class="security-text">
-                            <h5>Geo-fencing & IP Restriction</h5>
-                            <p>Restrict system access only within the Marikina City Hall local network (Intranet).</p>
-                        </div>
-                        <label class="switch">
-                            <input type="checkbox">
-                            <span class="slider"></span>
-                        </label>
+            <!-- Manual Purge Button -->
+            <div class="danger-zone">
+                <h5><i class="fa-solid fa-triangle-exclamation"></i> Danger Zone</h5>
+                <div class="danger-card">
+                    <div>
+                        <strong>Purge Expired Audit Logs</strong>
+                        <p>Permanently delete all audit logs older than {{ retention_days|default:"3650" }} days. This action cannot be undone.</p>
                     </div>
-
-                    <div class="settings-footer">
-                        <a href="#" class="discard-link">Discard Changes</a>
-                        <button class="btn-apply">Apply Security Policies</button>
-                    </div>
+                    <button type="button" class="btn-danger" id="openPurgeModalBtn">
+                        <i class="fa-regular fa-trash-can"></i> Run Purge
+                    </button>
                 </div>
             </div>
+
+            <!-- Purge History -->
+            <div class="purge-history">
+                <h6><i class="fa-solid fa-history"></i> Purge History</h6>
+                <table class="purge-history-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Records Deleted</th>
+                            <th>Triggered By</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for purge in purge_history %}
+                        <tr>
+                            <td>{{ purge.date|default:"May 1, 2026" }}</td>
+                            <td>{{ purge.records_deleted|default:"452" }}</td>
+                            <td>{{ purge.triggered_by|default:"System (Auto)" }}</td>
+                            <td><span class="badge-success">✓ {{ purge.status|default:"Success" }}</span></td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="empty-table">No purge history available</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- SECTION 3: CHANGE PASSWORD -->
+            <h4><i class="fa-solid fa-lock"></i> Change Password</h4>
+            
+            <div class="change-password-section">
+                <div class="config-group">
+                    <label>Current Password</label>
+                    <input type="password" name="current_password" class="config-control" placeholder="Enter current password">
+                </div>
+                <div class="config-group">
+                    <label>New Password</label>
+                    <input type="password" name="new_password" class="config-control" placeholder="Enter new password">
+                    <span class="italic-hint">Minimum {{ password_min_length|default:"8" }} characters with uppercase, number, and special character.</span>
+                </div>
+                <div class="config-group">
+                    <label>Confirm New Password</label>
+                    <input type="password" name="confirm_password" class="config-control" placeholder="Confirm new password">
+                </div>
+            </div>
+
+            <!-- SECTION 4: ACTIVE SESSIONS (Staff View) -->
+            {% if not request.user.is_superuser %}
+            <h4><i class="fa-solid fa-desktop"></i> Active Sessions</h4>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Device/Browser</th>
+                        <th>IP Address</th>
+                        <th>Last Activity</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Chrome on Windows</td>
+                        <td>127.0.0.1</td>
+                        <td>Now</td>
+                        <td><span class="current-session-badge">Current Session</span></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="terminate-sessions">
+                <button type="button" class="btn-discard">Terminate Other Sessions</button>
+            </div>
+
+            <!-- SECTION 5: LOGIN HISTORY (Staff View) -->
+            <h4><i class="fa-solid fa-clock-rotate-left"></i> Recent Login History</h4>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date & Time</th>
+                        <th>IP Address</th>
+                        <th>Browser/Device</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>May 14, 2026 09:30:00 AM</td>
+                        <td>192.168.1.100</td>
+                        <td>Chrome 120 / Windows</td>
+                    </tr>
+                    <tr>
+                        <td>May 13, 2026 08:15:00 AM</td>
+                        <td>192.168.1.100</td>
+                        <td>Chrome 120 / Windows</td>
+                    </tr>
+                </tbody>
+            </table>
+            {% endif %}
+
+            <div class="settings-footer">
+                <button type="reset" class="discard-link">Discard Changes</button>
+                <button type="submit" name="update_policy" class="btn-apply">Apply Security Policies</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- PURGE CONFIRMATION MODAL -->
+<div id="purgeModal" class="modal-overlay" style="display: none;">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-triangle-exclamation"></i> Confirm Audit Log Purge</h3>
+            <button type="button" id="closeModalBtn" class="modal-close-btn">&times;</button>
         </div>
+        <div class="modal-body">
+            <p>You are about to permanently delete:</p>
+            <div class="warning-text">
+                <strong>📅 Logs older than: {{ retention_days|default:"3650" }} days</strong>
+                <strong>🗑️ Records affected: {{ old_logs_count|default:"0" }} audit entries</strong>
+            </div>
+            <p><strong>This action CANNOT be undone.</strong></p>
+            <p class="confirm-text">Type <span class="confirm-code">PURGE</span> to confirm:</p>
+            <input type="text" id="purgeConfirmInput" class="purge-input" placeholder="Type PURGE here">
+        </div>
+        <div class="modal-footer">
+            <button type="button" id="cancelPurgeBtn" class="btn-discard">Cancel</button>
+            <button type="button" id="confirmPurgeBtn" class="btn-danger">Confirm & Delete</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const modal = document.getElementById('purgeModal');
+const openBtn = document.getElementById('openPurgeModalBtn');
+const closeBtn = document.getElementById('closeModalBtn');
+const cancelBtn = document.getElementById('cancelPurgeBtn');
+const confirmBtn = document.getElementById('confirmPurgeBtn');
+const confirmInput = document.getElementById('purgeConfirmInput');
+
+function openModal() {
+    modal.style.display = 'flex';
+    confirmInput.value = '';
+    confirmInput.focus();
+}
+
+function closeModal() {
+    modal.style.display = 'none';
+}
+
+openBtn?.addEventListener('click', openModal);
+closeBtn?.addEventListener('click', closeModal);
+cancelBtn?.addEventListener('click', closeModal);
+
+confirmBtn?.addEventListener('click', function() {
+    if (confirmInput.value === 'PURGE') {
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{% url "security_policy" %}';
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrfmiddlewaretoken';
+        csrfInput.value = '{{ csrf_token }}';
+        const purgeInput = document.createElement('input');
+        purgeInput.type = 'hidden';
+        purgeInput.name = 'run_purge';
+        purgeInput.value = '1';
+        const confirmInputField = document.createElement('input');
+        confirmInputField.type = 'hidden';
+        confirmInputField.name = 'confirm_purge';
+        confirmInputField.value = 'PURGE';
+        form.appendChild(csrfInput);
+        form.appendChild(purgeInput);
+        form.appendChild(confirmInputField);
+        document.body.appendChild(form);
+        form.submit();
+    } else {
+        alert('Confirmation text did not match. Type "PURGE" to confirm deletion.');
+    }
+});
+
+modal?.addEventListener('click', function(e) {
+    if (e.target === modal) {
+        closeModal();
+    }
+});
+</script>
 {% endblock %}

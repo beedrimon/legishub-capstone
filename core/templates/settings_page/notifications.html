@@ -3,49 +3,319 @@
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/settings.css' %}">
 {% endblock %}
-{% block title %}Settings - Marikina LegisHub{% endblock %}
+{% block title %}Notifications - Marikina LegisHub{% endblock %}
 
 {% block top_header_content %}
+<div class="header-title">System Configuration v.1.0</div>
+<div class="header-actions">
+    <i class="fa-regular fa-circle-question"></i>
+    <div class="profile">
+        <i class="fa-regular fa-circle-user"></i> {{ request.user.username }}
+    </div>
+</div>
+{% endblock %}
 
-            <div class="header-title">System Configuration v.1.0</div>
-                <div class="header-actions">
-                    <i class="fa-regular fa-circle-question"></i>
-                <div class="profile">
-                    <i class="fa-regular fa-circle-user"></i> {{ request.user.username }}
+{% block content %}
+<div class="breadcrumb">Settings / <span>Notifications</span></div>
+
+<div class="settings-container">
+    <div class="settings-nav">
+        <a href="{% url 'general_info' %}" class="settings-nav-item">
+            <i class="fa-solid fa-building"></i> General Info
+        </a>
+        <a href="{% url 'backup_cloud' %}" class="settings-nav-item">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Backup & Cloud
+        </a>
+        <a href="{% url 'metadata_tags' %}" class="settings-nav-item">
+            <i class="fa-solid fa-tags"></i> Metadata Tags
+        </a>
+        <a href="{% url 'security_policy' %}" class="settings-nav-item">
+            <i class="fa-solid fa-shield-halved"></i> Security Policy
+        </a>
+        <a href="{% url 'notifications' %}" class="settings-nav-item active">
+            <i class="fa-solid fa-bell"></i> Notifications
+        </a>
+    </div>
+
+    <div class="settings-card">
+        <form method="POST" action="{% url 'notifications' %}">
+            {% csrf_token %}
+            
+            <!-- SECTION 1: NOTIFICATION PREFERENCES -->
+            <h4><i class="fa-regular fa-bell"></i> Notification Preferences</h4>
+            <p class="section-subtitle">Configure how and when you receive system alerts.</p>
+
+            <div class="notification-item">
+                <div class="notification-text">
+                    <h5>Email Notifications</h5>
+                    <p>Receive notifications via email for document updates, approvals, and escalations.</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="email_notifications" {% if email_notifications %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="notification-item">
+                <div class="notification-text">
+                    <h5>In-App Notifications</h5>
+                    <p>Show notifications within the application (bell icon).</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="in_app_notifications" {% if in_app_notifications %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="notification-item">
+                <div class="notification-text">
+                    <h5>Email Digest Frequency</h5>
+                    <p>How often to send email summaries of system activity.</p>
+                </div>
+                <select name="email_digest" class="timeout-dropdown">
+                    <option value="instant" {% if email_digest == 'instant' %}selected{% endif %}>Instant (Real-time)</option>
+                    <option value="daily" {% if email_digest == 'daily' %}selected{% endif %}>Daily at 8:00 AM</option>
+                    <option value="weekly" {% if email_digest == 'weekly' %}selected{% endif %}>Weekly (Monday)</option>
+                </select>
+            </div>
+
+            <!-- SECTION 2: ESCALATION RULES (Admin Only) -->
+            {% if request.user.is_superuser %}
+            <h4><i class="fa-solid fa-chart-line"></i> Escalation Rules (Time-Based Review)</h4>
+            <p class="section-subtitle">Configure automatic escalation for pending documents.</p>
+
+            <div class="notification-item">
+                <div class="notification-text">
+                    <h5>Default Review Period</h5>
+                    <p>Number of days before a "Pending" document is escalated.</p>
+                </div>
+                <select name="review_days" class="timeout-dropdown">
+                    <option value="7" {% if review_days == 7 %}selected{% endif %}>7 days</option>
+                    <option value="14" {% if review_days == 14 %}selected{% endif %}>14 days</option>
+                    <option value="15" {% if review_days == 15 %}selected{% endif %} selected>15 days</option>
+                    <option value="30" {% if review_days == 30 %}selected{% endif %}>30 days</option>
+                </select>
+            </div>
+
+            <div class="notification-item">
+                <div class="notification-text">
+                    <h5>Grace Period</h5>
+                    <p>Additional days after review period before final escalation alert.</p>
+                </div>
+                <select name="grace_period" class="timeout-dropdown">
+                    <option value="0" {% if grace_period == 0 %}selected{% endif %}>No grace period</option>
+                    <option value="3" {% if grace_period == 3 %}selected{% endif %} selected>3 days</option>
+                    <option value="5" {% if grace_period == 5 %}selected{% endif %}>5 days</option>
+                    <option value="7" {% if grace_period == 7 %}selected{% endif %}>7 days</option>
+                </select>
+            </div>
+
+            <div class="notification-item">
+                <div class="notification-text">
+                    <h5>Escalation Recipient</h5>
+                    <p>Who receives escalation alerts for delayed documents.</p>
+                </div>
+                <select name="escalation_recipient" class="timeout-dropdown">
+                    <option value="vice_mayor" {% if escalation_recipient == 'vice_mayor' %}selected{% endif %}>Vice Mayor's Office</option>
+                    <option value="secretary" {% if escalation_recipient == 'secretary' %}selected{% endif %} selected>Secretariat Head</option>
+                    <option value="both" {% if escalation_recipient == 'both' %}selected{% endif %}>Both</option>
+                </select>
+            </div>
+
+            <div class="notification-item">
+                <div class="notification-text">
+                    <h5>Daily Digest Escalations</h5>
+                    <p>Send a summary of all escalated documents at 8:00 AM daily.</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="daily_digest" {% if daily_digest %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- SECTION 3: SMTP CONFIGURATION -->
+            <h4><i class="fa-solid fa-envelope"></i> Email Server (SMTP) Configuration</h4>
+
+            <div class="email-config-grid">
+                <div class="config-group">
+                    <label>SMTP Host</label>
+                    <input type="text" name="smtp_host" class="config-control" value="{{ smtp_host|default:'smtp.gmail.com' }}">
+                </div>
+                <div class="config-group">
+                    <label>SMTP Port</label>
+                    <input type="text" name="smtp_port" class="config-control" value="{{ smtp_port|default:'587' }}">
+                </div>
+                <div class="config-group">
+                    <label>Username</label>
+                    <input type="text" name="smtp_user" class="config-control" value="{{ smtp_user|default:'noreply@marikinalegishub.gov.ph' }}">
+                </div>
+                <div class="config-group">
+                    <label>Password</label>
+                    <input type="password" name="smtp_password" class="config-control" placeholder="••••••••">
+                </div>
+                <div class="config-group">
+                    <label>Encryption</label>
+                    <select name="smtp_encryption" class="config-control">
+                        <option value="tls" {% if smtp_encryption == 'tls' %}selected{% endif %}>TLS</option>
+                        <option value="ssl" {% if smtp_encryption == 'ssl' %}selected{% endif %}>SSL</option>
+                        <option value="none" {% if smtp_encryption == 'none' %}selected{% endif %}>None</option>
+                    </select>
+                </div>
+                <div class="config-group">
+                    <label>&nbsp;</label>
+                    <button type="button" id="testEmailBtn" class="btn-apply test-email-btn">Send Test Email</button>
                 </div>
             </div>
-{% endblock %} {% block content %}
-<div class="breadcrumb">Settings / <span>General Info</span></div>
+            {% endif %}
 
-            
-            <div class="settings-container">
-                <div class="settings-nav">
-                    <a href="{% url 'general_info' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-building"></i> General Info
-                    </a>
-                    <a href="{% url 'backup_cloud' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> Backup & Cloud
-                    </a>
-                    <a href="{% url 'metadata_tags' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-tags"></i> Metadata Tags
-                    </a>
-                    <a href="{% url 'security_policy' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-shield-halved"></i> Security Policy
-                    </a>
-                    <a href="{% url 'notifications' %}" class="settings-nav-item active">
-                        <i class="fa-solid fa-bell"></i> Notifications
-                    </a>
+            <!-- SECTION 4: NOTIFICATION TYPES -->
+            <h4><i class="fa-solid fa-toggle-on"></i> Notification Types</h4>
+
+            <div class="notification-item">
+                <div class="notification-text">
+                    <h5>Document Approvals</h5>
+                    <p>Get notified when documents you submitted are approved.</p>
                 </div>
+                <label class="switch">
+                    <input type="checkbox" name="notify_approvals" {% if notify_approvals %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
 
-                <div class="settings-card">
-                    <h4>Notification Preferences</h4>
+            <div class="notification-item">
+                <div class="notification-text">
+                    <h5>Escalation Alerts</h5>
+                    <p>Receive alerts when documents are escalated due to delays.</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="notify_escalations" {% if notify_escalations %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
 
+            <div class="notification-item">
+                <div class="notification-text">
+                    <h5>System Updates</h5>
+                    <p>Get notified about system maintenance and updates.</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="notify_system" {% if notify_system %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
 
-                   
+            <div class="notification-item">
+                <div class="notification-text">
+                    <h5>Comments & Feedback</h5>
+                    <p>Receive notifications when comments are added to your documents.</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="notify_comments" {% if notify_comments %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
 
+            <div class="notification-item">
+                <div class="notification-text">
+                    <h5>Sound Alerts</h5>
+                    <p>Play a sound when new notifications arrive (in-app only).</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" name="sound_alerts" {% if sound_alerts %}checked{% endif %}>
+                    <span class="slider"></span>
+                </label>
+            </div>
 
-                  
-                </div> 
-            </div> 
-        </div> 
+            <!-- SECTION 5: RECENT NOTIFICATIONS -->
+            <h4><i class="fa-solid fa-clock"></i> Recent Notifications</h4>
+            
+            <div class="notification-list">
+                {% for notif in notifications|slice:":20" %}
+                <div class="notification-entry {% if not notif.is_read %}unread{% endif %}">
+                    <div class="notification-header">
+                        <div>
+                            <div class="notification-title">
+                                {% if notif.action == 'Upload' %}
+                                    📄 Document Uploaded
+                                {% elif notif.action == 'Edit' %}
+                                    ✏️ Document Edited
+                                {% elif notif.action == 'Delete' %}
+                                    🗑️ Document Deleted
+                                {% else %}
+                                    🔔 {{ notif.action }}
+                                {% endif %}
+                            </div>
+                            <p class="notification-message">
+                                {% if notif.document %}
+                                    Document #{{ notif.document.document_number }} - {{ notif.document.title|truncatechars:50 }}
+                                {% else %}
+                                    System event
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="notification-time">
+                            {{ notif.timestamp|timesince }} ago
+                            {% if not notif.is_read %}
+                            <span class="badge-info">New</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-notifications">
+                    <i class="fa-regular fa-bell-slash"></i>
+                    No notifications yet
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="settings-footer">
+                <button type="reset" class="discard-link">Reset to Defaults</button>
+                <button type="submit" name="update_preferences" class="btn-apply">Save Notification Settings</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const testBtn = document.getElementById('testEmailBtn');
+if (testBtn) {
+    testBtn.addEventListener('click', function() {
+        const btn = this;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+        btn.disabled = true;
+        
+        fetch('{% url "test_email" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                host: document.querySelector('[name="smtp_host"]')?.value,
+                port: document.querySelector('[name="smtp_port"]')?.value,
+                user: document.querySelector('[name="smtp_user"]')?.value,
+                password: document.querySelector('[name="smtp_password"]')?.value,
+                encryption: document.querySelector('[name="smtp_encryption"]')?.value
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Test email sent successfully to {{ request.user.email }}');
+            } else {
+                alert('Failed to send test email: ' + data.error);
+            }
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        })
+        .catch(error => {
+            alert('Error: ' + error);
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    });
+}
+</script>
 {% endblock %}

@@ -3,97 +3,156 @@
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/settings.css' %}">
 {% endblock %}
-{% block title %}Settings - Marikina LegisHub{% endblock %}
+{% block title %}General Info - Marikina LegisHub{% endblock %}
 
 {% block top_header_content %}
+<div class="header-title">System Configuration v.1.0</div>
+<div class="header-actions">
+    <i class="fa-regular fa-circle-question"></i>
+    <div class="profile">
+        <i class="fa-regular fa-circle-user"></i> {{ request.user.username }}
+    </div>
+</div>
+{% endblock %}
 
-            <div class="header-title">System Configuration v.1.0</div>
-                <div class="header-actions">
-                    <i class="fa-regular fa-circle-question"></i>
-                <div class="profile">
-                    <i class="fa-regular fa-circle-user"></i> {{ request.user.username }}
-                </div>
-            </div>
-{% endblock %} {% block content %}
+{% block content %}
 <div class="breadcrumb">Settings / <span>General Info</span></div>
 
-            <div class="settings-container">
-                <div class="settings-nav">
-                    <a href="{% url 'general_info' %}" class="settings-nav-item active">
-                        <i class="fa-solid fa-building"></i> General Info
-                    </a>
-                    <a href="{% url 'backup_cloud' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> Backup & Cloud
-                    </a>
-                    <a href="{% url 'metadata_tags' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-tags"></i> Metadata Tags
-                    </a>
-                    <a href="{% url 'security_policy' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-shield-halved"></i> Security Policy
-                    </a>
-                    <a href="{% url 'notifications' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-bell"></i> Notifications
-                    </a>
-                </div>
+<div class="settings-container">
+    <div class="settings-nav">
+        <a href="{% url 'general_info' %}" class="settings-nav-item active">
+            <i class="fa-solid fa-building"></i> General Info
+        </a>
+        <a href="{% url 'backup_cloud' %}" class="settings-nav-item">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Backup & Cloud
+        </a>
+        <a href="{% url 'metadata_tags' %}" class="settings-nav-item">
+            <i class="fa-solid fa-tags"></i> Metadata Tags
+        </a>
+        <a href="{% url 'security_policy' %}" class="settings-nav-item">
+            <i class="fa-solid fa-shield-halved"></i> Security Policy
+        </a>
+        <a href="{% url 'notifications' %}" class="settings-nav-item">
+            <i class="fa-solid fa-bell"></i> Notifications
+        </a>
+    </div>
 
-                <div class="settings-card">
-                    <h4>General Organization Profile</h4>
-                    
-                    <div style="display: flex; gap: 30px; margin-bottom: 30px;">
-                        <div style="flex: 2;">
-                            <div class="config-group">
-                                <label>LGU Office Name</label>
-                                <input type="text" class="config-control marikina-input" value="Marikina City Council - Office of the Secretary">
-                            </div>
-
-                            <div class="config-group">
-                                <label>Current Secretary</label>
-                                <input type="text" class="config-control marikina-input" value="Atty. Jake Hafalla">
-                            </div>
-                        </div>
-
-                        <div style="flex: 1; text-align: center;">
-                            <label class="config-group" style="display:block; margin-bottom:8px;">
-                                <span style="font-size: 0.75rem; font-weight: 800; color: var(--text-light); text-transform: uppercase;">Official Seal</span>
-                            </label>
-                            <div class="seal-upload-container">
-                                <i class="bi bi-image"></i>
-                                <p style="font-size: 0.85rem; margin-bottom: 0;">Update Seal</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <hr style="border: none; border-top: 1px solid var(--border-color); margin: 40px 0;">
-
-                    <h4>Backup & Disaster Recovery</h4>
+    <div class="settings-card">
+        <form method="POST" action="{% url 'general_info' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- SECTION 1: USER PROFILE -->
+            <h4><i class="fa-regular fa-user"></i> My Profile</h4>
+            <div class="profile-layout">
+                <div class="profile-fields">
                     <div class="config-group">
-                        <label>Automated Backup Frequency</label>
-                        <select class="config-control">
-                            <option>Daily (12:00 AM)</option>
-                            <option>Weekly</option>
-                        </select>
-                        <span class="italic-hint">All legislative records will be encrypted and synced to the Marikina Secure Cloud.</span>
+                        <label>First Name</label>
+                        <input type="text" name="first_name" class="config-control" value="{{ user.first_name }}">
                     </div>
+                    <div class="config-group">
+                        <label>Last Name</label>
+                        <input type="text" name="last_name" class="config-control" value="{{ user.last_name }}">
+                    </div>
+                    <div class="config-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" class="config-control" value="{{ user.email }}">
+                    </div>
+                    <div class="config-group">
+                        <label>Username</label>
+                        <input type="text" class="config-control" value="{{ user.username }}" readonly disabled>
+                        <span class="italic-hint">Username cannot be changed. Contact system administrator.</span>
+                    </div>
+                </div>
+                <div class="profile-avatar">
+                    <label class="config-group">Profile Avatar</label>
+                    <div class="seal-upload-container avatar-container">
+                        <i class="fa-regular fa-circle-user avatar-icon"></i>
+                        <p class="avatar-change-text">Change Avatar</p>
+                    </div>
+                </div>
+            </div>
 
-                    <div class="danger-zone">
-                        <h5>Danger Zone</h5>
-                        <div class="danger-card">
-                            <div>
-                                <strong class="text-danger">Purge Archived Logs</strong>
-                                <p style="margin: 0; font-size: 0.82rem; color: var(--text-light);">Permanently delete audit logs older than 5 years.</p>
-                            </div>
-                            <button class="btn-reset" style="border-color: #dc3545; color: #dc3545;">Run Purge</button>
-                        </div>
-                    </div>
+            <hr class="section-divider">
 
-                    <div class="settings-actions">
-                        <button class="btn-discard">Discard Changes</button>
-                        <button class="btn-apply px-5">Save Configurations</button>
+            <!-- SECTION 2: SYSTEM PREFERENCES -->
+            <h4><i class="fa-solid fa-sliders-h"></i> System Preferences</h4>
+            <div class="two-column-grid">
+                <div class="config-group">
+                    <label>Default Landing Page</label>
+                    <select name="default_landing" class="config-control">
+                        <option value="dashboard" selected>Dashboard</option>
+                        <option value="documents">Documents</option>
+                        <option value="archive">Archive</option>
+                    </select>
+                </div>
+                <div class="config-group">
+                    <label>Items Per Page</label>
+                    <select name="items_per_page" class="config-control">
+                        <option value="10">10 items</option>
+                        <option value="25" selected>25 items</option>
+                        <option value="50">50 items</option>
+                        <option value="100">100 items</option>
+                    </select>
+                </div>
+                <div class="config-group">
+                    <label>Date Format</label>
+                    <select name="date_format" class="config-control">
+                        <option value="MM/DD/YYYY" selected>MM/DD/YYYY</option>
+                        <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                        <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                    </select>
+                </div>
+                <div class="config-group">
+                    <label>Appearance Theme</label>
+                    <select name="theme" class="config-control">
+                        <option value="light" selected>Light Mode</option>
+                        <option value="dark">Dark Mode</option>
+                        <option value="system">System Default</option>
+                    </select>
+                </div>
+            </div>
+
+            <hr class="section-divider">
+
+            <!-- SECTION 3: SYSTEM SETTINGS (Admin Only) -->
+            {% if request.user.is_superuser %}
+            <h4><i class="fa-solid fa-server"></i> System Configuration</h4>
+            <div class="two-column-grid">
+                <div class="config-group">
+                    <label>System Name</label>
+                    <input type="text" name="system_name" class="config-control" value="Marikina LegisHub">
+                </div>
+                <div class="config-group">
+                    <label>Session Timeout (minutes)</label>
+                    <select name="session_timeout" class="config-control">
+                        <option value="15">15 minutes</option>
+                        <option value="30" selected>30 minutes</option>
+                        <option value="60">60 minutes</option>
+                        <option value="120">120 minutes</option>
+                    </select>
+                </div>
+                <div class="config-group">
+                    <label>Support Contact Email</label>
+                    <input type="email" name="support_email" class="config-control" value="admin@marikinalegishub.gov.ph">
+                </div>
+                <div class="config-group">
+                    <label>Maintenance Mode</label>
+                    <div class="switch-wrapper">
+                        <label class="switch">
+                            <input type="checkbox" name="maintenance_mode">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="italic-hint">When enabled, only admins can access</span>
                     </div>
-                       
-                </div> 
-             
-            </div> 
-      
-        </div> 
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="settings-footer">
+                <button type="reset" class="discard-link">Discard Changes</button>
+                <button type="submit" name="update_profile" class="btn-apply">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
 {% endblock %}

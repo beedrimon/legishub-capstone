@@ -3,73 +3,233 @@
 {% block extra_css %}
     <link rel="stylesheet" href="{% static 'css/settings.css' %}">
 {% endblock %}
-{% block title %}Settings - Marikina LegisHub{% endblock %}
+{% block title %}Metadata Tags - Marikina LegisHub{% endblock %}
 
 {% block top_header_content %}
+<div class="header-title">System Configuration v.1.0</div>
+<div class="header-actions">
+    <i class="fa-regular fa-circle-question"></i>
+    <div class="profile">
+        <i class="fa-regular fa-circle-user"></i> {{ request.user.username }}
+    </div>
+</div>
+{% endblock %}
 
-            <div class="header-title">System Configuration v.1.0</div>
-                <div class="header-actions">
-                    <i class="fa-regular fa-circle-question"></i>
-                <div class="profile">
-                    <i class="fa-regular fa-circle-user"></i> {{ request.user.username }}
-                </div>
-            </div>
-{% endblock %} {% block content %}
+{% block content %}
 <div class="breadcrumb">Settings / <span>Metadata Tags</span></div>
+
+<div class="settings-container">
+    <div class="settings-nav">
+        <a href="{% url 'general_info' %}" class="settings-nav-item">
+            <i class="fa-solid fa-building"></i> General Info
+        </a>
+        <a href="{% url 'backup_cloud' %}" class="settings-nav-item">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Backup & Cloud
+        </a>
+        <a href="{% url 'metadata_tags' %}" class="settings-nav-item active">
+            <i class="fa-solid fa-tags"></i> Metadata Tags
+        </a>
+        <a href="{% url 'security_policy' %}" class="settings-nav-item">
+            <i class="fa-solid fa-shield-halved"></i> Security Policy
+        </a>
+        <a href="{% url 'notifications' %}" class="settings-nav-item">
+            <i class="fa-solid fa-bell"></i> Notifications
+        </a>
+    </div>
+
+    <div class="settings-card">
+        <form method="POST" action="{% url 'metadata_tags' %}">
+            {% csrf_token %}
             
-            <div class="settings-container">
-                <div class="settings-nav">
-                    <a href="{% url 'general_info' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-building"></i> General Info
-                    </a>
-                    <a href="{% url 'backup_cloud' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> Backup & Cloud
-                    </a>
-                    <a href="{% url 'metadata_tags' %}" class="settings-nav-item active">
-                        <i class="fa-solid fa-tags"></i> Metadata Tags
-                    </a>
-                    <a href="{% url 'security_policy' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-shield-halved"></i> Security Policy
-                    </a>
-                    <a href="{% url 'notifications' %}" class="settings-nav-item">
-                        <i class="fa-solid fa-bell"></i> Notifications
-                    </a>
+            <!-- SECTION 1: DOCUMENT CATEGORIES -->
+            <h4><i class="fa-solid fa-folder-tree"></i> Document Categories</h4>
+            <div class="tag-cloud">
+                {% for tag in doc_types %}
+                <div class="tag-item" data-id="{{ tag.id }}">
+                    {{ tag.name }}
+                    {% if request.user.is_superuser %}
+                    <i class="fa-regular fa-trash-can" onclick="deleteTag('{{ tag.id }}')"></i>
+                    {% endif %}
                 </div>
+                {% empty %}
+                <div class="tag-item">Ordinance</div>
+                <div class="tag-item">Resolution</div>
+                <div class="tag-item">Executive Order</div>
+                {% endfor %}
+                {% if request.user.is_superuser %}
+                <div class="tag-item tag-item-add">
+                    <i class="fa-solid fa-plus"></i>
+                    <input type="text" id="new_category" placeholder="New Category">
+                    <button type="button" class="tag-add-btn" onclick="addTag('doc_type', 'new_category')">Add</button>
+                </div>
+                {% endif %}
+            </div>
 
-                
-                <div class="settings-card">
-                    <h4>Legislative Metadata Tags</h4>
-                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 25px;">Define and manage keywords for document indexing and advanced search filtering.</p>
+            <!-- SECTION 2: DOCUMENT STATUSES -->
+            <h4><i class="fa-solid fa-flag-checkered"></i> Document Statuses</h4>
+            <div class="tag-cloud">
+                {% for tag in statuses %}
+                <div class="tag-item" data-id="{{ tag.id }}">
+                    {{ tag.name }}
+                    {% if request.user.is_superuser %}
+                    <i class="fa-regular fa-trash-can" onclick="deleteTag('{{ tag.id }}')"></i>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="tag-item">Draft</div>
+                <div class="tag-item">Pending</div>
+                <div class="tag-item">Approved</div>
+                {% endfor %}
+                {% if request.user.is_superuser %}
+                <div class="tag-item tag-item-add">
+                    <i class="fa-solid fa-plus"></i>
+                    <input type="text" id="new_status" placeholder="New Status">
+                    <button type="button" class="tag-add-btn" onclick="addTag('status', 'new_status')">Add</button>
+                </div>
+                {% endif %}
+            </div>
 
-                    <div class="config-group">
-                        <label>Create New Label / Tag</label>
-                        <div class="tag-input-container">
-                            <input type="text" class="config-control" placeholder="e.g. Environmental, Budget 2024, Health Act..." style="flex: 1;">
-                            <button class="btn-apply" style="width: auto; padding: 0 25px; height: 45px; display: flex; align-items: center; gap: 8px;">
-                                <i class="fa-solid fa-plus"></i> Add Tag
-                            </button>
-                        </div>
-                    </div>
+            <!-- SECTION 3: BARANGAYS -->
+            <h4><i class="fa-solid fa-map-pin"></i> Barangays (Marikina City)</h4>
+            <div class="tag-cloud">
+                {% for tag in barangays %}
+                <div class="tag-item" data-id="{{ tag.id }}">
+                    {{ tag.name }}
+                    {% if request.user.is_superuser %}
+                    <i class="fa-regular fa-trash-can" onclick="deleteTag('{{ tag.id }}')"></i>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="tag-item">Barangka</div>
+                <div class="tag-item">Calumpang</div>
+                <div class="tag-item">Concepcion Uno</div>
+                {% endfor %}
+                {% if request.user.is_superuser %}
+                <div class="tag-item tag-item-add">
+                    <i class="fa-solid fa-plus"></i>
+                    <input type="text" id="new_barangay" placeholder="New Barangay">
+                    <button type="button" class="tag-add-btn" onclick="addTag('barangay', 'new_barangay')">Add</button>
+                </div>
+                {% endif %}
+            </div>
 
-                    <div class="config-group" style="margin-top: 30px;">
-                        <label>Active Document Categories</label>
-                        <div class="tag-cloud">
-                            <div class="tag-item">Ordinance <i class="fa-solid fa-circle-xmark"></i></div>
-                            <div class="tag-item">Resolution <i class="fa-solid fa-circle-xmark"></i></div>
-                            <div class="tag-item">City Council <i class="fa-solid fa-circle-xmark"></i></div>
-                            <div class="tag-item">Executive Order <i class="fa-solid fa-circle-xmark"></i></div>
-                            <div class="tag-item">Public Consultation <i class="fa-solid fa-circle-xmark"></i></div>
-                            <div class="tag-item">Social Welfare <i class="fa-solid fa-circle-xmark"></i></div>
-                            <div class="tag-item">Taxation <i class="fa-solid fa-circle-xmark"></i></div>
-                            <div class="tag-item">Infrastructure <i class="fa-solid fa-circle-xmark"></i></div>
-                        </div>
-                        <span class="tag-hint">These tags appear during the document upload process for easier categorization.</span>
-                    </div>
+            <!-- SECTION 4: COMMITTEES -->
+            <h4><i class="fa-solid fa-people-group"></i> Committees / Departments</h4>
+            <div class="tag-cloud">
+                {% for tag in committees %}
+                <div class="tag-item" data-id="{{ tag.id }}">
+                    {{ tag.name }}
+                    {% if request.user.is_superuser %}
+                    <i class="fa-regular fa-trash-can" onclick="deleteTag('{{ tag.id }}')"></i>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="tag-item">Finance</div>
+                <div class="tag-item">Health</div>
+                <div class="tag-item">Education</div>
+                <div class="tag-item">Public Works</div>
+                {% endfor %}
+                {% if request.user.is_superuser %}
+                <div class="tag-item tag-item-add">
+                    <i class="fa-solid fa-plus"></i>
+                    <input type="text" id="new_committee" placeholder="New Committee">
+                    <button type="button" class="tag-add-btn" onclick="addTag('committee', 'new_committee')">Add</button>
+                </div>
+                {% endif %}
+            </div>
 
-                    <div class="settings-actions" style="margin-top: 50px;">
-                        <button class="btn-discard">Discard Changes</button>
-                        <button class="btn-apply" style="width: 280px;">Update Metadata Registry</button>
-                    </div>
-                </div> </div>
-        </div>
+            <!-- SECTION 5: KEYWORDS -->
+            <h4><i class="fa-solid fa-tag"></i> Common Keywords</h4>
+            <div class="tag-cloud">
+                {% for tag in keywords %}
+                <div class="tag-item" data-id="{{ tag.id }}">
+                    {{ tag.name }}
+                    {% if request.user.is_superuser %}
+                    <i class="fa-regular fa-trash-can" onclick="deleteTag('{{ tag.id }}')"></i>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="tag-item">Budget</div>
+                <div class="tag-item">Infrastructure</div>
+                <div class="tag-item">Health</div>
+                <div class="tag-item">Education</div>
+                {% endfor %}
+                {% if request.user.is_superuser %}
+                <div class="tag-item tag-item-add">
+                    <i class="fa-solid fa-plus"></i>
+                    <input type="text" id="new_keyword" placeholder="New Keyword">
+                    <button type="button" class="tag-add-btn" onclick="addTag('keyword', 'new_keyword')">Add</button>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="settings-footer">
+                <button type="reset" class="discard-link">Reset</button>
+                <button type="submit" name="save_metadata" class="btn-apply">Save All Tags</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function addTag(tagType, inputId) {
+    const input = document.getElementById(inputId);
+    const value = input.value.trim();
+    if (!value) {
+        alert('Please enter a tag name');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('add_tag', '1');
+    formData.append('tag_type', tagType);
+    formData.append('tag_value', value);
+    
+    fetch('{% url "metadata_tags" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        location.reload();
+    });
+}
+
+function deleteTag(tagId) {
+    if (!confirm('Delete this tag? This action cannot be undone.')) return;
+    
+    const formData = new FormData();
+    formData.append('delete_tag', '1');
+    formData.append('tag_id', tagId);
+    
+    fetch('{% url "metadata_tags" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    })
+    .then(response => {
+        if (response.redirected) {
+            window.location.href = response.url;
+        } else {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        location.reload();
+    });
+}
+</script>
 {% endblock %}

@@ -33,6 +33,12 @@ urlpatterns = [
 
     path('dashboard/', views.dashboard_view, name='dashboard'),
     path('documents/', views.documents_view, name='documents'),
+    path('audit_logs/', views.audit_logs_view, name='audit_logs'),
+    path('user_management/', views.user_management_view, name='user_management'),
+    path('create_user/', views.create_user_view, name='create_user'),
+    path('edit_user/', views.edit_user_view, name='edit_user'),
+    path('delete_user/<int:user_id>/', views.delete_user_view, name='delete_user'),
+    path('toggle_permission/<int:user_id>/<str:perm_type>/', views.toggle_permission_view, name='toggle_permission'),
 
     #ARCHIVE VIEWS
     path('archive/', views.archive_view, name='archive'),
@@ -40,23 +46,21 @@ urlpatterns = [
     path('resolutions/', views.resolutions_view, name='resolutions'),
     path('confidential/', views.confidential_view, name='confidential'),
     path('vetoed/', views.vetoed_view, name='vetoed'),
-    path('create-archive-folder/', views.create_archive_folder, name='create_archive_folder'),
-
-    path('audit_logs/', views.audit_logs_view, name='audit_logs'),
-    path('user_management/', views.user_management_view, name='user_management'),
-    path('create_user/', views.create_user_view, name='create_user'),
-    path('edit_user/', views.edit_user_view, name='edit_user'),
-    path('delete_user/<int:user_id>/', views.delete_user_view, name='delete_user'),
-    path('toggle_permission/<int:user_id>/<str:perm_type>/', views.toggle_permission_view, name='toggle_permission'),
+    path('create_archive_folder/', views.create_archive_folder, name='create_archive_folder'),
  
     # USER SETTINGS/GENERAL INFO VIEW
-    path('general_info/', views.general_info_view, name='general_info'),
-    path('backup_cloud/', views.backup_cloud_view, name='backup_cloud'),
-    path('metadata_tags/', views.metadata_tags_view, name='metadata_tags'),
-    path('security_policy/', views.security_policy_view, name='security_policy'),
-    path('notifications/', views.notifications_view, name='notifications'),
+    path('settings/general-info/', views.general_info_view, name='general_info'),
+    path('settings/backup-cloud/', views.backup_cloud_view, name='backup_cloud'),
+    path('settings/metadata-tags/', views.metadata_tags_view, name='metadata_tags'),
+    path('settings/security-policy/', views.security_policy_view, name='security_policy'),
+    path('settings/notifications/', views.notifications_view, name='notifications'),
+    
+    # SETTINGS API ENDPOINTS 
+    path('api/trigger-backup/', views.trigger_backup_api, name='trigger_backup'),
+    path('api/test-email/', views.test_email_api, name='test_email'),
     path('api/notifications/', views.get_notifications, name='get_notifications'),
 
+    # DOCUMENT MANAGEMENT 
     path('upload/', views.upload_document, name='upload_document'),
     path('edit-doc/', views.edit_document, name='edit_document'),
 ]
