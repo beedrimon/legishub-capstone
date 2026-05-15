@@ -2,11 +2,12 @@ from django.core.management.base import BaseCommand
 from django.core.mail import send_mail
 from django.conf import settings
 from core.models import LegislativeDocument, AuditLog, ArchivedDocument
+from django.contrib.auth.models import User # <-- NEW: Imports the User database
 from django.db import transaction
 import datetime
 
 class Command(BaseCommand):
-    help = "Checks for 'For Approval' documents older than 14 days, auto-approves them, and moves them to Archives."
+    help = "Checks for 'For Approval' documents older than 14 days, auto-approves them, moves them to Archives, and emails staff."
 
     def handle(self, *args, **kwargs):
         # 1. Calculate the date exactly 14 days ago
@@ -24,6 +25,22 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("No 'For Approval' documents have reached the 14-day limit today."))
             return
 
+        # ==========================================
+        # NEW: FETCH ALL STAFF EMAILS DYNAMICALLY
+        # ==========================================
+        # This grabs the emails of all active Admins and Staff members.
+        # We filter by `is_staff=True` so we don't accidentally spam read-only Legislators!
+        recipient_emails = list(
+            User.objects.filter(is_active=True, is_staff=True)
+            .exclude(email='')
+            .values_list('email', flat=True)
+        )
+
+        # Safety fallback: If no staff members have emails in the system, send it to your master email
+        if not recipient_emails:
+            recipient_emails = ['jayveemoral0319@gmail.com']
+
+
         # 3. Process each overdue document
         for doc in overdue_docs:
             try:
@@ -35,7 +52,7 @@ class Command(BaseCommand):
                         title=doc.title,
                         doc_type=doc.doc_type,
                         year=doc.year,
-                        date_enacted=datetime.date.today(), # Sets the enacted date to today (System Approval Date)
+                        date_enacted=datetime.date.today(), # Sets the enacted date to today
                         sponsor=doc.sponsor,
                         co_sponsors=doc.co_sponsors,
                         visibility=doc.visibility,
@@ -70,7 +87,7 @@ class Command(BaseCommand):
                         details=f"System Auto-Approve: 14-day limit reached. '{doc_number}' was automatically approved and transferred to Archives."
                     )
 
-                    # E. Send the Gmail Notification
+                    # E. Send the Gmail Notification to everyone!
                     subject = f"ALERT: Auto-Approved & Archived {doc_number}"
                     message = (
                         f"Notice from Marikina LegisHub:\n\n"
@@ -83,7 +100,7 @@ class Command(BaseCommand):
                         subject=subject,
                         message=message,
                         from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=['admin@example.com'], # Change this to the email that should receive the alert!
+                        recipient_list=recipient_emails, # <-- NOW USES THE DYNAMIC LIST!
                         fail_silently=False,
                     )
 
@@ -92,4 +109,4 @@ class Command(BaseCommand):
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"Failed to process {doc.document_number}: {str(e)}"))
 
-        self.stdout.write(self.style.SUCCESS(f"Task Complete! {count} documents processed."))
+        self.stdout.write(self.style.SUCCESS(f"Task Complete! {count} documents processed. Emails sent to: {', '.join(recipient_emails)}"))
