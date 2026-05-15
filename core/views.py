@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder
+from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument
 from django.core.paginator import Paginator
 from django.db.models import Q, Case, IntegerField, Value, When
 from django.db import transaction, IntegrityError
@@ -464,8 +464,8 @@ def vetoed_view(request):
     if is_legislator(request.user):
         return redirect('archive') # Legislators can't see this
         
-    # FIX: Query the main LegislativeDocument table where status='Vetoed'
-    vetoed_docs = LegislativeDocument.objects.filter(status='Vetoed').order_by('-date_filed')
+    # --- CHANGED: Now pulls from the new dedicated VetoedDocument database ---
+    vetoed_docs = VetoedDocument.objects.all().order_by('-date_vetoed')
     
     return render(request, 'archives/vetoed.html', {'archives': vetoed_docs})
 
@@ -1377,6 +1377,49 @@ def edit_document(request):
             except Exception as e:
                 messages.error(request, f'Failed to archive: {str(e)}')
                 return redirect(request.META.get('HTTP_REFERER', 'documents'))
+        
+        # --- NEW: VETO TRANSFER LOGIC ---
+        elif doc.status == 'Vetoed':
+            try:
+                with transaction.atomic():
+                    vetoed_record = VetoedDocument.objects.create(
+                        document_number=doc.document_number,
+                        title=doc.title,
+                        doc_type=doc.doc_type,
+                        year=doc.year,
+                        date_enacted=doc.date_enacted,
+                        sponsor=doc.sponsor,
+                        co_sponsors=doc.co_sponsors,
+                        visibility=doc.visibility,
+                        keywords=doc.keywords,
+                        physical_storage=doc.physical_storage,
+                        veto_reason=doc.veto_reason, 
+                        date_filed=doc.date_filed,
+                        vetoed_by=request.user
+                    )
+
+                    # Safely move the PDF file
+                    if doc.file_attachment and doc.file_attachment.name:
+                        try:
+                            vetoed_record.file_attachment.save(
+                                doc.file_attachment.name.split('/')[-1],
+                                doc.file_attachment.file,
+                                save=True
+                            )
+                        except FileNotFoundError:
+                            pass 
+                    
+                    doc.delete() # Deletes it from the main Document page forever
+                    messages.success(request, f'Document successfully moved to Vetoed Records.')
+                    return redirect('vetoed')
+                    
+            except IntegrityError:
+                messages.error(request, f'A veto record for {doc.document_number} already exists.')
+                return redirect(request.META.get('HTTP_REFERER', 'documents'))
+            except Exception as e:
+                messages.error(request, f'Failed to veto document: {str(e)}')
+                return redirect(request.META.get('HTTP_REFERER', 'documents'))
+        
         else:
             doc.save()
 
@@ -1394,3 +1437,117 @@ def edit_document(request):
 
             messages.success(request, 'Document successfully updated.')
             return redirect(request.META.get('HTTP_REFERER', 'documents'))
+        
+# ==========================================
+# EDIT VETOED DOCUMENT VIEW
+# ==========================================
+@login_required(login_url='login')
+def edit_vetoed(request):
+    if is_legislator(request.user):
+        messages.error(request, 'Action Denied: Legislators have read-only access.')
+        return redirect('vetoed')
+
+    if request.method == 'POST':
+        doc_id = request.POST.get('doc_id')
+        try:
+            doc = VetoedDocument.objects.get(id=doc_id)
+        except VetoedDocument.DoesNotExist:
+            messages.error(request, 'Document not found.')
+            return redirect('vetoed')
+        
+        # --- NEW: CHECK FOR STATUS CHANGE (UN-VETO) ---
+        new_status = request.POST.get('status')
+        if new_status and new_status != 'Vetoed':
+            try:
+                with transaction.atomic():
+                    # 1. Re-create the document in the Main Repository
+                    restored_doc = LegislativeDocument.objects.create(
+                        document_number=doc.document_number,
+                        title=request.POST.get('title') or doc.title,
+                        doc_type=request.POST.get('doc_type') or doc.doc_type,
+                        year=request.POST.get('year') or doc.year,
+                        date_enacted=request.POST.get('date_enacted') or doc.date_enacted,
+                        sponsor=request.POST.get('sponsor') or doc.sponsor,
+                        co_sponsors=request.POST.get('co_sponsors') or doc.co_sponsors,
+                        visibility=request.POST.get('visibility') or doc.visibility,
+                        keywords=request.POST.get('keywords') or doc.keywords,
+                        physical_storage=request.POST.get('physical_storage') or doc.physical_storage,
+                        status=new_status, 
+                        veto_reason=None, # Clear the veto reason on the active copy
+                        date_filed=doc.date_filed,
+                        uploaded_by=request.user
+                    )
+
+                    # 2. Safely move the PDF file back
+                    if 'file_attachment' in request.FILES:
+                        restored_doc.file_attachment = request.FILES['file_attachment']
+                        restored_doc.save()
+                    elif doc.file_attachment and doc.file_attachment.name:
+                        try:
+                            restored_doc.file_attachment.save(
+                                doc.file_attachment.name.split('/')[-1],
+                                doc.file_attachment.file,
+                                save=True
+                            )
+                        except FileNotFoundError:
+                            pass
+                    
+                    # 3. DO NOT DELETE ORIGINAL! (This keeps the historical copy in Vetoed)
+
+                    # 4. Log the restoration
+                    AuditLog.objects.create(
+                        user=request.user,
+                        action='Edit',
+                        document=restored_doc,
+                        details=f"Overrode Veto and restored '{restored_doc.document_number}' to '{new_status}'. A historical copy was retained in Vetoed records."
+                    )
+
+                    messages.success(request, f'Document restored to the Main Repository as {new_status}. A copy was retained in Vetoed records.')
+                    return redirect('vetoed')
+
+            except IntegrityError:
+                messages.error(request, f'A record for {doc.document_number} already exists in the main repository.')
+                return redirect('vetoed')
+            except Exception as e:
+                messages.error(request, f'Failed to restore document: {str(e)}')
+                return redirect('vetoed')
+            
+        # --- SMART UPDATE & TRACKING LOGIC ---
+        changes = []
+        def update_field(attr_name, form_val, display_name):
+            old_val = getattr(doc, attr_name)
+            if form_val and str(old_val) != str(form_val):
+                changes.append(f"{display_name} to '{form_val}'")
+                setattr(doc, attr_name, form_val)
+
+        update_field('title', request.POST.get('title'), 'Title')
+        update_field('document_number', request.POST.get('document_number'), 'Ref No.')
+        update_field('doc_type', request.POST.get('doc_type'), 'Category')
+        update_field('year', request.POST.get('year'), 'Year')
+        update_field('date_enacted', request.POST.get('date_enacted'), 'Date Enacted')
+        update_field('sponsor', request.POST.get('sponsor'), 'Author')
+        update_field('co_sponsors', request.POST.get('co_sponsors'), 'Co-Sponsors')
+        update_field('keywords', request.POST.get('keywords'), 'Keywords')
+        update_field('visibility', request.POST.get('visibility'), 'Visibility')
+        update_field('physical_storage', request.POST.get('physical_storage'), 'Storage')
+        update_field('veto_reason', request.POST.get('veto_reason'), 'Veto Reason')
+
+        if 'file_attachment' in request.FILES:
+            doc.file_attachment = request.FILES['file_attachment']
+            changes.append("updated the PDF file")
+
+        doc.save()
+
+        # Save an Audit Log safely (since it's no longer in the main table)
+        if changes:
+            change_summary = "Changed " + ", ".join(changes)
+            AuditLog.objects.create(
+                user=request.user,
+                action='Edit',
+                details=f"Edited VETOED Record '{doc.document_number}': {change_summary}"
+            )
+
+        messages.success(request, 'Vetoed document successfully updated.')
+        return redirect('vetoed')
+        
+    return redirect('vetoed')
