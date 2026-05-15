@@ -864,44 +864,53 @@ def metadata_tags_view(request):
         messages.error(request, 'Access denied. Admin privileges required.')
         return redirect('documents')
     
+    # Initialize session storage for tags if not exists
+    if 'metadata_tags' not in request.session:
+        request.session['metadata_tags'] = {
+            'doc_types': ['Ordinance', 'Resolution', 'Executive Order', 'Committee Report', 'Minutes', 'Agenda'],
+            'statuses': ['Draft', 'Pending', '1st Reading', '2nd Reading', '3rd Reading', 'Approved', 'Vetoed', 'Archived', 'Escalated'],
+            'barangays': [
+                'Barangka', 'Calumpang', 'Concepcion Uno', 'Concepcion Dos',
+                'Industrial Valley', 'Jesus De La Peña', 'Malanday', 'Marikina Heights',
+                'Nangka', 'Parang', 'San Roque', 'Santa Elena',
+                'Santo Niño', 'Tañong', 'Tumana', 'Provident'
+            ],
+            'committees': ['Finance', 'Health', 'Education', 'Public Works', 'Peace & Order', 'Agriculture', 'Tourism'],
+            'keywords': ['Budget', 'Infrastructure', 'Health', 'Education', 'Taxation', 'Environment', 'Peace and Order']
+        }
+        request.session.modified = True
+    
     if request.method == 'POST':
         if 'add_tag' in request.POST:
             tag_type = request.POST.get('tag_type')
-            tag_name = request.POST.get('tag_value', '').strip()
+            tag_value = request.POST.get('tag_value', '').strip()
             
-            if tag_name and tag_type:
-                tag, created = MetadataTag.objects.get_or_create(
-                    tag_type=tag_type,
-                    name=tag_name,
-                    defaults={'created_by': request.user}
-                )
-                if created:
-                    log_audit(request.user, 'Upload', details=f"Added metadata tag: {tag_type}/{tag_name}")
-                    messages.success(request, f'Tag "{tag_name}" added!')
+            if tag_value and tag_type in request.session['metadata_tags']:
+                if tag_value not in request.session['metadata_tags'][tag_type]:
+                    request.session['metadata_tags'][tag_type].append(tag_value)
+                    request.session.modified = True
+                    messages.success(request, f'Tag "{tag_value}" added successfully!')
                 else:
-                    messages.warning(request, f'Tag "{tag_name}" already exists.')
+                    messages.warning(request, f'Tag "{tag_value}" already exists.')
         
         elif 'delete_tag' in request.POST:
-            tag_id = request.POST.get('tag_id')
-            try:
-                tag = MetadataTag.objects.get(id=tag_id)
-                tag_name = tag.name
-                tag_type = tag.tag_type
-                tag.delete()
-                log_audit(request.user, 'Edit', details=f"Deleted metadata tag: {tag_type}/{tag_name}")
-                messages.success(request, f'Tag "{tag_name}" deleted!')
-            except MetadataTag.DoesNotExist:
-                messages.error(request, 'Tag not found.')
+            tag_type = request.POST.get('tag_type')
+            tag_value = request.POST.get('tag_value')
+            
+            if tag_type in request.session['metadata_tags'] and tag_value in request.session['metadata_tags'][tag_type]:
+                request.session['metadata_tags'][tag_type].remove(tag_value)
+                request.session.modified = True
+                messages.success(request, f'Tag "{tag_value}" deleted successfully!')
         
         return redirect('metadata_tags')
     
-    # Get all tags grouped by type - using the model
+    # Get tags from session
     context = {
-        'doc_types': MetadataTag.objects.filter(tag_type='doc_type', is_active=True),
-        'statuses': MetadataTag.objects.filter(tag_type='status', is_active=True),
-        'barangays': MetadataTag.objects.filter(tag_type='barangay', is_active=True),
-        'committees': MetadataTag.objects.filter(tag_type='committee', is_active=True),
-        'keywords': MetadataTag.objects.filter(tag_type='keyword', is_active=True),
+        'doc_types': request.session['metadata_tags']['doc_types'],
+        'statuses': request.session['metadata_tags']['statuses'],
+        'barangays': request.session['metadata_tags']['barangays'],
+        'committees': request.session['metadata_tags']['committees'],
+        'keywords': request.session['metadata_tags']['keywords'],
         'is_legislator': is_legislator(request.user),
     }
     return render(request, 'settings_page/metadata_tags.html', context)
