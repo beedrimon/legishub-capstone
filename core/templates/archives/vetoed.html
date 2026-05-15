@@ -114,6 +114,7 @@
 {% endblock %}
 
 {% block modals %}
+{{ block.super }}
 <!-- Vetoed Detailed View Modal -->
 <div id="viewModal" class="modal-overlay">
     <div class="modal-container detail-view-container">
@@ -305,7 +306,3 @@
     </div>
 </div>
 {% endblock modals %}
-
-{% block extra_js %}
-    <script src="{% static 'js/modals.js' %}?v=5"></script>
-{% endblock extra_js %}
