@@ -48,12 +48,13 @@ urlpatterns = [
     path('vetoed/', views.vetoed_view, name='vetoed'),
     path('create_archive_folder/', views.create_archive_folder, name='create_archive_folder'),
  
-    # USER SETTINGS/GENERAL INFO VIEW
+    # USER SETTINGS/
     path('settings/general-info/', views.general_info_view, name='general_info'),
     path('settings/backup-cloud/', views.backup_cloud_view, name='backup_cloud'),
     path('settings/metadata-tags/', views.metadata_tags_view, name='metadata_tags'),
     path('settings/security-policy/', views.security_policy_view, name='security_policy'),
     path('settings/notifications/', views.notifications_view, name='notifications'),
+    path('maintenance/', views.maintenance_view, name='maintenance'),
     
     # SETTINGS API ENDPOINTS 
     path('api/trigger-backup/', views.trigger_backup_api, name='trigger_backup'),

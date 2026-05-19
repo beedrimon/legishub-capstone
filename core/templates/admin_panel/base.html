@@ -14,6 +14,15 @@
 
 <body class="{% block body_class %}{% endblock %}">
 
+    <!-- ========================================== -->
+    <!-- MAINTENANCE MODE BANNER (Admin Only) -->
+    <!-- ========================================== -->
+    {% if request.session.maintenance_mode and request.user.is_superuser %}
+    <div style="background: #ff9800; color: white; text-align: center; padding: 10px; font-size: 14px; position: sticky; top: 0; z-index: 1000; font-weight: 500;">
+        <i class="fa-solid fa-tools"></i> <strong>MAINTENANCE MODE ACTIVE</strong> - Only administrators can access the system. Regular users will see a maintenance page.
+    </div>
+    {% endif %}
+
     <!-- GLOBAL TOAST MESSAGES -->
     <div class="toast-container">
         {% if messages %}
@@ -333,76 +342,94 @@
 
     <script src="{% static 'js/modals.js' %}?v=9"></script>
 
-
-     <!-- ========================================== -->
+    <!-- ========================================== -->
     <!-- SESSION TIMEOUT AUTO-LOGOUT SCRIPT -->
     <!-- ========================================== -->
     {% if request.session.session_timeout %}
     <script>
         (function() {
             let timeoutTimer;
+            let warningTimer;
+            let logoutTimer;
+            
             const sessionTimeoutValue = {{ request.session.session_timeout|default:30 }};
             
-            // Convert to milliseconds (handle 0.5 for 30 seconds testing)
+            // Convert to milliseconds
             let timeoutMs;
             if (sessionTimeoutValue === 0.5) {
                 timeoutMs = 30 * 1000; // 30 seconds
             } else {
-                timeoutMs = sessionTimeoutValue * 60 * 1000; // minutes to milliseconds
+                timeoutMs = sessionTimeoutValue * 60 * 1000;
             }
             
             console.log(`Session timeout set to: ${sessionTimeoutValue === 0.5 ? '30 seconds' : sessionTimeoutValue + ' minutes'} (${timeoutMs/1000} seconds)`);
             
-            let warningTimeout;
-            
-            function resetTimer() {
-                // Clear existing timers
-                clearTimeout(timeoutTimer);
-                clearTimeout(warningTimeout);
-                
-                // Remove existing warning if present
+            // Remove any existing warning
+            function removeWarning() {
                 const existingWarning = document.querySelector('.session-timeout-warning');
                 if (existingWarning) existingWarning.remove();
+            }
+            
+            // Show warning before logout
+            function showWarning() {
+                removeWarning();
                 
-                // Set new timer
+                const warningMsg = document.createElement('div');
+                warningMsg.className = 'session-timeout-warning';
+                warningMsg.innerHTML = `
+                    <div style="position: fixed; top: 20px; right: 20px; background: #ff9800; color: white; padding: 15px 20px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                        <strong>⚠️ Session Expiring!</strong><br>
+                        You will be logged out in <span id="logoutCountdown">10</span> seconds due to inactivity.
+                    </div>
+                `;
+                document.body.appendChild(warningMsg);
+                
+                // Countdown timer
+                let countdown = 10;
+                const countdownSpan = document.getElementById('logoutCountdown');
+                const countdownInterval = setInterval(() => {
+                    countdown--;
+                    if (countdownSpan) countdownSpan.textContent = countdown;
+                    if (countdown <= 0) {
+                        clearInterval(countdownInterval);
+                    }
+                }, 1000);
+                
+                // Logout after 10 seconds
+                logoutTimer = setTimeout(() => {
+                    window.location.href = '{% url "logout" %}';
+                }, 10000);
+            }
+            
+            // Reset all timers
+            function resetTimers() {
+                clearTimeout(timeoutTimer);
+                clearTimeout(warningTimer);
+                clearTimeout(logoutTimer);
+                removeWarning();
+                
                 timeoutTimer = setTimeout(() => {
-                    // Show warning
-                    const warningMsg = document.createElement('div');
-                    warningMsg.className = 'session-timeout-warning';
-                    warningMsg.innerHTML = `
-                        <div style="position: fixed; top: 20px; right: 20px; background: #ff9800; color: white; padding: 15px 20px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-                            <strong>⚠️ Session Expiring!</strong><br>
-                            You will be logged out in 10 seconds due to inactivity.
-                        </div>
-                    `;
-                    document.body.appendChild(warningMsg);
-                    
-                    // Remove warning after 5 seconds
-                    warningTimeout = setTimeout(() => {
-                        if (warningMsg) warningMsg.remove();
-                    }, 5000);
-                    
-                    // Logout after 10 seconds
-                    setTimeout(() => {
-                        window.location.href = '{% url "logout" %}';
-                    }, 10000);
-                }, timeoutMs);
+                    warningTimer = setTimeout(() => {
+                        showWarning();
+                    }, timeoutMs - 10000);
+                }, 0);
             }
             
             // Reset timer on user activity
-            const events = ['load', 'mousemove', 'keypress', 'click', 'scroll', 'touchstart'];
+            const events = ['mousemove', 'keypress', 'click', 'scroll', 'touchstart'];
             events.forEach(event => {
-                window.addEventListener(event, resetTimer);
+                window.addEventListener(event, resetTimers);
             });
             
             // Initial start
-            resetTimer();
+            resetTimers();
         })();
     </script>
-    
+
     <style>
         .session-timeout-warning {
             animation: slideIn 0.3s ease;
+            z-index: 9999;
         }
         @keyframes slideIn {
             from {

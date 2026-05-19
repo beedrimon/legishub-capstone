@@ -781,7 +781,7 @@ def general_info_view(request):
         support_email_value = request.POST.get('support_email', 'admin@marikinalegishub.gov.ph')
         maintenance_mode_value = request.POST.get('maintenance_mode') == 'on'
         
-        # Convert session_timeout to float
+        # Convert session_timeout to float (handle 0.5 for 30 seconds)
         try:
             session_timeout = float(session_timeout_value)
         except ValueError:
@@ -844,20 +844,30 @@ def general_info_view(request):
         request.user.save()
         print(f"User saved: {request.user.username}")
         
-        # Save system settings to DATABASE (not just session)
+        # Save system settings to DATABASE (persistent storage)
         if request.user.is_superuser:
-            SystemSetting.set('system_name', system_name_value, 'string', 'System display name', request.user)
-            SystemSetting.set('session_timeout', session_timeout, 'float', 'Auto-logout timeout in minutes (0.5 = 30 seconds)', request.user)
-            SystemSetting.set('support_email', support_email_value, 'string', 'Support contact email', request.user)
-            SystemSetting.set('maintenance_mode', maintenance_mode_value, 'boolean', 'Maintenance mode status', request.user)
-            
-            # Also save to session for immediate use in current session
-            request.session['system_name'] = system_name_value
-            request.session['session_timeout'] = session_timeout
-            request.session['support_email'] = support_email_value
-            request.session['maintenance_mode'] = maintenance_mode_value
-            
-            print(f"System settings saved to DATABASE: timeout={session_timeout}")
+            try:
+                SystemSetting.set('system_name', system_name_value, 'string', 'System display name', request.user)
+                SystemSetting.set('session_timeout', session_timeout, 'float', 'Auto-logout timeout in minutes (0.5 = 30 seconds)', request.user)
+                SystemSetting.set('support_email', support_email_value, 'string', 'Support contact email', request.user)
+                SystemSetting.set('maintenance_mode', maintenance_mode_value, 'boolean', 'Maintenance mode status', request.user)
+                print(f"System settings saved to DATABASE: timeout={session_timeout}")
+            except Exception as e:
+                print(f"Error saving system settings: {e}")
+        
+        # Save to session for immediate use in current session
+        request.session['system_name'] = system_name_value
+        request.session['session_timeout'] = session_timeout
+        request.session['support_email'] = support_email_value
+        request.session['maintenance_mode'] = maintenance_mode_value
+        
+        # IMPORTANT: Set Django's session expiry to match the timeout
+        if session_timeout == 0.5:
+            request.session.set_expiry(30)  # 30 seconds
+        else:
+            request.session.set_expiry(session_timeout * 60)  # minutes to seconds
+        
+        print(f"Session expiry set to: {request.session.get_expiry_age()} seconds")
         
         # Create audit log
         AuditLog.objects.create(
@@ -878,16 +888,29 @@ def general_info_view(request):
     # This ensures settings persist after logout/login
     
     # Try to load from database
-    db_system_name = SystemSetting.get('system_name', 'Marikina LegisHub')
-    db_session_timeout = SystemSetting.get('session_timeout', 30)
-    db_support_email = SystemSetting.get('support_email', 'admin@marikinalegishub.gov.ph')
-    db_maintenance_mode = SystemSetting.get('maintenance_mode', False)
+    try:
+        db_system_name = SystemSetting.get('system_name', 'Marikina LegisHub')
+        db_session_timeout = SystemSetting.get('session_timeout', 30)
+        db_support_email = SystemSetting.get('support_email', 'admin@marikinalegishub.gov.ph')
+        db_maintenance_mode = SystemSetting.get('maintenance_mode', False)
+    except Exception as e:
+        print(f"Error loading from database: {e}")
+        db_system_name = 'Marikina LegisHub'
+        db_session_timeout = 30
+        db_support_email = 'admin@marikinalegishub.gov.ph'
+        db_maintenance_mode = False
     
     # Also save to session for current use
     request.session['system_name'] = db_system_name
     request.session['session_timeout'] = db_session_timeout
     request.session['support_email'] = db_support_email
     request.session['maintenance_mode'] = db_maintenance_mode
+    
+    # Set session expiry based on loaded value
+    if db_session_timeout == 0.5:
+        request.session.set_expiry(30)
+    else:
+        request.session.set_expiry(db_session_timeout * 60)
     
     context = {
         'user': request.user,
@@ -899,6 +922,9 @@ def general_info_view(request):
     }
     return render(request, 'settings_page/general_info.html', context)
 
+#MAINTENANCE MODE VIEW
+def maintenance_view(request):
+    return render(request, 'admin_panel/maintenance.html')
 
 #BACKUP & CLOUD VIEW
 @login_required(login_url='login')
