@@ -332,6 +332,91 @@
     {% endblock modals %}
 
     <script src="{% static 'js/modals.js' %}?v=9"></script>
+
+
+     <!-- ========================================== -->
+    <!-- SESSION TIMEOUT AUTO-LOGOUT SCRIPT -->
+    <!-- ========================================== -->
+    {% if request.session.session_timeout %}
+    <script>
+        (function() {
+            let timeoutTimer;
+            const sessionTimeoutValue = {{ request.session.session_timeout|default:30 }};
+            
+            // Convert to milliseconds (handle 0.5 for 30 seconds testing)
+            let timeoutMs;
+            if (sessionTimeoutValue === 0.5) {
+                timeoutMs = 30 * 1000; // 30 seconds
+            } else {
+                timeoutMs = sessionTimeoutValue * 60 * 1000; // minutes to milliseconds
+            }
+            
+            console.log(`Session timeout set to: ${sessionTimeoutValue === 0.5 ? '30 seconds' : sessionTimeoutValue + ' minutes'} (${timeoutMs/1000} seconds)`);
+            
+            let warningTimeout;
+            
+            function resetTimer() {
+                // Clear existing timers
+                clearTimeout(timeoutTimer);
+                clearTimeout(warningTimeout);
+                
+                // Remove existing warning if present
+                const existingWarning = document.querySelector('.session-timeout-warning');
+                if (existingWarning) existingWarning.remove();
+                
+                // Set new timer
+                timeoutTimer = setTimeout(() => {
+                    // Show warning
+                    const warningMsg = document.createElement('div');
+                    warningMsg.className = 'session-timeout-warning';
+                    warningMsg.innerHTML = `
+                        <div style="position: fixed; top: 20px; right: 20px; background: #ff9800; color: white; padding: 15px 20px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+                            <strong>⚠️ Session Expiring!</strong><br>
+                            You will be logged out in 10 seconds due to inactivity.
+                        </div>
+                    `;
+                    document.body.appendChild(warningMsg);
+                    
+                    // Remove warning after 5 seconds
+                    warningTimeout = setTimeout(() => {
+                        if (warningMsg) warningMsg.remove();
+                    }, 5000);
+                    
+                    // Logout after 10 seconds
+                    setTimeout(() => {
+                        window.location.href = '{% url "logout" %}';
+                    }, 10000);
+                }, timeoutMs);
+            }
+            
+            // Reset timer on user activity
+            const events = ['load', 'mousemove', 'keypress', 'click', 'scroll', 'touchstart'];
+            events.forEach(event => {
+                window.addEventListener(event, resetTimer);
+            });
+            
+            // Initial start
+            resetTimer();
+        })();
+    </script>
+    
+    <style>
+        .session-timeout-warning {
+            animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+    {% endif %}
+    
     {% block extra_js %}{% endblock %}
 </body>
 

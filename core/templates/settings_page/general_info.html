@@ -16,7 +16,6 @@
 {% endblock %}
 
 {% block content %}
-<div class="breadcrumb">Settings / <span>General Info</span></div>
 
 <div class="settings-container">
     <div class="settings-nav">
@@ -100,20 +99,22 @@
                 <div class="config-group">
                     <label>System Name</label>
                     <input type="text" name="system_name" id="system_name" class="config-control" value="{{ system_name|default:'Marikina LegisHub' }}">
+                    <span class="italic-hint">Display name shown in browser tab and header</span>
                 </div>
                 <div class="config-group">
-                    <label>Session Timeout (minutes)</label>
+                    <label>Session Timeout</label>
                     <select name="session_timeout" id="session_timeout" class="config-control">
+                        <option value="0.5" {% if session_timeout == 0.5 %}selected{% endif %}>30 seconds (Testing)</option>
                         <option value="15" {% if session_timeout == 15 %}selected{% endif %}>15 minutes</option>
                         <option value="30" {% if session_timeout == 30 %}selected{% endif %}>30 minutes</option>
                         <option value="60" {% if session_timeout == 60 %}selected{% endif %}>60 minutes</option>
                     </select>
-                    <span class="italic-hint">Auto-logout after inactivity</span>
+                    <span class="italic-hint">Auto-logout after inactivity (30 seconds available for testing)</span>
                 </div>
                 <div class="config-group">
                     <label>Support Contact Email</label>
                     <input type="email" name="support_email" id="support_email" class="config-control" value="{{ support_email|default:'admin@marikinalegishub.gov.ph' }}">
-                    <span class="italic-hint">Email address for system notifications</span>
+                    <span class="italic-hint">Email address for system notifications and user support</span>
                 </div>
                 <div class="config-group">
                     <label>Maintenance Mode</label>
@@ -122,7 +123,7 @@
                             <input type="checkbox" name="maintenance_mode" id="maintenance_mode" {% if maintenance_mode %}checked{% endif %}>
                             <span class="slider"></span>
                         </label>
-                        <span class="italic-hint">When enabled, only admins can access</span>
+                        <span class="italic-hint">When enabled, only admins can access the system</span>
                     </div>
                 </div>
             </div>
@@ -157,9 +158,6 @@
     </div>
 </div>
 
-<!-- Override modals to prevent base modals from showing -->
-{% block modals %}{% endblock %}
-
 <script>
 // Store original values when page loads
 const originalValues = {
@@ -170,7 +168,7 @@ const originalValues = {
     role: '{% if user.is_superuser %}admin{% elif user.is_staff %}staff{% else %}legislator{% endif %}',
     {% if request.user.is_superuser %}
     system_name: '{{ system_name|default:"Marikina LegisHub"|escapejs }}',
-    session_timeout: '{{ session_timeout|default:"30" }}',
+    session_timeout: parseFloat('{{ session_timeout|default:"30" }}'),
     support_email: '{{ support_email|default:"admin@marikinalegishub.gov.ph"|escapejs }}',
     maintenance_mode: {% if maintenance_mode %}true{% else %}false{% endif %},
     {% endif %}
@@ -185,6 +183,15 @@ function getRoleText(roleValue) {
         'legislator': 'Legislator (Read only)'
     };
     return roles[roleValue] || roleValue;
+}
+
+function formatTimeout(value) {
+    const numValue = parseFloat(value);
+    if (numValue === 0.5) return '30 seconds';
+    if (numValue === 15) return '15 minutes';
+    if (numValue === 30) return '30 minutes';
+    if (numValue === 60) return '60 minutes';
+    return numValue + ' minutes';
 }
 
 function showChangeSummary() {
@@ -261,13 +268,11 @@ function showChangeSummary() {
     }
     
     const sessionTimeout = document.getElementById('session_timeout');
-    if (sessionTimeout && sessionTimeout.value !== originalValues.session_timeout) {
-        const timeoutText = sessionTimeout.value === '15' ? '15 minutes' : (sessionTimeout.value === '30' ? '30 minutes' : '60 minutes');
-        const oldTimeoutText = originalValues.session_timeout === '15' ? '15 minutes' : (originalValues.session_timeout === '30' ? '30 minutes' : '60 minutes');
+    if (sessionTimeout && parseFloat(sessionTimeout.value) !== parseFloat(originalValues.session_timeout)) {
         changes.push({
             field: 'Session Timeout',
-            oldValue: oldTimeoutText,
-            newValue: timeoutText,
+            oldValue: formatTimeout(originalValues.session_timeout),
+            newValue: formatTimeout(sessionTimeout.value),
             italic: true
         });
     }
@@ -335,7 +340,6 @@ function submitForm() {
     
     // If role changed, add hidden input
     if (selectedRole) {
-        // Remove any existing new_role input
         const existingInput = form.querySelector('input[name="new_role"]');
         if (existingInput) existingInput.remove();
         

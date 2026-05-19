@@ -92,7 +92,7 @@ class ArchivedDocument(models.Model):
     RETENTION_CHOICES = [
         ('Permanent', 'Permanent'),
         ('10 Years', '10 Years'),
-        ('5 Years', '5 Years'),
+        ('5 Years', '5 Years'), 
         ('Pending Disposal', 'Pending Disposal'),
     ]
 
@@ -197,3 +197,81 @@ class VetoedDocument(models.Model):
 
     def __str__(self):
         return f"VETOED - {self.document_number}: {self.title}"
+    
+# ==========================================
+# SYSTEM SETTINGS MODEL (Persistent Configuration)
+# ==========================================
+
+class SystemSetting(models.Model):
+    """Store system-wide configuration settings permanently in database"""
+    SETTING_TYPES = [
+        ('string', 'String'),
+        ('integer', 'Integer'),
+        ('boolean', 'Boolean'),
+        ('float', 'Float'),
+    ]
+    
+    key = models.CharField(max_length=100, unique=True)
+    value = models.TextField(blank=True, null=True)
+    value_type = models.CharField(max_length=20, choices=SETTING_TYPES, default='string')
+    description = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    updated_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='updated_system_settings')
+    
+    class Meta:
+        db_table = 'system_settings'
+        verbose_name = 'System Setting'
+        verbose_name_plural = 'System Settings'
+    
+    def __str__(self):
+        return f"{self.key}: {self.value}"
+    
+    def get_value(self):
+        """Get the value with proper type conversion"""
+        if self.value is None:
+            return None
+        if self.value_type == 'boolean':
+            return self.value.lower() in ('true', '1', 'yes', 'on')
+        elif self.value_type == 'integer':
+            try:
+                return int(self.value)
+            except ValueError:
+                return None
+        elif self.value_type == 'float':
+            try:
+                return float(self.value)
+            except ValueError:
+                return None
+        return self.value
+    
+    @classmethod
+    def get(cls, key, default=None):
+        """Get a setting value by key"""
+        try:
+            setting = cls.objects.get(key=key)
+            value = setting.get_value()
+            return value if value is not None else default
+        except cls.DoesNotExist:
+            return default
+    
+    @classmethod
+    def set(cls, key, value, value_type='string', description='', updated_by=None):
+        """Set a setting value (creates or updates)"""
+        # Convert value to string for storage
+        if value_type == 'boolean':
+            value = 'true' if value else 'false'
+        elif value_type in ('integer', 'float'):
+            value = str(value)
+        elif value_type == 'string' and value is not None:
+            value = str(value)
+        
+        setting, created = cls.objects.update_or_create(
+            key=key,
+            defaults={
+                'value': value,
+                'value_type': value_type,
+                'description': description,
+                'updated_by': updated_by
+            }
+        )
+        return setting

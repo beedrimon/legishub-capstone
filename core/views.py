@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument
+from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument, SystemSetting
 from django.core.paginator import Paginator
 from django.db.models import Q, Case, IntegerField, Value, When
 from django.db import transaction, IntegrityError
@@ -24,6 +24,7 @@ from django.urls import reverse
 import math
 
 # for settings
+
 from django.contrib.auth.hashers import check_password
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
@@ -766,7 +767,7 @@ def general_info_view(request):
             print(f"  {key}: {value}")
         print("--- END POST DATA ---\n")
         
-        # Get form data - use .get() with defaults to avoid KeyError
+        # Get form data
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
         email = request.POST.get('email', '').strip()
@@ -774,11 +775,17 @@ def general_info_view(request):
         new_role = request.POST.get('new_role', '')
         role_select = request.POST.get('role', '')
         
-        # System settings - use .get() with defaults
+        # System settings
         system_name_value = request.POST.get('system_name', 'Marikina LegisHub')
-        session_timeout = request.POST.get('session_timeout', 30)
-        support_email = request.POST.get('support_email', 'admin@marikinalegishub.gov.ph')
-        maintenance_mode = request.POST.get('maintenance_mode') == 'on'
+        session_timeout_value = request.POST.get('session_timeout', 30)
+        support_email_value = request.POST.get('support_email', 'admin@marikinalegishub.gov.ph')
+        maintenance_mode_value = request.POST.get('maintenance_mode') == 'on'
+        
+        # Convert session_timeout to float
+        try:
+            session_timeout = float(session_timeout_value)
+        except ValueError:
+            session_timeout = 30
         
         # Determine role
         selected_role = new_role if new_role else role_select
@@ -813,8 +820,6 @@ def general_info_view(request):
         # SAVE TO DATABASE
         # ==========================================
         print("\n--- SAVING TO DATABASE ---")
-        print(f"Old Username: {request.user.username}")
-        print(f"New Username: {username}")
         
         # Update user fields
         request.user.first_name = first_name
@@ -824,9 +829,7 @@ def general_info_view(request):
         
         # Handle role change (only for admin users)
         if selected_role and request.user.is_superuser:
-            old_role = 'admin' if request.user.is_superuser else ('staff' if request.user.is_staff else 'legislator')
-            print(f"Role Change: {old_role} -> {selected_role}")
-            
+            print(f"Role Change: -> {selected_role}")
             if selected_role == 'admin':
                 request.user.is_superuser = True
                 request.user.is_staff = True
@@ -837,23 +840,30 @@ def general_info_view(request):
                 request.user.is_superuser = False
                 request.user.is_staff = False
         
-        # Save to database
+        # Save user to database
         request.user.save()
-        print(f"User saved successfully! New username: {request.user.username}")
+        print(f"User saved: {request.user.username}")
         
-        # Save system settings to session (admin only)
+        # Save system settings to DATABASE (not just session)
         if request.user.is_superuser:
+            SystemSetting.set('system_name', system_name_value, 'string', 'System display name', request.user)
+            SystemSetting.set('session_timeout', session_timeout, 'float', 'Auto-logout timeout in minutes (0.5 = 30 seconds)', request.user)
+            SystemSetting.set('support_email', support_email_value, 'string', 'Support contact email', request.user)
+            SystemSetting.set('maintenance_mode', maintenance_mode_value, 'boolean', 'Maintenance mode status', request.user)
+            
+            # Also save to session for immediate use in current session
             request.session['system_name'] = system_name_value
-            request.session['session_timeout'] = int(session_timeout)
-            request.session['support_email'] = support_email
-            request.session['maintenance_mode'] = maintenance_mode
-            print(f"System settings saved to session")
+            request.session['session_timeout'] = session_timeout
+            request.session['support_email'] = support_email_value
+            request.session['maintenance_mode'] = maintenance_mode_value
+            
+            print(f"System settings saved to DATABASE: timeout={session_timeout}")
         
         # Create audit log
         AuditLog.objects.create(
             user=request.user,
             action='Edit',
-            details=f"Updated profile: name={first_name} {last_name}, email={email}, username={username}"
+            details=f"Updated profile and system settings"
         )
         
         # Check if role changed and user is no longer admin
@@ -864,13 +874,27 @@ def general_info_view(request):
         messages.success(request, 'Profile information updated successfully!')
         return redirect('general_info')
     
-    # GET request - prepare context
+    # GET request - load from DATABASE first, then session as fallback
+    # This ensures settings persist after logout/login
+    
+    # Try to load from database
+    db_system_name = SystemSetting.get('system_name', 'Marikina LegisHub')
+    db_session_timeout = SystemSetting.get('session_timeout', 30)
+    db_support_email = SystemSetting.get('support_email', 'admin@marikinalegishub.gov.ph')
+    db_maintenance_mode = SystemSetting.get('maintenance_mode', False)
+    
+    # Also save to session for current use
+    request.session['system_name'] = db_system_name
+    request.session['session_timeout'] = db_session_timeout
+    request.session['support_email'] = db_support_email
+    request.session['maintenance_mode'] = db_maintenance_mode
+    
     context = {
         'user': request.user,
-        'system_name': request.session.get('system_name', 'Marikina LegisHub'),
-        'session_timeout': request.session.get('session_timeout', 30),
-        'support_email': request.session.get('support_email', 'admin@marikinalegishub.gov.ph'),
-        'maintenance_mode': request.session.get('maintenance_mode', False),
+        'system_name': db_system_name,
+        'session_timeout': db_session_timeout,
+        'support_email': db_support_email,
+        'maintenance_mode': db_maintenance_mode,
         'is_legislator': is_legislator(request.user),
     }
     return render(request, 'settings_page/general_info.html', context)
