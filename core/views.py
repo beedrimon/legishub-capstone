@@ -753,41 +753,113 @@ def toggle_permission_view(request, user_id, perm_type):
 #GENERAL INFO VIEW
 @login_required(login_url='login')
 def general_info_view(request):
-    if request.method == 'POST' and 'update_profile' in request.POST:
-        # Update user profile
+    # DEBUG: Print to terminal
+    print("\n" + "=" * 60)
+    print("GENERAL INFO VIEW - DEBUG")
+    print(f"Method: {request.method}")
+    print(f"User: {request.user.username}")
+    print("=" * 60)
+    
+    if request.method == 'POST':
+        print("\n--- POST DATA RECEIVED ---")
+        for key, value in request.POST.items():
+            print(f"  {key}: {value}")
+        print("--- END POST DATA ---\n")
+        
+        # Get form data - use .get() with defaults to avoid KeyError
         first_name = request.POST.get('first_name', '').strip()
         last_name = request.POST.get('last_name', '').strip()
         email = request.POST.get('email', '').strip()
+        username = request.POST.get('username', '').strip()
+        new_role = request.POST.get('new_role', '')
+        role_select = request.POST.get('role', '')
         
-        # Validate email
+        # System settings - use .get() with defaults
+        system_name_value = request.POST.get('system_name', 'Marikina LegisHub')
+        session_timeout = request.POST.get('session_timeout', 30)
+        support_email = request.POST.get('support_email', 'admin@marikinalegishub.gov.ph')
+        maintenance_mode = request.POST.get('maintenance_mode') == 'on'
+        
+        # Determine role
+        selected_role = new_role if new_role else role_select
+        
+        # Validate required fields
+        if not username:
+            messages.error(request, 'Username is required.')
+            return redirect('general_info')
+        
+        if not email:
+            messages.error(request, 'Email is required.')
+            return redirect('general_info')
+        
+        # Validate email format
         try:
             validate_email(email)
         except ValidationError:
-            messages.error(request, 'Invalid email address.')
+            messages.error(request, 'Invalid email address format.')
             return redirect('general_info')
         
         # Check if email is taken by another user
         if User.objects.filter(email__iexact=email).exclude(id=request.user.id).exists():
-            messages.error(request, 'Email already in use by another account.')
+            messages.error(request, f'Email "{email}" is already in use by another account.')
             return redirect('general_info')
         
+        # Check if username is taken by another user
+        if User.objects.filter(username__iexact=username).exclude(id=request.user.id).exists():
+            messages.error(request, f'Username "{username}" is already taken. Please choose another.')
+            return redirect('general_info')
+        
+        # ==========================================
+        # SAVE TO DATABASE
+        # ==========================================
+        print("\n--- SAVING TO DATABASE ---")
+        print(f"Old Username: {request.user.username}")
+        print(f"New Username: {username}")
+        
+        # Update user fields
         request.user.first_name = first_name
         request.user.last_name = last_name
         request.user.email = email
+        request.user.username = username
+        
+        # Handle role change (only for admin users)
+        if selected_role and request.user.is_superuser:
+            old_role = 'admin' if request.user.is_superuser else ('staff' if request.user.is_staff else 'legislator')
+            print(f"Role Change: {old_role} -> {selected_role}")
+            
+            if selected_role == 'admin':
+                request.user.is_superuser = True
+                request.user.is_staff = True
+            elif selected_role == 'staff':
+                request.user.is_superuser = False
+                request.user.is_staff = True
+            elif selected_role == 'legislator':
+                request.user.is_superuser = False
+                request.user.is_staff = False
+        
+        # Save to database
         request.user.save()
+        print(f"User saved successfully! New username: {request.user.username}")
         
-        # Save user preferences in session
-        request.session[f'default_landing_{request.user.id}'] = request.POST.get('default_landing', 'dashboard')
-        request.session[f'items_per_page_{request.user.id}'] = int(request.POST.get('items_per_page', 25))
-        request.session[f'date_format_{request.user.id}'] = request.POST.get('date_format', 'MM/DD/YYYY')
-        request.session[f'theme_{request.user.id}'] = request.POST.get('theme', 'light')
+        # Save system settings to session (admin only)
+        if request.user.is_superuser:
+            request.session['system_name'] = system_name_value
+            request.session['session_timeout'] = int(session_timeout)
+            request.session['support_email'] = support_email
+            request.session['maintenance_mode'] = maintenance_mode
+            print(f"System settings saved to session")
         
-        # System settings (admin only)
-        if request.user.is_superuser and 'update_system' in request.POST:
-            request.session['system_name'] = request.POST.get('system_name', 'Marikina LegisHub')
-            request.session['session_timeout'] = int(request.POST.get('session_timeout', 30))
-            request.session['support_email'] = request.POST.get('support_email', 'admin@marikinalegishub.gov.ph')
-            request.session['maintenance_mode'] = request.POST.get('maintenance_mode') == 'on'
+        # Create audit log
+        AuditLog.objects.create(
+            user=request.user,
+            action='Edit',
+            details=f"Updated profile: name={first_name} {last_name}, email={email}, username={username}"
+        )
+        
+        # Check if role changed and user is no longer admin
+        if selected_role and selected_role != 'admin' and request.user.is_superuser == False:
+            messages.warning(request, f'Your role has been changed to {selected_role}. Please login again.')
+            return redirect('login')
         
         messages.success(request, 'Profile information updated successfully!')
         return redirect('general_info')
@@ -799,10 +871,6 @@ def general_info_view(request):
         'session_timeout': request.session.get('session_timeout', 30),
         'support_email': request.session.get('support_email', 'admin@marikinalegishub.gov.ph'),
         'maintenance_mode': request.session.get('maintenance_mode', False),
-        'default_landing': request.session.get(f'default_landing_{request.user.id}', 'dashboard'),
-        'items_per_page': request.session.get(f'items_per_page_{request.user.id}', 25),
-        'date_format': request.session.get(f'date_format_{request.user.id}', 'MM/DD/YYYY'),
-        'theme': request.session.get(f'theme_{request.user.id}', 'light'),
         'is_legislator': is_legislator(request.user),
     }
     return render(request, 'settings_page/general_info.html', context)

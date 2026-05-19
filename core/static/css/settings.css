@@ -1069,3 +1069,59 @@ input:checked + .slider:before {
         grid-template-columns: 1fr;
     }
 }
+
+/* --- 14. ROLE SELECT & GREEN TEXT STYLES --- */
+.role-select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 8px;
+    background-color: #FAFAFA;
+    font-family: inherit;
+    font-size: 0.92rem;
+    transition: all 0.2s;
+}
+
+.role-select:focus {
+    outline: none;
+    border-color: var(--sidebar-active);
+    background-color: #fff;
+}
+
+.role-text-green {
+    color: #2e7d32;
+    font-weight: 600;
+    background-color: #e8f5e9;
+    border: 1px solid #a5d6a7;
+}
+
+.role-readonly {
+    background-color: #f5f5f5; 
+    cursor: not-allowed;
+}
+
+/* Switch wrapper for maintenance mode */
+.switch-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 8px;
+}
+
+.switch-wrapper .italic-hint {
+    margin: 0;
+}
+
+/* --- 15. DANGER/ALERT LABEL STYLES --- */
+.config-group .danger-label {
+    color: #dc3545 !important;
+}
+
+.danger-text {
+    color: #dc3545;
+    font-weight: 600;
+}
+
+label.danger-label {
+    color: #dc3545 !important;
+}
