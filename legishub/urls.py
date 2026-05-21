@@ -46,6 +46,7 @@ urlpatterns = [
     path('resolutions/', views.resolutions_view, name='resolutions'),
     path('confidential/', views.confidential_view, name='confidential'),
     path('vetoed/', views.vetoed_view, name='vetoed'),
+    path('edit-vetoed/', views.edit_vetoed, name='edit_vetoed'),
     path('create_archive_folder/', views.create_archive_folder, name='create_archive_folder'),
  
     # USER SETTINGS/

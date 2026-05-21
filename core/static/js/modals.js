@@ -16,7 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
         view: document.getElementById('viewModal'),
         edit: document.getElementById('editModal'),
         user: document.getElementById('userModal'),
-        editUser: document.getElementById('editUserModal')
+        editUser: document.getElementById('editUserModal'),
+        reviewUpload: document.getElementById('reviewUploadModal')
     };
 
     // 2. Helper to close all UI overlays
@@ -64,6 +65,101 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTrigger('.trigger-edit', 'edit');
     setupTrigger('.trigger-user', 'user');
     setupTrigger('.trigger-edit-user', 'editUser');
+
+    // ==========================================
+    // REVIEW UPLOAD MODAL LOGIC
+    // ==========================================
+    const reviewUploadBtns = document.querySelectorAll('.btn-review-upload');
+    let activeUploadForm = null;
+    let currentPdfUrl = null;
+
+    reviewUploadBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            const form = this.closest('form');
+            if (!form.reportValidity()) return;
+
+            activeUploadForm = form;
+
+            // Gather values
+            const title = form.querySelector('[name="title"]')?.value || 'N/A';
+            const docNum = form.querySelector('[name="document_number"]')?.value || 'N/A';
+            const docType = form.querySelector('[name="doc_type"]')?.value || 'N/A';
+            const year = form.querySelector('[name="year"]')?.value || 'N/A';
+            const dateEnacted = form.querySelector('[name="date_enacted"]')?.value || '';
+            const sponsor = form.querySelector('[name="sponsor"]')?.value || '';
+            const keywords = form.querySelector('[name="keywords"]')?.value || '';
+            const coSponsors = form.querySelector('[name="co_sponsors"]')?.value || '';
+            const status = form.querySelector('[name="status"]')?.value || 'N/A';
+            const visibility = form.querySelector('[name="visibility"]')?.value || 'N/A';
+            const storage = form.querySelector('[name="physical_storage"]')?.value || '';
+
+            // Populate Review Modal
+            if (document.getElementById('review-title')) document.getElementById('review-title').innerText = title;
+            if (document.getElementById('review-number')) document.getElementById('review-number').innerText = docNum;
+            if (document.getElementById('review-type')) document.getElementById('review-type').innerText = docType;
+            if (document.getElementById('review-year')) document.getElementById('review-year').innerText = year;
+            if (document.getElementById('review-date-enacted')) document.getElementById('review-date-enacted').innerText = dateEnacted || 'N/A';
+            if (document.getElementById('review-sponsor')) document.getElementById('review-sponsor').innerText = sponsor || 'N/A';
+            if (document.getElementById('review-keywords')) document.getElementById('review-keywords').innerText = keywords || 'N/A';
+            if (document.getElementById('review-cosponsors')) document.getElementById('review-cosponsors').innerText = coSponsors || 'N/A';
+            if (document.getElementById('review-status')) document.getElementById('review-status').innerHTML = `<span class="badge ${status.toLowerCase()}">${status}</span>`;
+            if (document.getElementById('review-visibility')) document.getElementById('review-visibility').innerText = visibility;
+            if (document.getElementById('review-storage')) document.getElementById('review-storage').innerText = storage || 'N/A';
+
+            // Handle PDF Preview
+            const fileInput = form.querySelector('input[type="file"]');
+            const pdfIframe = document.getElementById('review-pdf-iframe');
+            const pdfMissing = document.getElementById('review-pdf-missing');
+            
+            if (currentPdfUrl) URL.revokeObjectURL(currentPdfUrl);
+
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                currentPdfUrl = URL.createObjectURL(fileInput.files[0]);
+                if (pdfIframe) {
+                    pdfIframe.src = currentPdfUrl + '#view=FitH';
+                    pdfIframe.style.display = 'block';
+                }
+                if (pdfMissing) pdfMissing.style.display = 'none';
+            } else {
+                if (pdfIframe) {
+                    pdfIframe.src = '';
+                    pdfIframe.style.display = 'none';
+                }
+                if (pdfMissing) pdfMissing.style.display = 'block';
+            }
+
+            // Hide current overlay and show review modal
+            const parentOverlay = form.closest('.modal-overlay');
+            if (parentOverlay) parentOverlay.style.display = 'none';
+            if (modals.reviewUpload) modals.reviewUpload.style.display = 'flex';
+        });
+    });
+
+    const confirmUploadBtn = document.getElementById('confirmUploadBtn');
+    if (confirmUploadBtn) {
+        confirmUploadBtn.addEventListener('click', function() {
+            if (activeUploadForm) {
+                this.innerHTML = 'Uploading... <i class="fa-solid fa-spinner fa-spin"></i>';
+                this.style.pointerEvents = 'none';
+                this.style.opacity = '0.7';
+                activeUploadForm.submit();
+            }
+        });
+    }
+
+    const backToEditBtn = document.getElementById('backToEditBtn');
+    if (backToEditBtn) {
+        backToEditBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation(); // Prevents the global discard script from clearing the files
+            if (modals.reviewUpload) modals.reviewUpload.style.display = 'none';
+            // Re-open the form that was being edited
+            if (activeUploadForm) {
+                const parentOverlay = activeUploadForm.closest('.modal-overlay');
+                if (parentOverlay) parentOverlay.style.display = 'flex';
+            }
+        });
+    }
 
     // 4. Close Buttons Logic
     // Handles any button with class 'close-modal' or 'btn-discard' inside any modal

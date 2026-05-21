@@ -84,6 +84,7 @@
                                     data-visibility="{{ doc.visibility }}"
                                     data-storage="{{ doc.physical_storage|default:'Not specified' }}"
                                     {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}" {% endif %}></i>
+                                {% if not is_legislator %}
                                 <i class="fa-regular fa-pen-to-square trigger-edit" title="Edit Record"
                                     style="cursor: pointer; color: #888; margin-left: 10px;" 
                                     data-id="{{ doc.id }}"
@@ -100,6 +101,7 @@
                                     data-storage="{{ doc.physical_storage|default:'' }}"
                                     data-vetoreason="{{ doc.veto_reason|default:'' }}"
                                     {% if doc.file_attachment %}data-file="{{ doc.file_attachment.name }}" {% endif %}></i>
+                                {% endif %}
                            </td>
                         </tr>
                         {% empty %}
@@ -202,6 +204,7 @@
     </div>
 </div>
 
+{% if not is_legislator %}
 <div id="editModal" class="modal-overlay">
     <div class="modal-container">
         <div class="modal-header">
@@ -305,4 +308,5 @@
         </form>
     </div>
 </div>
+{% endif %}
 {% endblock modals %}

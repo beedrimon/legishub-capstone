@@ -65,6 +65,10 @@
                 <a href="{% url 'audit_logs' %}" class="btn-apply" style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center; background-color: #eee; color: #333;">Reset Filters</a>
             </form>
 
+            <div class="total-records" style="margin-bottom: 12px; font-weight: 600; padding-left: 5px;">
+                {{ total_records }} Log{% if total_records != 1 %}s{% endif %} Found
+            </div>
+
             <section class="table-container">
                 <table>
                     <thead>
@@ -89,8 +93,46 @@
                             </td>
                             <td>{{ log.document.document_number }}</td>
                         </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 20px;">No audit logs found.</td>
+                        </tr>
                         {% endfor %}
                     </tbody>
                 </table>
+
+                <!-- Pagination Section -->
+                {% if audit_logs.has_other_pages %}
+                <div class="pagination">
+                    <div class="page-info">
+                        Showing page {{ audit_logs.number }} of {{ audit_logs.paginator.num_pages }}
+                    </div>
+                    <div class="page-numbers">
+                        {% if audit_logs.has_previous %}
+                        <a href="?page=1{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.user %}&user={{ current_filters.user }}{% endif %}{% if current_filters.action %}&action={{ current_filters.action }}{% endif %}{% if current_filters.date %}&date={{ current_filters.date }}{% endif %}"
+                            style="text-decoration: none;">
+                            <button>&laquo; First</button>
+                        </a>
+                        <a href="?page={{ audit_logs.previous_page_number }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.user %}&user={{ current_filters.user }}{% endif %}{% if current_filters.action %}&action={{ current_filters.action }}{% endif %}{% if current_filters.date %}&date={{ current_filters.date }}{% endif %}"
+                            style="text-decoration: none;">
+                            <button>Previous</button>
+                        </a>
+                        {% endif %}
+
+                        <span>Page {{ audit_logs.number }}</span>
+
+                        {% if audit_logs.has_next %}
+                        <a href="?page={{ audit_logs.next_page_number }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.user %}&user={{ current_filters.user }}{% endif %}{% if current_filters.action %}&action={{ current_filters.action }}{% endif %}{% if current_filters.date %}&date={{ current_filters.date }}{% endif %}"
+                            style="text-decoration: none;">
+                            <button>Next</button>
+                        </a>
+                        <a href="?page={{ audit_logs.paginator.num_pages }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.user %}&user={{ current_filters.user }}{% endif %}{% if current_filters.action %}&action={{ current_filters.action }}{% endif %}{% if current_filters.date %}&date={{ current_filters.date }}{% endif %}"
+                            style="text-decoration: none;">
+                            <button>Last &raquo;</button>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
             </section>
 {% endblock %}

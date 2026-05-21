@@ -10,6 +10,117 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2">
     {% block extra_css %}{% endblock %}
+    
+    <style>
+        /* Clean Detailed View & Review Modals */
+        .detail-view-container {
+            max-width: 1000px !important;
+            width: 90% !important;
+            height: 85vh !important; /* Fixed viewport height to prevent extending off-screen */
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            overflow: hidden;
+        }
+
+        .detail-view-body {
+            display: flex !important;
+            flex-direction: row !important;
+            padding: 0 !important;
+            flex: 1; /* Fills remaining space between header and footer */
+            overflow: hidden;
+            border-top: 1px solid #e5e7eb;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .meta-sidebar {
+            width: 35%;
+            min-width: 320px;
+            padding: 30px 25px;
+            background-color: #fafafa;
+            border-right: 1px solid #e5e7eb;
+            overflow-y: auto; /* Independent scrolling for long metadata */
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .meta-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .meta-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .meta-group label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #8b7355; /* Matches theme accent */
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 0;
+        }
+
+        .meta-val {
+            font-size: 0.95rem;
+            color: #1f2937;
+            margin: 0;
+            line-height: 1.5;
+            word-wrap: break-word;
+        }
+
+        .meta-val.highlight {
+            color: #1a56db;
+            font-weight: 700;
+            font-size: 1.05rem;
+            background: #eff6ff;
+            padding: 6px 12px;
+            border-radius: 6px;
+            display: inline-block;
+            width: fit-content;
+        }
+
+        .meta-val.abstract {
+            font-style: italic;
+            color: #4b5563;
+        }
+
+        .pdf-preview-container {
+            flex: 1; /* Takes the remaining 65% width */
+            background-color: #525659;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .pdf-preview-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            flex: 1;
+        }
+
+        .pdf-missing-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #d1d5db;
+            text-align: center;
+            width: 100%;
+        }
+
+        .pdf-missing-state i {
+            font-size: 4.5rem;
+            margin-bottom: 15px;
+            opacity: 0.7;
+        }
+    </style>
 </head>
 
 <body class="{% block body_class %}{% endblock %}">
@@ -102,7 +213,7 @@
                 <h2>NEW DOCUMENT PROPOSAL</h2>
                 <button type="button" class="close-modal">&times;</button>
             </div>
-            <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data">
+        <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data" id="uploadNewForm">
                 {% csrf_token %}
                 <div class="form-row">
                     <div class="form-group full-width">
@@ -194,7 +305,7 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn-discard">Discard</button>
-                    <button type="submit" class="btn-add">Add Proposal</button>
+                <button type="button" class="btn-add btn-review-upload">Review Details</button>
                 </div>
             </form>
         </div>
@@ -206,7 +317,7 @@
                 <h2>NEW LEGISLATIVE ENTRY (EXISTING)</h2>
                 <button type="button" class="close-modal">&times;</button>
             </div>
-            <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data">
+        <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data" id="uploadExistingForm">
                 {% csrf_token %}
                 <div class="form-row">
                     <div class="form-group full-width">
@@ -293,7 +404,7 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn-discard">Discard</button>
-                    <button type="submit" class="btn-add">Add Document</button>
+                <button type="button" class="btn-add btn-review-upload">Review Details</button>
                 </div>
             </form>
         </div>
@@ -336,6 +447,82 @@
                 style="display: none; color: #7d6339; font-weight: bold; font-size: 0.85rem; text-decoration: none;">
                 Go to Full Audit Logs <i class="fa-solid fa-arrow-right" style="margin-left: 5px;"></i>
             </a>
+        </div>
+    </div>
+
+    <div id="reviewUploadModal" class="modal-overlay">
+        <div class="modal-container detail-view-container">
+            <div class="modal-header">
+                <h2>REVIEW DOCUMENT DETAILS</h2>
+                <button type="button" class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body detail-view-body">
+                <div class="meta-sidebar">
+                    <div class="meta-group">
+                        <label>LEGIS NUMBER (REF NO.)</label>
+                        <p class="meta-val highlight" id="review-number"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>DOCUMENT TITLE / SUBJECT</label>
+                        <p class="meta-val" id="review-title"></p>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-group">
+                            <label>CATEGORY</label>
+                            <p class="meta-val" id="review-type"></p>
+                        </div>
+                        <div class="meta-group">
+                            <label>SERIES YEAR</label>
+                            <p class="meta-val" id="review-year"></p>
+                        </div>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-group">
+                            <label>DATE ENACTED</label>
+                            <p class="meta-val" id="review-date-enacted"></p>
+                        </div>
+                        <div class="meta-group">
+                            <label>PRIMARY SPONSOR</label>
+                            <p class="meta-val" id="review-sponsor"></p>
+                        </div>
+                    </div>
+                    <div class="meta-group">
+                        <label>CO-SPONSOR(S)</label>
+                        <p class="meta-val" id="review-cosponsors"></p>
+                    </div>
+                    <div class="meta-row">
+                        <div class="meta-group">
+                            <label>STATUS</label>
+                            <p class="meta-val" id="review-status"></p>
+                        </div>
+                        <div class="meta-group">
+                            <label>VISIBILITY</label>
+                            <p class="meta-val" id="review-visibility"></p>
+                        </div>
+                    </div>
+                    <div class="meta-group">
+                        <label>PHYSICAL STORAGE</label>
+                        <p class="meta-val" id="review-storage"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>KEYWORDS</label>
+                        <p class="meta-val abstract" id="review-keywords"></p>
+                    </div>
+                </div>
+
+                <div class="pdf-preview-container">
+                    <iframe id="review-pdf-iframe" src="" style="display: none;"></iframe>
+
+                    <div id="review-pdf-missing" class="pdf-missing-state" style="display: none;">
+                        <i class="fa-regular fa-file-pdf"></i>
+                        <p>No PDF document attached.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-discard" id="backToEditBtn">Back to Edit</button>
+                <button type="button" class="btn-add" id="confirmUploadBtn">Confirm & Upload</button>
+            </div>
         </div>
     </div>
     {% endblock modals %}

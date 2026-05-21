@@ -319,7 +319,8 @@ def ordinances_view(request):
             'selected_year': selected_year,
             'selected_range': selected_range,
             'search_query': search_query,
-            'current_view': 'doc_list'
+            'current_view': 'doc_list',
+            'is_legislator': is_legislator(request.user)
         })
         
 
@@ -331,15 +332,19 @@ def ordinances_view(request):
             years_in_range = ordinances.filter(year__range=(start_year, end_year)) \
                                 .values_list('year', flat=True) \
                                 .distinct().order_by('year')
+            docs_in_range = ordinances.filter(year__range=(start_year, end_year))
             
         except ValueError:
             years_in_range = []
+            docs_in_range = ordinances.none()
                                 
         
         return render(request, 'archives/ordinances.html', {
+            'archives': docs_in_range.order_by('-date_enacted'),
             'years_in_range': years_in_range,
             'selected_range': selected_range,
-            'current_view': 'year_folders'
+            'current_view': 'year_folders',
+            'is_legislator': is_legislator(request.user)
         })
 
     # LEVEL 1: Default View - Show Decade Folders (1900-1909, 1910-1919, etc.)
@@ -357,8 +362,10 @@ def ordinances_view(request):
             decade_ranges.append(f"{d}-{d+9}")
 
     return render(request, 'archives/ordinances.html', {
+        'archives': ordinances.order_by('-date_enacted'),
         'decade_ranges': decade_ranges,
-        'current_view': 'decade_folders'
+        'current_view': 'decade_folders',
+        'is_legislator': is_legislator(request.user)
     })
 
 @login_required
@@ -387,7 +394,8 @@ def resolutions_view(request):
             'selected_year': selected_year,
             'selected_range': selected_range,
             'search_query': search_query,
-            'current_view': 'doc_list'
+            'current_view': 'doc_list',
+            'is_legislator': is_legislator(request.user)
         })
         
 
@@ -399,15 +407,19 @@ def resolutions_view(request):
             years_in_range = resolutions.filter(year__range=(start_year, end_year)) \
                                 .values_list('year', flat=True) \
                                 .distinct().order_by('year')
+            docs_in_range = resolutions.filter(year__range=(start_year, end_year))
             
         except ValueError:
             years_in_range = []
+            docs_in_range = resolutions.none()
                                 
         
         return render(request, 'archives/resolutions.html', {
+            'archives': docs_in_range.order_by('-date_enacted'),
             'years_in_range': years_in_range,
             'selected_range': selected_range,
-            'current_view': 'year_folders'
+            'current_view': 'year_folders',
+            'is_legislator': is_legislator(request.user)
         })
 
     # LEVEL 1: Default View - Show Decade Folders (1900-1909, 1910-1919, etc.)
@@ -425,8 +437,10 @@ def resolutions_view(request):
             decade_ranges.append(f"{d}-{d+9}")
 
     return render(request, 'archives/resolutions.html', {
+        'archives': resolutions.order_by('-date_enacted'),
         'decade_ranges': decade_ranges,
-        'current_view': 'decade_folders'
+        'current_view': 'decade_folders',
+        'is_legislator': is_legislator(request.user)
     })
 
 @login_required
@@ -462,13 +476,15 @@ def confidential_view(request):
 @login_required
 def vetoed_view(request):
     """Restricted page for Vetoed Legislation"""
-    if is_legislator(request.user):
-        return redirect('archive') # Legislators can't see this
+    # Legislators can now view vetoed docs, but edit buttons are hidden via template
         
     # --- CHANGED: Now pulls from the new dedicated VetoedDocument database ---
     vetoed_docs = VetoedDocument.objects.all().order_by('-date_vetoed')
     
-    return render(request, 'archives/vetoed.html', {'archives': vetoed_docs})
+    return render(request, 'archives/vetoed.html', {
+        'archives': vetoed_docs,
+        'is_legislator': is_legislator(request.user)
+    })
 
 #CREATE ARCHIVE FOLDER VIEW
 @login_required(login_url='login')
@@ -537,8 +553,16 @@ def audit_logs_view(request):
     # Gets the exact actions ('Upload', 'Edit', etc.) straight from your models.py
     available_actions = [choice[0] for choice in AuditLog.ACTION_CHOICES]
 
+    total_records = logs.count()
+    
+    # Pagination (Showing 7 logs per page)
+    paginator = Paginator(logs, 5) 
+    page_number = request.GET.get('page')
+    paginated_logs = paginator.get_page(page_number)
+
     context = {
-        'audit_logs': logs,
+        'audit_logs': paginated_logs,
+        'total_records': total_records,
         'available_users': available_users,
         'available_actions': available_actions,
         'current_filters': request.GET, # Passes selections back to HTML
