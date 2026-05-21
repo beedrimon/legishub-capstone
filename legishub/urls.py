@@ -58,7 +58,7 @@ urlpatterns = [
     path('maintenance/', views.maintenance_view, name='maintenance'),
     
     # SETTINGS API ENDPOINTS 
-    path('api/trigger-backup/', views.trigger_backup_api, name='trigger_backup'),
+    # path('api/trigger-backup/', views.trigger_backup_api, name='trigger_backup'),
     path('api/test-email/', views.test_email_api, name='test_email'),
     path('api/notifications/', views.get_notifications, name='get_notifications'),
 

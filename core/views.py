@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument, SystemSetting
+from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument, SystemSetting, BackupLog
 from django.core.paginator import Paginator
 from django.db.models import Q, Case, IntegerField, Value, When
 from django.db import transaction, IntegrityError
@@ -38,6 +38,9 @@ import subprocess
 from django.db.models import Sum, Q
 from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
+
+#for backup
+from .backup_utils import SupabaseBackup
 
 
 # ==========================================
@@ -77,13 +80,24 @@ def login_view(request):
         if user is not None:
             auth_login(request, user)
             
-            # Route users based on their role upon successful login
+            # AUTO-SYNC: Trigger backup when admin logs in
             if user.is_superuser:
-                return redirect('dashboard') # System Admin
+                auto_sync_enabled = SystemSetting.get('auto_sync_on_login', True)
+                if auto_sync_enabled:
+                    try:
+                        from threading import Thread
+                        def sync_in_background():
+                            perform_sync(user=user, sync_type='auto')
+                        Thread(target=sync_in_background).start()
+                        print(f"Auto-sync triggered for admin: {user.username}")
+                    except Exception as e:
+                        print(f"Auto-sync error: {e}")
+            
+            if user.is_superuser:
+                return redirect('dashboard')
             else:
-                return redirect('documents') # Legislative Staff
+                return redirect('documents')
         else:
-            # If authentication fails, send an error message to the template
             messages.error(request, 'Invalid email or password. Please try again.')
 
     return render(request, 'admin_panel/index.html')
@@ -950,6 +964,50 @@ def general_info_view(request):
 def maintenance_view(request):
     return render(request, 'admin_panel/maintenance.html')
 
+#Perform sync for Backup & Cloud
+def perform_sync(user=None, sync_type='manual'):
+    """Perform database sync to Supabase"""
+    from core.backup_utils import SupabaseBackup
+    from core.models import BackupLog
+    
+    backup_log = BackupLog.objects.create(
+        backup_type=sync_type,
+        status='in_progress',
+        triggered_by=user
+    )
+    
+    try:
+        backup = SupabaseBackup()
+        
+        connected, message = backup.test_connection()
+        if not connected:
+            backup_log.status = 'failed'
+            backup_log.error_message = f"Cannot connect to Supabase: {message}"
+            backup_log.completed_at = timezone.now()
+            backup_log.save()
+            return False, backup_log
+        
+        success, synced, counts = backup.sync_all_tables(backup_log.id)
+        
+        if success:
+            backup_log.documents_synced = counts.get('documents', 0)
+            backup_log.archives_synced = counts.get('archives', 0)
+            backup_log.audit_logs_synced = counts.get('audit_logs', 0)
+            backup_log.records_synced = counts.get('total', 0)
+            backup_log.status = 'success'
+            backup_log.completed_at = timezone.now()
+            backup_log.save()
+            return True, backup_log
+        else:
+            return False, backup_log
+            
+    except Exception as e:
+        backup_log.status = 'failed'
+        backup_log.error_message = str(e)
+        backup_log.completed_at = timezone.now()
+        backup_log.save()
+        return False, backup_log
+    
 #BACKUP & CLOUD VIEW
 @login_required(login_url='login')
 def backup_cloud_view(request):
@@ -957,44 +1015,51 @@ def backup_cloud_view(request):
         messages.error(request, 'Access denied. Admin privileges required.')
         return redirect('documents')
     
-    if request.method == 'POST' and 'update_backup' in request.POST:
-        # Save backup configuration
-        request.session['backup_frequency'] = request.POST.get('backup_frequency', 'daily')
-        request.session['retention_days'] = int(request.POST.get('retention_days', 3650))
-        messages.success(request, 'Backup configuration saved successfully!')
-        return redirect('backup_cloud')
+    if request.method == 'POST':
+        if 'update_backup' in request.POST:
+            # Save backup configuration to database
+            auto_sync = request.POST.get('auto_sync_on_login') == 'on'
+            SystemSetting.set('auto_sync_on_login', auto_sync, 'boolean', 'Auto-sync on admin login', request.user)
+            request.session['auto_sync_on_login'] = auto_sync
+            messages.success(request, 'Backup configuration saved successfully!')
+            return redirect('backup_cloud')
+        
+        elif 'manual_backup' in request.POST:
+            # Trigger manual sync
+            success, backup_log = perform_sync(user=request.user, sync_type='manual')
+            if success:
+                messages.success(request, f'Manual backup completed! Synced {backup_log.records_synced} records.')
+            else:
+                messages.error(request, f'Backup failed: {backup_log.error_message}')
+            return redirect('backup_cloud')
+    
+    # GET request - load settings
+    auto_sync = SystemSetting.get('auto_sync_on_login', True)
+    request.session['auto_sync_on_login'] = auto_sync
     
     # Get statistics
-    total_documents = LegislativeDocument.objects.count()
-    total_archives = ArchivedDocument.objects.count()
-    total_audit_logs = AuditLog.objects.count()
+    backup = SupabaseBackup()
+    counts = backup.get_local_counts()
     
-    # Calculate database size (approximate)
-    db_size = "N/A"
-    try:
-        # For PostgreSQL - adjust based on your database
-        from django.db import connection
-        with connection.cursor() as cursor:
-            cursor.execute("SELECT pg_database_size(current_database())")
-            size_bytes = cursor.fetchone()[0]
-            if size_bytes:
-                db_size = f"{size_bytes / (1024**3):.2f} GB"
-    except:
-        pass
+    # Test cloud connection
+    connected, connection_message = backup.test_connection()
+    
+    # Get last 20 backup logs
+    backup_logs = BackupLog.objects.all()[:20]
+    
+    # Get last backup
+    last_backup = BackupLog.objects.filter(status='success').first()
     
     context = {
-        'total_documents': total_documents,
-        'total_archives': total_archives,
-        'total_audit_logs': total_audit_logs,
-        'db_size': db_size,
-        'last_backup': request.session.get('last_backup_time', 'Today, 04:30:01 AM'),
-        'backup_frequency': request.session.get('backup_frequency', 'daily'),
-        'retention_days': request.session.get('retention_days', 3650),
-        'backup_logs': request.session.get('backup_logs', [
-            {'timestamp': 'Today, 02:00:00 AM', 'type': 'Auto', 'status': 'success', 'records': 45},
-            {'timestamp': 'Yesterday, 02:00:00 AM', 'type': 'Auto', 'status': 'success', 'records': 38},
-            {'timestamp': 'May 12, 2026, 02:00:00 AM', 'type': 'Auto', 'status': 'success', 'records': 42},
-        ]),
+        'auto_sync_on_login': auto_sync,
+        'total_documents': counts['documents'],
+        'total_archives': counts['archives'],
+        'total_audit_logs': counts['audit_logs'],
+        'total_records': counts['total'],
+        'cloud_connected': connected,
+        'cloud_message': connection_message,
+        'last_backup': last_backup,
+        'backup_logs': backup_logs,
         'is_legislator': is_legislator(request.user),
     }
     return render(request, 'settings_page/backup_cloud.html', context)
@@ -1237,36 +1302,36 @@ def notifications_view(request):
 
 
 #API
-
-# ===== API: TRIGGER BACKUP =====
-@login_required(login_url='login')
-@require_http_methods(["POST"])
-def trigger_backup_api(request):
-    if not request.user.is_superuser:
-        return JsonResponse({'error': 'Unauthorized'}, status=403)
+# cinomment out ko muna to kasi meron ako ginawa sa backup_cloud_view, baka kasi mag conflict
+# # ===== API: TRIGGER BACKUP =====
+# @login_required(login_url='login')
+# @require_http_methods(["POST"])
+# def trigger_backup_api(request):
+#     if not request.user.is_superuser:
+#         return JsonResponse({'error': 'Unauthorized'}, status=403)
     
-    try:
-        # Simulate backup process
-        # In production, implement actual Supabase sync here
+#     try:
+#         # Simulate backup process
+#         # In production, implement actual Supabase sync here
         
-        backup_logs = request.session.get('backup_logs', [])
-        backup_logs.insert(0, {
-            'timestamp': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'type': 'Manual',
-            'status': 'success',
-            'records': LegislativeDocument.objects.count()
-        })
-        request.session['backup_logs'] = backup_logs[:20]
-        request.session['last_backup_time'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
-        request.session.modified = True
+#         backup_logs = request.session.get('backup_logs', [])
+#         backup_logs.insert(0, {
+#             'timestamp': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
+#             'type': 'Manual',
+#             'status': 'success',
+#             'records': LegislativeDocument.objects.count()
+#         })
+#         request.session['backup_logs'] = backup_logs[:20]
+#         request.session['last_backup_time'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')
+#         request.session.modified = True
         
-        return JsonResponse({
-            'success': True,
-            'message': 'Backup completed successfully',
-            'timestamp': request.session['last_backup_time']
-        })
-    except Exception as e:
-        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+#         return JsonResponse({
+#             'success': True,
+#             'message': 'Backup completed successfully',
+#             'timestamp': request.session['last_backup_time']
+#         })
+#     except Exception as e:
+#         return JsonResponse({'success': False, 'error': str(e)}, status=500)
 
 
 # ===== API: TEST EMAIL =====

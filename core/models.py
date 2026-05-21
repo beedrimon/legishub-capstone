@@ -275,3 +275,39 @@ class SystemSetting(models.Model):
             }
         )
         return setting
+    
+
+# ==========================================
+# BACKUP LOG MODEL
+# ==========================================
+
+class BackupLog(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pending'),
+        ('in_progress', 'In Progress'),
+        ('success', 'Success'),
+        ('failed', 'Failed'),
+    ]
+    
+    TYPE_CHOICES = [
+        ('auto', 'Automatic (Login)'),
+        ('manual', 'Manual'),
+    ]
+    
+    backup_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    records_synced = models.IntegerField(default=0)
+    documents_synced = models.IntegerField(default=0)
+    archives_synced = models.IntegerField(default=0)
+    audit_logs_synced = models.IntegerField(default=0)
+    error_message = models.TextField(blank=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    triggered_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='backup_logs')
+    
+    class Meta:
+        db_table = 'backup_logs'
+        ordering = ['-started_at']
+    
+    def __str__(self):
+        return f"{self.get_backup_type_display()} backup on {self.started_at} - {self.get_status_display()}"

@@ -16,7 +16,6 @@
 {% endblock %}
 
 {% block content %}
-<div class="breadcrumb">Settings / <span>Backup & Cloud</span></div>
 
 <div class="settings-container">
     <div class="settings-nav">
@@ -38,126 +37,131 @@
     </div>
 
     <div class="settings-card">
+        <!-- CLOUD STATUS DASHBOARD -->
+        <h4><i class="fa-solid fa-cloud"></i> Cloud Status Dashboard</h4>
+        
+        <div class="cloud-status-card">
+            <div class="cloud-status-header">
+                <div>
+                    <span class="status-label">Cloud Connection</span>
+                    <div class="status-indicator">
+                        {% if cloud_connected %}
+                            <span class="status-dot connected"></span>
+                            <strong class="status-text-success"><i class="fa-solid fa-link"></i> Connected to Supabase</strong>
+                        {% else %}
+                            <span class="status-dot disconnected"></span>
+                            <strong class="status-text-danger"><i class="fa-solid fa-link-slash"></i> Disconnected</strong>
+                            <span class="italic-hint">{{ cloud_message }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <span class="status-label">Last Sync</span>
+                    <div><strong>{% if last_backup %}{{ last_backup.completed_at|date:"Y-m-d H:i:s" }}{% else %}Never{% endif %}</strong></div>
+                </div>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-label">Documents</div>
+                    <div class="stat-value">{{ total_documents|default:"0" }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Archives</div>
+                    <div class="stat-value">{{ total_archives|default:"0" }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Audit Logs</div>
+                    <div class="stat-value">{{ total_audit_logs|default:"0" }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total Records</div>
+                    <div class="stat-value">{{ total_records|default:"0" }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BACKUP CONFIGURATION -->
         <form method="POST" action="{% url 'backup_cloud' %}">
             {% csrf_token %}
             
-            <!-- SECTION 1: CLOUD STATUS DASHBOARD -->
-            <h4><i class="fa-solid fa-cloud"></i> Cloud Status Dashboard</h4>
+            <h4><i class="fa-solid fa-gear"></i> Backup Configuration</h4>
             
-            <div class="cloud-status-card">
-                <div class="cloud-status-header">
-                    <div>
-                        <span class="status-label">Cloud Connection</span>
-                        <div class="status-indicator">
-                            <span class="status-dot connected"></span>
-                            <strong class="status-text-success"><i class="fa-solid fa-link"></i> Connected to Supabase</strong>
-                        </div>
+            <div class="config-group">
+                <div class="security-item">
+                    <div class="security-text">
+                        <h5>Auto-Sync on Admin Login</h5>
+                        <p>Automatically sync all data to Supabase cloud every time an administrator logs in.</p>
                     </div>
-                    <div>
-                        <span class="status-label">Last Sync</span>
-                        <div><strong>{{ last_backup|default:"Today, 04:30:01 AM" }}</strong></div>
-                    </div>
-                </div>
-                
-                <div class="storage-info">
-                    <div class="storage-header">
-                        <span>Storage Usage</span>
-                        <span>2.4 GB / 10 GB (24%)</span>
-                    </div>
-                    <div class="storage-bar">
-                        <div class="storage-bar-fill" style="width: 24%;"></div>
-                    </div>
-                </div>
-                
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-label">Documents in Cloud</div>
-                        <div class="stat-value">{{ total_documents|default:"0" }}</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Archived Records</div>
-                        <div class="stat-value">{{ total_archives|default:"0" }}</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Audit Logs</div>
-                        <div class="stat-value">{{ total_audit_logs|default:"0" }}</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-label">Database Size</div>
-                        <div class="stat-value">{{ db_size|default:"N/A" }}</div>
-                    </div>
+                    <label class="switch">
+                        <input type="checkbox" name="auto_sync_on_login" {% if auto_sync_on_login %}checked{% endif %}>
+                        <span class="slider"></span>
+                    </label>
                 </div>
             </div>
 
-            <!-- SECTION 2: BACKUP CONFIGURATION -->
-            <h4><i class="fa-solid fa-database"></i> Backup Configuration</h4>
-            <div class="two-column-grid">
-                <div class="config-group">
-                    <label>Auto-Sync Schedule</label>
-                    <select name="backup_frequency" class="config-control">
-                        <option value="hourly">Every hour</option>
-                        <option value="daily" selected>Daily at 2:00 AM</option>
-                        <option value="weekly">Weekly (Sunday, 2:00 AM)</option>
-                        <option value="manual">Manual only</option>
-                    </select>
-                </div>
-                <div class="config-group">
-                    <label>Retention Policy</label>
-                    <select name="retention_days" class="config-control">
-                        <option value="365">1 Year</option>
-                        <option value="1825">5 Years</option>
-                        <option value="3650" selected>10 Years (RA 10173 Compliant)</option>
-                        <option value="0">Permanent</option>
-                    </select>
-                </div>
-                <div class="config-group">
-                    <label>Cloud Provider</label>
-                    <input type="text" class="config-control" value="Supabase (PostgreSQL)" readonly disabled>
-                </div>
-                <div class="config-group">
-                    <label>Encryption</label>
-                    <div class="config-control encryption-badge">
-                        <i class="fa-solid fa-lock"></i> AES-256 at rest | TLS 1.3 in transit
-                    </div>
-                </div>
-            </div>
-
-            <!-- SECTION 3: MANUAL BACKUP CONTROLS -->
+            <!-- MANUAL BACKUP SECTION -->
+            <hr class="section-divider">
+            
+            <h4><i class="fa-solid fa-hand-pointer"></i> Manual Backup</h4>
+            
             <div class="manual-sync-card">
                 <div class="manual-sync-content">
                     <div class="manual-sync-text">
-                        <strong><i class="fa-solid fa-arrow-right-arrow-left"></i> Manual Sync</strong>
-                        <p>Force immediate synchronization with cloud storage</p>
+                        <strong>Trigger Manual Sync</strong>
+                        <p>Force immediate synchronization with Supabase cloud storage</p>
                     </div>
-                    <button type="button" id="manualSyncBtn" class="sync-button">
+                    <button type="submit" name="manual_backup" class="sync-button">
                         <i class="fa-solid fa-cloud-upload-alt"></i> Sync Now
                     </button>
                 </div>
             </div>
 
-            <!-- SECTION 4: BACKUP LOGS -->
+            <!-- BACKUP LOGS -->
             <h4><i class="fa-solid fa-history"></i> Backup History</h4>
             <div class="table-responsive">
                 <table class="backup-logs-table">
                     <thead>
                         <tr>
-                            <th>Timestamp</th>
+                            <th>Started At</th>
                             <th>Type</th>
                             <th>Status</th>
-                            <th>Records Synced</th>
+                            <th>Documents</th>
+                            <th>Archives</th>
+                            <th>Audit Logs</th>
+                            <th>Total</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for log in backup_logs %}
                         <tr>
-                            <td>{{ log.timestamp }}</td>
-                            <td>{{ log.type|default:"Auto" }}</td>
-                            <td>{% if log.status == 'success' %}<span class="status-success"><i class="fa-solid fa-check-circle"></i> Success</span>{% else %}<span class="status-failed"><i class="fa-solid fa-times-circle"></i> Failed</span>{% endif %}</td>
-                            <td>{{ log.records|default:"—" }}</td>
+                            <td>{{ log.started_at|date:"Y-m-d H:i:s" }}</td>
+                            <td>
+                                {% if log.backup_type == 'auto' %}
+                                    <span class="badge-info">Auto</span>
+                                {% else %}
+                                    <span class="badge-warning">Manual</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.status == 'success' %}
+                                    <span class="status-success"><i class="fa-solid fa-check-circle"></i> Success</span>
+                                {% elif log.status == 'failed' %}
+                                    <span class="status-failed"><i class="fa-solid fa-times-circle"></i> Failed</span>
+                                {% elif log.status == 'in_progress' %}
+                                    <span class="badge-info"><i class="fa-solid fa-spinner fa-spin"></i> In Progress</span>
+                                {% else %}
+                                    <span class="badge-warning">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ log.documents_synced }}</td>
+                            <td>{{ log.archives_synced }}</td>
+                            <td>{{ log.audit_logs_synced }}</td>
+                            <td><strong>{{ log.records_synced }}</strong></td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="empty-table">No backup logs available</td>
+                            <td colspan="7" class="empty-table">No backup logs available</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -171,38 +175,6 @@
         </form>
     </div>
 </div>
-
-<script>
-document.getElementById('manualSyncBtn')?.addEventListener('click', function() {
-    const btn = this;
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Syncing...';
-    btn.disabled = true;
-    
-    fetch('{% url "trigger_backup" %}', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': '{{ csrf_token }}',
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            location.reload();
-        } else {
-            alert('Sync failed: ' + data.error);
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-        }
-    })
-    .catch(error => {
-        alert('Sync error: ' + error);
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    });
-});
-</script>
 
 <!-- IMPORTANT: Override the modals block to prevent base modals from loading -->
 {% block modals %}
