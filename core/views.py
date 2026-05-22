@@ -968,7 +968,9 @@ def general_info_view(request):
 def maintenance_view(request):
     return render(request, 'admin_panel/maintenance.html')
 
-#Perform sync for Backup & Cloud
+# ==========================================
+# PERFORM SYNC FOR BACKUP & CLOUD
+# ==========================================
 def perform_sync(user=None, sync_type='manual'):
     """Perform database sync to Supabase"""
     from core.backup_utils import SupabaseBackup
@@ -997,6 +999,7 @@ def perform_sync(user=None, sync_type='manual'):
             backup_log.documents_synced = counts.get('documents', 0)
             backup_log.archives_synced = counts.get('archives', 0)
             backup_log.audit_logs_synced = counts.get('audit_logs', 0)
+            backup_log.users_synced = counts.get('users', 0)
             backup_log.records_synced = synced
             backup_log.status = 'success'
             backup_log.completed_at = timezone.now()
@@ -1012,7 +1015,11 @@ def perform_sync(user=None, sync_type='manual'):
         backup_log.save()
         return False, backup_log
 
-def perform_restore(user=None, sync_type='manual'):
+
+# ==========================================
+# PERFORM RESTORE FOR BACKUP & CLOUD
+# ==========================================
+def perform_restore(user=None):
     """Perform database restore from Supabase"""
     from core.backup_utils import SupabaseBackup
     from core.models import BackupLog
@@ -1040,6 +1047,7 @@ def perform_restore(user=None, sync_type='manual'):
             backup_log.documents_synced = counts.get('documents', 0)
             backup_log.archives_synced = counts.get('archives', 0)
             backup_log.audit_logs_synced = counts.get('audit_logs', 0)
+            backup_log.users_synced = counts.get('users', 0)
             backup_log.records_synced = restored
             backup_log.status = 'success'
             backup_log.completed_at = timezone.now()
@@ -1054,8 +1062,11 @@ def perform_restore(user=None, sync_type='manual'):
         backup_log.completed_at = timezone.now()
         backup_log.save()
         return False, backup_log
-    
-#BACKUP & CLOUD VIEW
+
+
+# ==========================================
+# BACKUP & CLOUD VIEW
+# ==========================================
 @login_required(login_url='login')
 def backup_cloud_view(request):
     if not request.user.is_superuser:
@@ -1075,18 +1086,18 @@ def backup_cloud_view(request):
             # Trigger manual sync
             success, backup_log = perform_sync(user=request.user, sync_type='manual')
             if success:
-                messages.success(request, f'Manual backup completed! Pushed {backup_log.records_synced} records to cloud.')
+                messages.success(request, f'✅ Manual backup completed! Pushed {backup_log.records_synced} records to cloud.')
             else:
-                messages.error(request, f'Backup failed: {backup_log.error_message}')
+                messages.error(request, f'❌ Backup failed: {backup_log.error_message}')
             return redirect('backup_cloud')
             
         elif 'manual_restore' in request.POST:
             # Trigger manual restore
-            success, backup_log = perform_restore(user=request.user, sync_type='manual')
+            success, backup_log = perform_restore(user=request.user)
             if success:
-                messages.success(request, f'Restore completed! Pulled {backup_log.records_synced} records from cloud. Please double-check if you need to log in again.')
+                messages.success(request, f'✅ Restore completed! Pulled {backup_log.records_synced} records from cloud.')
             else:
-                messages.error(request, f'Restore failed: {backup_log.error_message}')
+                messages.error(request, f'❌ Restore failed: {backup_log.error_message}')
             return redirect('backup_cloud')
     
     # GET request - load settings
@@ -1104,14 +1115,15 @@ def backup_cloud_view(request):
     backup_logs = BackupLog.objects.all()[:20]
     
     # Get last backup
-    last_backup = BackupLog.objects.filter(status='success').first()
+    last_backup = BackupLog.objects.filter(status='success', backup_type__in=['auto', 'manual']).first()
     
     context = {
         'auto_sync_on_login': auto_sync,
-        'total_documents': counts['documents'],
-        'total_archives': counts['archives'],
-        'total_audit_logs': counts['audit_logs'],
-        'total_records': counts['total'],
+        'total_documents': counts.get('documents', 0),
+        'total_archives': counts.get('archives', 0),
+        'total_audit_logs': counts.get('audit_logs', 0),
+        'total_users': counts.get('users', 0),
+        'total_records': counts.get('total', 0),
         'cloud_connected': connected,
         'cloud_message': connection_message,
         'last_backup': last_backup,

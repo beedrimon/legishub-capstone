@@ -275,7 +275,6 @@ class SystemSetting(models.Model):
         )
         return setting
     
-
 # ==========================================
 # BACKUP LOG MODEL
 # ==========================================
@@ -300,6 +299,7 @@ class BackupLog(models.Model):
     documents_synced = models.IntegerField(default=0)
     archives_synced = models.IntegerField(default=0)
     audit_logs_synced = models.IntegerField(default=0)
+    users_synced = models.IntegerField(default=0)
     error_message = models.TextField(blank=True)
     started_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
