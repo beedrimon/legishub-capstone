@@ -201,7 +201,17 @@
             <div class="form-row">
                 <div class="form-group">
                     <label>PASSWORD</label>
-                    <input type="password" name="password" required>
+                    <div style="position: relative;">
+                        <input type="password" id="create-password" name="password" required minlength="8" style="padding-right: 40px; width: 100%; box-sizing: border-box;">
+                        <i class="fa-regular fa-eye" id="toggleCreatePassword" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
+                    </div>
+                    <div id="password-validation-feedback" style="font-size: 0.75rem; line-height: 1.4; margin-top: 6px; display: flex; flex-direction: column; gap: 2px;">
+                        <span id="req-length" style="color: #E53935;"><i class="fa-solid fa-xmark"></i> At least 8 characters</span>
+                        <span id="req-upper" style="color: #E53935;"><i class="fa-solid fa-xmark"></i> 1 uppercase letter</span>
+                        <span id="req-lower" style="color: #E53935;"><i class="fa-solid fa-xmark"></i> 1 lowercase letter</span>
+                        <span id="req-number" style="color: #E53935;"><i class="fa-solid fa-xmark"></i> 1 number</span>
+                        <span id="req-special" style="color: #E53935;"><i class="fa-solid fa-xmark"></i> 1 special character</span>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>ROLE / DESIGNATION</label>
@@ -267,4 +277,46 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Password visibility toggle
+    const togglePassword = document.getElementById('toggleCreatePassword');
+    const passwordInput = document.getElementById('create-password');
+
+    if (togglePassword && passwordInput) {
+        togglePassword.addEventListener('click', function () {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.classList.toggle('fa-eye-slash');
+            this.classList.toggle('fa-eye');
+        });
+    }
+
+    // Real-time password validation
+    if (passwordInput) {
+        const reqLength = document.getElementById('req-length');
+        const reqUpper = document.getElementById('req-upper');
+        const reqLower = document.getElementById('req-lower');
+        const reqNumber = document.getElementById('req-number');
+        const reqSpecial = document.getElementById('req-special');
+
+        const updateValidation = (condition, elem, text) => {
+            elem.style.color = condition ? '#2E7D32' : '#E53935';
+            elem.innerHTML = (condition ? '<i class="fa-solid fa-check"></i> ' : '<i class="fa-solid fa-xmark"></i> ') + text;
+        };
+
+        passwordInput.addEventListener('input', function(e) {
+            const value = e.target.value;
+            updateValidation(value.length >= 8, reqLength, 'At least 8 characters');
+            updateValidation(/[A-Z]/.test(value), reqUpper, '1 uppercase letter');
+            updateValidation(/[a-z]/.test(value), reqLower, '1 lowercase letter');
+            updateValidation(/[0-9]/.test(value), reqNumber, '1 number');
+            updateValidation(/[^A-Za-z0-9]/.test(value), reqSpecial, '1 special character');
+        });
+    }
+});
+</script>
 {% endblock %}

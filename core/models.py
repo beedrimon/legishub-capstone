@@ -132,7 +132,6 @@ class AuditLog(models.Model):
         ('Upload', 'Upload'),
         ('Edit', 'Edit'),
         ('Delete', 'Delete'),
-        ('View', 'View'),
     ]
 
     timestamp = models.DateTimeField(auto_now_add=True)
