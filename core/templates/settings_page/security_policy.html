@@ -34,34 +34,34 @@
     </div>
 
     <div class="settings-card">
-        <form method="POST" action="{% url 'security_policy' %}">
+        <form method="POST" action="{% url 'security_policy' %}" id="securityPolicyForm">
             {% csrf_token %}
             
             <!-- ========================================== -->
-            <!-- SECTION 1: CHANGE PASSWORD (MOVED TO TOP) -->
+            <!-- SECTION 1: CHANGE PASSWORD -->
             <!-- ========================================== -->
             <h4><i class="fa-solid fa-lock"></i> Change Password</h4>
             
             <div class="change-password-section">
                 <div class="config-group">
                     <label>Current Password</label>
-                    <input type="password" name="current_password" class="config-control" placeholder="Enter current password">
+                    <input type="password" name="current_password" id="current_password" class="config-control" placeholder="Enter current password">
                 </div>
                 <div class="config-group">
                     <label>New Password</label>
-                    <input type="password" name="new_password" class="config-control" placeholder="Enter new password">
+                    <input type="password" name="new_password" id="new_password" class="config-control" placeholder="Enter new password">
                     <span class="italic-hint">Minimum 8 characters</span>
                 </div>
                 <div class="config-group">
                     <label>Confirm New Password</label>
-                    <input type="password" name="confirm_password" class="config-control" placeholder="Confirm new password">
+                    <input type="password" name="confirm_password" id="confirm_password" class="config-control" placeholder="Confirm new password">
                 </div>
             </div>
 
             <hr class="section-divider">
 
             <!-- ========================================== -->
-            <!-- SECTION 2: SESSION TIMEOUT (MOVED FROM GENERAL INFO) -->
+            <!-- SECTION 2: SESSION TIMEOUT -->
             <!-- ========================================== -->
             <h4><i class="fa-solid fa-clock"></i> Session Timeout</h4>
 
@@ -70,7 +70,7 @@
                     <h5>Inactivity Session Timeout</h5>
                     <p>Automatically log out the user after a specified period of inactivity.</p>
                 </div>
-                <select name="session_timeout" class="timeout-dropdown">
+                <select name="session_timeout" id="session_timeout" class="timeout-dropdown">
                     <option value="0.5" {% if session_timeout == 0.5 %}selected{% endif %}>30 seconds (Testing)</option>
                     <option value="15" {% if session_timeout == 15 %}selected{% endif %}>15 minutes</option>
                     <option value="30" {% if session_timeout == 30 %}selected{% endif %}>30 minutes</option>
@@ -90,7 +90,7 @@
                     <h5>Retention Period</h5>
                     <p>Logs older than the specified period are automatically flagged for deletion (RA 10173 Data Privacy Act compliant).</p>
                 </div>
-                <select name="retention_days" class="timeout-dropdown">
+                <select name="retention_days" id="retention_days" class="timeout-dropdown">
                     <option value="1825" {% if retention_days == 1825 %}selected{% endif %}>5 Years</option>
                     <option value="3650" {% if retention_days == 3650 %}selected{% endif %} selected>10 Years (Default)</option>
                     <option value="7300" {% if retention_days == 7300 %}selected{% endif %}>20 Years</option>
@@ -103,7 +103,7 @@
                     <h5>Auto-Purge Schedule</h5>
                     <p>Automatically delete expired audit logs on a recurring schedule.</p>
                 </div>
-                <select name="purge_schedule" class="timeout-dropdown">
+                <select name="purge_schedule" id="purge_schedule" class="timeout-dropdown">
                     <option value="daily" {% if purge_schedule == 'daily' %}selected{% endif %}>Daily at 2:00 AM</option>
                     <option value="weekly" {% if purge_schedule == 'weekly' %}selected{% endif %} selected>Weekly (Sunday, 2:00 AM)</option>
                     <option value="monthly" {% if purge_schedule == 'monthly' %}selected{% endif %}>Monthly (1st of month)</option>
@@ -184,10 +184,31 @@
             </div>
 
             <div class="settings-footer">
-                <button type="reset" class="discard-link">Discard Changes</button>
-                <button type="submit" name="update_policy" class="btn-apply">Save Changes</button>
+                <button type="button" class="discard-link" onclick="resetForm()">Discard Changes</button>
+                <button type="button" class="btn-apply" onclick="showChangeSummary()">Save Changes</button>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- CHANGE SUMMARY MODAL -->
+<div id="changeSummaryModal" class="modal-overlay" style="display: none;">
+    <div class="modal-container" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3><i class="fa-solid fa-pen-to-square"></i> Confirm Changes</h3>
+            <button type="button" class="modal-close-btn" onclick="closeSummaryModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>You are about to make the following changes:</p>
+            <div id="changesList" style="margin: 15px 0; padding-left: 20px;">
+                <!-- Changes will be listed here -->
+            </div>
+            <p><strong>Are you sure you want to continue?</strong></p>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-discard" onclick="closeSummaryModal()">Cancel</button>
+            <button type="button" class="btn-apply" onclick="submitForm()">Confirm Changes</button>
+        </div>
     </div>
 </div>
 
@@ -216,58 +237,210 @@
 </div>
 
 <script>
-const modal = document.getElementById('purgeModal');
-const openBtn = document.getElementById('openPurgeModalBtn');
-const closeBtn = document.getElementById('closeModalBtn');
-const cancelBtn = document.getElementById('cancelPurgeBtn');
-const confirmBtn = document.getElementById('confirmPurgeBtn');
-const confirmInput = document.getElementById('purgeConfirmInput');
+// Store original values when page loads
+const originalValues = {
+    session_timeout: parseFloat('{{ session_timeout|default:"30" }}'),
+    retention_days: parseInt('{{ retention_days|default:"3650" }}'),
+    purge_schedule: '{{ purge_schedule|default:"weekly" }}',
+};
 
-function openModal() {
-    modal.style.display = 'flex';
-    confirmInput.value = '';
-    confirmInput.focus();
+function formatTimeout(value) {
+    const numValue = parseFloat(value);
+    if (numValue === 0.5) return '30 seconds';
+    if (numValue === 15) return '15 minutes';
+    if (numValue === 30) return '30 minutes';
+    if (numValue === 60) return '60 minutes';
+    return numValue + ' minutes';
 }
 
-function closeModal() {
-    modal.style.display = 'none';
+function formatRetentionDays(days) {
+    if (days === 1825) return '5 Years';
+    if (days === 3650) return '10 Years';
+    if (days === 7300) return '20 Years';
+    if (days === 0) return 'Permanent';
+    return days + ' days';
 }
 
-openBtn?.addEventListener('click', openModal);
-closeBtn?.addEventListener('click', closeModal);
-cancelBtn?.addEventListener('click', closeModal);
+function formatPurgeSchedule(schedule) {
+    const schedules = {
+        'daily': 'Daily at 2:00 AM',
+        'weekly': 'Weekly (Sunday, 2:00 AM)',
+        'monthly': 'Monthly (1st of month)',
+        'never': 'Never (Manual Only)'
+    };
+    return schedules[schedule] || schedule;
+}
 
-confirmBtn?.addEventListener('click', function() {
-    if (confirmInput.value === 'PURGE') {
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '{% url "security_policy" %}';
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrfmiddlewaretoken';
-        csrfInput.value = '{{ csrf_token }}';
-        const purgeInput = document.createElement('input');
-        purgeInput.type = 'hidden';
-        purgeInput.name = 'run_purge';
-        purgeInput.value = '1';
-        const confirmInputField = document.createElement('input');
-        confirmInputField.type = 'hidden';
-        confirmInputField.name = 'confirm_purge';
-        confirmInputField.value = 'PURGE';
-        form.appendChild(csrfInput);
-        form.appendChild(purgeInput);
-        form.appendChild(confirmInputField);
-        document.body.appendChild(form);
-        form.submit();
-    } else {
-        alert('Confirmation text did not match. Type "PURGE" to confirm deletion.');
+function showChangeSummary() {
+    const changes = [];
+    
+    // Check Session Timeout
+    const sessionTimeout = document.getElementById('session_timeout');
+    if (sessionTimeout && parseFloat(sessionTimeout.value) !== originalValues.session_timeout) {
+        changes.push({
+            field: 'Session Timeout',
+            oldValue: formatTimeout(originalValues.session_timeout),
+            newValue: formatTimeout(sessionTimeout.value),
+            italic: true
+        });
+    }
+    
+    // Check Retention Days
+    const retentionDays = document.getElementById('retention_days');
+    if (retentionDays && parseInt(retentionDays.value) !== originalValues.retention_days) {
+        changes.push({
+            field: 'Retention Period',
+            oldValue: formatRetentionDays(originalValues.retention_days),
+            newValue: formatRetentionDays(parseInt(retentionDays.value)),
+            italic: true
+        });
+    }
+    
+    // Check Purge Schedule
+    const purgeSchedule = document.getElementById('purge_schedule');
+    if (purgeSchedule && purgeSchedule.value !== originalValues.purge_schedule) {
+        changes.push({
+            field: 'Auto-Purge Schedule',
+            oldValue: formatPurgeSchedule(originalValues.purge_schedule),
+            newValue: formatPurgeSchedule(purgeSchedule.value),
+            italic: true
+        });
+    }
+    
+    // Check if password fields have values (password change)
+    const currentPassword = document.getElementById('current_password');
+    const newPassword = document.getElementById('new_password');
+    const confirmPassword = document.getElementById('confirm_password');
+    
+    if (currentPassword && currentPassword.value && newPassword && newPassword.value && confirmPassword && confirmPassword.value) {
+        changes.push({
+            field: 'Password',
+            oldValue: '●●●●●●●●',
+            newValue: '●●●●●●●● (changed)',
+            danger: true
+        });
+    } else if (currentPassword && currentPassword.value && (!newPassword.value || !confirmPassword.value)) {
+        alert('Please fill in all password fields to change your password.');
+        return;
+    }
+    
+    // Show modal or submit directly if no changes
+    if (changes.length === 0) {
+        alert('No changes were made.');
+        return;
+    }
+    
+    // Build the changes list HTML
+    const changesList = document.getElementById('changesList');
+    let changesHtml = '<ul style="margin: 0; padding-left: 20px;">';
+    
+    changes.forEach(change => {
+        let style = '';
+        if (change.danger) {
+            style = 'color: #dc3545; font-weight: bold;';
+        } else if (change.italic) {
+            style = 'font-style: italic;';
+        }
+        
+        changesHtml += `<li style="margin-bottom: 10px; ${style}">
+            <strong>${change.field}:</strong><br>
+            <span style="margin-left: 20px; font-size: 0.85rem;">
+                from "${change.oldValue}" → to "${change.newValue}"
+            </span>
+        </li>`;
+    });
+    
+    changesHtml += '</ul>';
+    changesList.innerHTML = changesHtml;
+    
+    // Show modal
+    document.getElementById('changeSummaryModal').style.display = 'flex';
+}
+
+function closeSummaryModal() {
+    document.getElementById('changeSummaryModal').style.display = 'none';
+}
+
+function submitForm() {
+    const form = document.getElementById('securityPolicyForm');
+    closeSummaryModal();
+    form.submit();
+}
+
+function resetForm() {
+    if (confirm('Discard all unsaved changes?')) {
+        location.reload();
+    }
+}
+
+// Purge Modal Logic
+const purgeModal = document.getElementById('purgeModal');
+const openPurgeBtn = document.getElementById('openPurgeModalBtn');
+const closePurgeBtn = document.getElementById('closeModalBtn');
+const cancelPurgeBtn = document.getElementById('cancelPurgeBtn');
+const confirmPurgeBtn = document.getElementById('confirmPurgeBtn');
+const purgeConfirmInput = document.getElementById('purgeConfirmInput');
+
+function openPurgeModal() {
+    purgeModal.style.display = 'flex';
+    if (purgeConfirmInput) purgeConfirmInput.value = '';
+    if (purgeConfirmInput) purgeConfirmInput.focus();
+}
+
+function closePurgeModal() {
+    purgeModal.style.display = 'none';
+}
+
+if (openPurgeBtn) openPurgeBtn.addEventListener('click', openPurgeModal);
+if (closePurgeBtn) closePurgeBtn.addEventListener('click', closePurgeModal);
+if (cancelPurgeBtn) cancelPurgeBtn.addEventListener('click', closePurgeModal);
+
+if (confirmPurgeBtn) {
+    confirmPurgeBtn.addEventListener('click', function() {
+        if (purgeConfirmInput && purgeConfirmInput.value === 'PURGE') {
+            const form = document.getElementById('securityPolicyForm');
+            const purgeInput = document.createElement('input');
+            purgeInput.type = 'hidden';
+            purgeInput.name = 'run_purge';
+            purgeInput.value = '1';
+            const confirmInput = document.createElement('input');
+            confirmInput.type = 'hidden';
+            confirmInput.name = 'confirm_purge';
+            confirmInput.value = 'PURGE';
+            form.appendChild(purgeInput);
+            form.appendChild(confirmInput);
+            closePurgeModal();
+            form.submit();
+        } else if (purgeConfirmInput) {
+            alert('Confirmation text did not match. Type "PURGE" to confirm deletion.');
+        }
+    });
+}
+
+if (purgeModal) {
+    purgeModal.addEventListener('click', function(e) {
+        if (e.target === purgeModal) {
+            closePurgeModal();
+        }
+    });
+}
+
+// Close summary modal when clicking outside
+document.addEventListener('click', function(e) {
+    const summaryModal = document.getElementById('changeSummaryModal');
+    if (e.target === summaryModal) {
+        closeSummaryModal();
     }
 });
 
-modal?.addEventListener('click', function(e) {
-    if (e.target === modal) {
-        closeModal();
-    }
+// Hide other modals on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const modals = document.querySelectorAll('.modal-overlay');
+    modals.forEach(modal => {
+        if (modal.id !== 'changeSummaryModal' && modal.id !== 'purgeModal') {
+            modal.style.display = 'none';
+        }
+    });
 });
 </script>
 
@@ -282,7 +455,9 @@ modal?.addEventListener('click', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
     const modals = document.querySelectorAll('.modal-overlay');
     modals.forEach(modal => {
-        modal.style.display = 'none';
+        if (modal.id !== 'changeSummaryModal' && modal.id !== 'purgeModal') {
+            modal.style.display = 'none';
+        }
     });
 });
 </script>
