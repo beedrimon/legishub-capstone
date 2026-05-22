@@ -265,9 +265,10 @@ def archive_view(request):
     # Start with all archived records
     archive_list = ArchivedDocument.objects.all().order_by('-original_date_filed')
     
-    # Fetch search query
+    # Fetch search query and filters
     search_query = request.GET.get('q', '')
     doc_type = request.GET.get('doc_type', '')
+    original_document_number = request.GET.get('original_document_number', '') # <-- Added!
     year = request.GET.get('year', '')
     author = request.GET.get('author', '')
 
@@ -281,11 +282,18 @@ def archive_view(request):
         )
     if doc_type:
         archive_list = archive_list.filter(doc_type__iexact=doc_type)
+    if original_document_number: # <-- Added!
+        archive_list = archive_list.filter(original_document_number=original_document_number)
     if year:
         archive_list = archive_list.filter(year=year)
     if author:
         archive_list = archive_list.filter(sponsor__icontains=author)
     
+    # --- NEW: Fetch dynamic dropdown choices straight from the database ---
+    available_years = ArchivedDocument.objects.values_list('year', flat=True).distinct().order_by('-year')
+    available_authors = ArchivedDocument.objects.exclude(sponsor__isnull=True).exclude(sponsor__exact='').values_list('sponsor', flat=True).distinct().order_by('sponsor')
+    available_document_numbers = ArchivedDocument.objects.exclude(original_document_number__isnull=True).exclude(original_document_number__exact='').values_list('original_document_number', flat=True).distinct().order_by('original_document_number')
+
     # UI Data: Counts and Folders
     res_count = ArchivedDocument.objects.filter(doc_type__iexact='Resolution').count()
     ord_count = ArchivedDocument.objects.filter(doc_type__iexact='Ordinance').count()
@@ -303,7 +311,10 @@ def archive_view(request):
         'custom_folders': custom_folders,
         'is_legislator': is_legislator(request.user),
         'search_query': search_query,
-        'curent_filters': request.GET,
+        'current_filters': request.GET, # <-- FIXED TYPO! (was curent_filters)
+        'available_years': available_years,               # <-- Added!
+        'available_authors': available_authors,           # <-- Added!
+        'available_document_numbers': available_document_numbers # <-- Added!
     }
     return render(request, 'archives/archive.html', context)
 
