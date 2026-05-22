@@ -997,7 +997,50 @@ def perform_sync(user=None, sync_type='manual'):
             backup_log.documents_synced = counts.get('documents', 0)
             backup_log.archives_synced = counts.get('archives', 0)
             backup_log.audit_logs_synced = counts.get('audit_logs', 0)
-            backup_log.records_synced = counts.get('total', 0)
+            backup_log.records_synced = synced
+            backup_log.status = 'success'
+            backup_log.completed_at = timezone.now()
+            backup_log.save()
+            return True, backup_log
+        else:
+            return False, backup_log
+            
+    except Exception as e:
+        backup_log.status = 'failed'
+        backup_log.error_message = str(e)
+        backup_log.completed_at = timezone.now()
+        backup_log.save()
+        return False, backup_log
+
+def perform_restore(user=None, sync_type='manual'):
+    """Perform database restore from Supabase"""
+    from core.backup_utils import SupabaseBackup
+    from core.models import BackupLog
+    
+    backup_log = BackupLog.objects.create(
+        backup_type='restore',
+        status='in_progress',
+        triggered_by=user
+    )
+    
+    try:
+        backup = SupabaseBackup()
+        
+        connected, message = backup.test_connection()
+        if not connected:
+            backup_log.status = 'failed'
+            backup_log.error_message = f"Cannot connect to Supabase: {message}"
+            backup_log.completed_at = timezone.now()
+            backup_log.save()
+            return False, backup_log
+        
+        success, restored, counts = backup.restore_from_supabase(backup_log.id)
+        
+        if success:
+            backup_log.documents_synced = counts.get('documents', 0)
+            backup_log.archives_synced = counts.get('archives', 0)
+            backup_log.audit_logs_synced = counts.get('audit_logs', 0)
+            backup_log.records_synced = restored
             backup_log.status = 'success'
             backup_log.completed_at = timezone.now()
             backup_log.save()
@@ -1032,9 +1075,18 @@ def backup_cloud_view(request):
             # Trigger manual sync
             success, backup_log = perform_sync(user=request.user, sync_type='manual')
             if success:
-                messages.success(request, f'Manual backup completed! Synced {backup_log.records_synced} records.')
+                messages.success(request, f'Manual backup completed! Pushed {backup_log.records_synced} records to cloud.')
             else:
                 messages.error(request, f'Backup failed: {backup_log.error_message}')
+            return redirect('backup_cloud')
+            
+        elif 'manual_restore' in request.POST:
+            # Trigger manual restore
+            success, backup_log = perform_restore(user=request.user, sync_type='manual')
+            if success:
+                messages.success(request, f'Restore completed! Pulled {backup_log.records_synced} records from cloud. Please double-check if you need to log in again.')
+            else:
+                messages.error(request, f'Restore failed: {backup_log.error_message}')
             return redirect('backup_cloud')
     
     # GET request - load settings

@@ -291,6 +291,7 @@ class BackupLog(models.Model):
     TYPE_CHOICES = [
         ('auto', 'Automatic (Login)'),
         ('manual', 'Manual'),
+        ('restore', 'Restore'),
     ]
     
     backup_type = models.CharField(max_length=20, choices=TYPE_CHOICES)

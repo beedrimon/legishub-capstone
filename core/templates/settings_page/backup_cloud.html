@@ -100,16 +100,26 @@
             <!-- MANUAL BACKUP SECTION -->
             <hr class="section-divider">
             
-            <h4><i class="fa-solid fa-hand-pointer"></i> Manual Backup</h4>
+            <h4><i class="fa-solid fa-hand-pointer"></i> Manual Sync & Restore</h4>
             
-            <div class="manual-sync-card">
-                <div class="manual-sync-content">
+            <div class="manual-sync-card" style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div class="manual-sync-content" style="flex: 1; min-width: 250px;">
                     <div class="manual-sync-text">
-                        <strong>Trigger Manual Sync</strong>
-                        <p>Force immediate synchronization with Supabase cloud storage</p>
+                        <strong>Push to Cloud (Backup)</strong>
+                        <p>Push local data to Supabase cloud storage</p>
                     </div>
                     <button type="submit" name="manual_backup" class="sync-button">
-                        <i class="fa-solid fa-cloud-upload-alt"></i> Sync Now
+                        <i class="fa-solid fa-cloud-upload-alt"></i> Push Now
+                    </button>
+                </div>
+                
+                <div class="manual-sync-content" style="flex: 1; min-width: 250px; border-color: #ffe0b2;">
+                    <div class="manual-sync-text">
+                        <strong style="color: #d97706;">Pull from Cloud (Restore)</strong>
+                        <p>Replace local data with data from Supabase</p>
+                    </div>
+                    <button type="submit" name="manual_restore" class="sync-button" style="background: #f59e0b; border-color: #d97706; color: white;" onclick="return confirm('WARNING: This will replace all your local data with the cloud data. This action cannot be undone. Do you want to continue?');">
+                        <i class="fa-solid fa-cloud-download-alt"></i> Pull Now
                     </button>
                 </div>
             </div>
@@ -136,6 +146,8 @@
                             <td>
                                 {% if log.backup_type == 'auto' %}
                                     <span class="badge-info">Auto</span>
+                                {% elif log.backup_type == 'restore' %}
+                                    <span class="badge-warning" style="background: #fef3c7; color: #d97706;">Restore</span>
                                 {% else %}
                                     <span class="badge-warning">Manual</span>
                                 {% endif %}
