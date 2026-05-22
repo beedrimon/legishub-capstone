@@ -38,7 +38,7 @@ class Command(BaseCommand):
 
         # Safety fallback: If no staff members have emails in the system, send it to your master email
         if not recipient_emails:
-            recipient_emails = ['jayveemoral0319@gmail.com']
+            recipient_emails = ['noreply.marikinalegishub@gmail.com']
 
 
         # 3. Process each overdue document

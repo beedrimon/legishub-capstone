@@ -16,7 +16,6 @@
 {% endblock %}
 
 {% block content %}
-<div class="breadcrumb">Settings / <span>Security Policy</span></div>
 
 <div class="settings-container">
     <div class="settings-nav">
@@ -25,9 +24,6 @@
         </a>
         <a href="{% url 'backup_cloud' %}" class="settings-nav-item">
             <i class="fa-solid fa-cloud-arrow-up"></i> Backup & Cloud
-        </a>
-        <a href="{% url 'metadata_tags' %}" class="settings-nav-item">
-            <i class="fa-solid fa-tags"></i> Metadata Tags
         </a>
         <a href="{% url 'security_policy' %}" class="settings-nav-item active">
             <i class="fa-solid fa-shield-halved"></i> Security Policy
@@ -41,55 +37,33 @@
         <form method="POST" action="{% url 'security_policy' %}">
             {% csrf_token %}
             
-            <!-- SECTION 1: AUTHENTICATION SECURITY -->
-            <h4><i class="fa-solid fa-key"></i> Authentication Security</h4>
+            <!-- ========================================== -->
+            <!-- SECTION 1: CHANGE PASSWORD (MOVED TO TOP) -->
+            <!-- ========================================== -->
+            <h4><i class="fa-solid fa-lock"></i> Change Password</h4>
             
-            <div class="security-item">
-                <div class="security-text">
-                    <h5>Two-Factor Authentication (2FA)</h5>
-                    <p>Require a secondary verification code for all administrator logins to enhance account security.</p>
+            <div class="change-password-section">
+                <div class="config-group">
+                    <label>Current Password</label>
+                    <input type="password" name="current_password" class="config-control" placeholder="Enter current password">
                 </div>
-                <label class="switch">
-                    <input type="checkbox" name="mfa_enabled" {% if mfa_enabled %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
+                <div class="config-group">
+                    <label>New Password</label>
+                    <input type="password" name="new_password" class="config-control" placeholder="Enter new password">
+                    <span class="italic-hint">Minimum 8 characters</span>
+                </div>
+                <div class="config-group">
+                    <label>Confirm New Password</label>
+                    <input type="password" name="confirm_password" class="config-control" placeholder="Confirm new password">
+                </div>
             </div>
 
-            <div class="security-item">
-                <div class="security-text">
-                    <h5>Password Complexity Requirement</h5>
-                    <p>Enforce passwords to include symbols, numbers, and uppercase characters (min. {{ password_min_length|default:8 }} chars).</p>
-                </div>
-                <label class="switch">
-                    <input type="checkbox" name="require_complex_password" {% if require_complex_password %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
-            </div>
+            <hr class="section-divider">
 
-            <div class="security-item">
-                <div class="security-text">
-                    <h5>Password Expiry (Days)</h5>
-                    <p>Force users to change their password after specified period.</p>
-                </div>
-                <select name="password_expiry" class="timeout-dropdown">
-                    <option value="0" {% if password_expiry == 0 %}selected{% endif %}>Never</option>
-                    <option value="90" {% if password_expiry == 90 %}selected{% endif %}>90 days</option>
-                    <option value="180" {% if password_expiry == 180 %}selected{% endif %} selected>180 days</option>
-                    <option value="365" {% if password_expiry == 365 %}selected{% endif %}>365 days</option>
-                </select>
-            </div>
-
-            <div class="security-item">
-                <div class="security-text">
-                    <h5>Failed Login Attempts</h5>
-                    <p>Lock account after specified number of failed attempts.</p>
-                </div>
-                <select name="max_failed_attempts" class="timeout-dropdown">
-                    <option value="3" {% if max_failed_attempts == 3 %}selected{% endif %}>3 attempts</option>
-                    <option value="5" {% if max_failed_attempts == 5 %}selected{% endif %} selected>5 attempts</option>
-                    <option value="10" {% if max_failed_attempts == 10 %}selected{% endif %}>10 attempts</option>
-                </select>
-            </div>
+            <!-- ========================================== -->
+            <!-- SECTION 2: SESSION TIMEOUT (MOVED FROM GENERAL INFO) -->
+            <!-- ========================================== -->
+            <h4><i class="fa-solid fa-clock"></i> Session Timeout</h4>
 
             <div class="security-item">
                 <div class="security-text">
@@ -97,26 +71,19 @@
                     <p>Automatically log out the user after a specified period of inactivity.</p>
                 </div>
                 <select name="session_timeout" class="timeout-dropdown">
-                    <option value="15" {% if session_timeout == 15 %}selected{% endif %}>15 Minutes</option>
-                    <option value="30" {% if session_timeout == 30 %}selected{% endif %} selected>30 Minutes</option>
-                    <option value="60" {% if session_timeout == 60 %}selected{% endif %}>60 Minutes</option>
-                    <option value="120" {% if session_timeout == 120 %}selected{% endif %}>120 Minutes</option>
+                    <option value="0.5" {% if session_timeout == 0.5 %}selected{% endif %}>30 seconds (Testing)</option>
+                    <option value="15" {% if session_timeout == 15 %}selected{% endif %}>15 minutes</option>
+                    <option value="30" {% if session_timeout == 30 %}selected{% endif %}>30 minutes</option>
+                    <option value="60" {% if session_timeout == 60 %}selected{% endif %}>60 minutes</option>
                 </select>
             </div>
 
-            <div class="security-item">
-                <div class="security-text">
-                    <h5>IP Whitelisting (Geo-fencing)</h5>
-                    <p>Restrict system access only within the Marikina City Hall local network.</p>
-                </div>
-                <label class="switch">
-                    <input type="checkbox" name="ip_whitelist_enabled" {% if ip_whitelist_enabled %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
-            </div>
+            <hr class="section-divider">
 
-            <!-- SECTION 2: AUDIT LOG RETENTION & PURGE (10-YEAR COMPLIANCE) -->
-            <h4><i class="fa-solid fa-clock"></i> Audit Log Retention & Purge</h4>
+            <!-- ========================================== -->
+            <!-- SECTION 3: AUDIT LOG RETENTION & PURGE -->
+            <!-- ========================================== -->
+            <h4><i class="fa-solid fa-database"></i> Audit Log Retention & Purge</h4>
             
             <div class="security-item">
                 <div class="security-text">
@@ -216,78 +183,9 @@
                 </table>
             </div>
 
-            <!-- SECTION 3: CHANGE PASSWORD -->
-            <h4><i class="fa-solid fa-lock"></i> Change Password</h4>
-            
-            <div class="change-password-section">
-                <div class="config-group">
-                    <label>Current Password</label>
-                    <input type="password" name="current_password" class="config-control" placeholder="Enter current password">
-                </div>
-                <div class="config-group">
-                    <label>New Password</label>
-                    <input type="password" name="new_password" class="config-control" placeholder="Enter new password">
-                    <span class="italic-hint">Minimum {{ password_min_length|default:"8" }} characters with uppercase, number, and special character.</span>
-                </div>
-                <div class="config-group">
-                    <label>Confirm New Password</label>
-                    <input type="password" name="confirm_password" class="config-control" placeholder="Confirm new password">
-                </div>
-            </div>
-
-            <!-- SECTION 4: ACTIVE SESSIONS (Staff View) -->
-            {% if not request.user.is_superuser %}
-            <h4><i class="fa-solid fa-desktop"></i> Active Sessions</h4>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Device/Browser</th>
-                        <th>IP Address</th>
-                        <th>Last Activity</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Chrome on Windows</td>
-                        <td>127.0.0.1</td>
-                        <td>Now</td>
-                        <td><span class="current-session-badge">Current Session</span></td>
-                    </tr>
-                </tbody>
-            </table>
-            <div class="terminate-sessions">
-                <button type="button" class="btn-discard">Terminate Other Sessions</button>
-            </div>
-
-            <!-- SECTION 5: LOGIN HISTORY (Staff View) -->
-            <h4><i class="fa-solid fa-clock-rotate-left"></i> Recent Login History</h4>
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Date & Time</th>
-                        <th>IP Address</th>
-                        <th>Browser/Device</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>May 14, 2026 09:30:00 AM</td>
-                        <td>192.168.1.100</td>
-                        <td>Chrome 120 / Windows</td>
-                    </tr>
-                    <tr>
-                        <td>May 13, 2026 08:15:00 AM</td>
-                        <td>192.168.1.100</td>
-                        <td>Chrome 120 / Windows</td>
-                    </tr>
-                </tbody>
-            </table>
-            {% endif %}
-
             <div class="settings-footer">
                 <button type="reset" class="discard-link">Discard Changes</button>
-                <button type="submit" name="update_policy" class="btn-apply">Apply Security Policies</button>
+                <button type="submit" name="update_policy" class="btn-apply">Save Changes</button>
             </div>
         </form>
     </div>

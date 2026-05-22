@@ -16,7 +16,6 @@
 {% endblock %}
 
 {% block content %}
-<div class="breadcrumb">Settings / <span>Notifications</span></div>
 
 <div class="settings-container">
     <div class="settings-nav">
@@ -25,9 +24,6 @@
         </a>
         <a href="{% url 'backup_cloud' %}" class="settings-nav-item">
             <i class="fa-solid fa-cloud-arrow-up"></i> Backup & Cloud
-        </a>
-        <a href="{% url 'metadata_tags' %}" class="settings-nav-item">
-            <i class="fa-solid fa-tags"></i> Metadata Tags
         </a>
         <a href="{% url 'security_policy' %}" class="settings-nav-item">
             <i class="fa-solid fa-shield-halved"></i> Security Policy
@@ -65,18 +61,6 @@
                     <input type="checkbox" name="in_app_notifications" {% if in_app_notifications %}checked{% endif %}>
                     <span class="slider"></span>
                 </label>
-            </div>
-
-            <div class="notification-item">
-                <div class="notification-text">
-                    <h5>Email Digest Frequency</h5>
-                    <p>How often to send email summaries of system activity.</p>
-                </div>
-                <select name="email_digest" class="timeout-dropdown">
-                    <option value="instant" {% if email_digest == 'instant' %}selected{% endif %}>Instant (Real-time)</option>
-                    <option value="daily" {% if email_digest == 'daily' %}selected{% endif %}>Daily at 8:00 AM</option>
-                    <option value="weekly" {% if email_digest == 'weekly' %}selected{% endif %}>Weekly (Monday)</option>
-                </select>
             </div>
 
             <!-- SECTION 2: ESCALATION RULES (Admin Only) -->
@@ -213,60 +197,6 @@
                     <input type="checkbox" name="notify_comments" {% if notify_comments %}checked{% endif %}>
                     <span class="slider"></span>
                 </label>
-            </div>
-
-            <div class="notification-item">
-                <div class="notification-text">
-                    <h5>Sound Alerts</h5>
-                    <p>Play a sound when new notifications arrive (in-app only).</p>
-                </div>
-                <label class="switch">
-                    <input type="checkbox" name="sound_alerts" {% if sound_alerts %}checked{% endif %}>
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <!-- SECTION 5: RECENT NOTIFICATIONS -->
-            <h4><i class="fa-solid fa-clock"></i> Recent Notifications</h4>
-            
-            <div class="notification-list">
-                {% for notif in notifications|slice:":20" %}
-                <div class="notification-entry {% if not notif.is_read %}unread{% endif %}">
-                    <div class="notification-header">
-                        <div>
-                            <div class="notification-title">
-                                {% if notif.action == 'Upload' %}
-                                    📄 Document Uploaded
-                                {% elif notif.action == 'Edit' %}
-                                    ✏️ Document Edited
-                                {% elif notif.action == 'Delete' %}
-                                    🗑️ Document Deleted
-                                {% else %}
-                                    🔔 {{ notif.action }}
-                                {% endif %}
-                            </div>
-                            <p class="notification-message">
-                                {% if notif.document %}
-                                    Document #{{ notif.document.document_number }} - {{ notif.document.title|truncatechars:50 }}
-                                {% else %}
-                                    System event
-                                {% endif %}
-                            </p>
-                        </div>
-                        <div class="notification-time">
-                            {{ notif.timestamp|timesince }} ago
-                            {% if not notif.is_read %}
-                            <span class="badge-info">New</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="empty-notifications">
-                    <i class="fa-regular fa-bell-slash"></i>
-                    No notifications yet
-                </div>
-                {% endfor %}
             </div>
 
             <div class="settings-footer">
