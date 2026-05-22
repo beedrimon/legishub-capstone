@@ -162,8 +162,8 @@ def dashboard_view(request):
     recent_documents = LegislativeDocument.objects.all().order_by('-id')[:5]
 
     # 3. FETCH RECENT AUDIT LOGS
-    # Legislators only see their own recent logs, Admins/Staff see everyone's
-    if is_legislator(request.user):
+    # Encoders and Legislators only see their own recent logs, Admins see everyone's
+    if not request.user.is_superuser:
         recent_logs = AuditLog.objects.filter(user=request.user).order_by('-timestamp')[:5]
     else:
         recent_logs = AuditLog.objects.all().order_by('-timestamp')[:5]
@@ -537,8 +537,8 @@ def create_archive_folder(request):
 @login_required(login_url='login')
 def audit_logs_view(request):
     # Fetch all logs from the database, ordered by newest first
-    if is_legislator(request.user):
-        # Legislators can only see their own activity
+    if not request.user.is_superuser:
+        # Encoders and Legislators can only see their own activity
         logs = AuditLog.objects.filter(user=request.user).select_related('document').order_by('-timestamp')
     else:
         logs = AuditLog.objects.all().select_related('user', 'document').order_by('-timestamp')
@@ -569,7 +569,7 @@ def audit_logs_view(request):
         logs = logs.filter(timestamp__date=date_filter)
 
     # 4. Fetch dynamic data for the dropdowns
-    if is_legislator(request.user):
+    if not request.user.is_superuser:
         available_users = [request.user.username]
     else:
         # Gets unique usernames of users who actually have logs
@@ -1277,7 +1277,7 @@ def notifications_view(request):
         return redirect('notifications')
     
     # Get user's recent notifications (audit logs)
-    if is_legislator(user):
+    if not request.user.is_superuser:
         notifications = AuditLog.objects.filter(user=user).order_by('-timestamp')[:50]
     else:
         notifications = AuditLog.objects.all().order_by('-timestamp')[:50]
@@ -1469,11 +1469,11 @@ def get_notifications(request):
     
     # Fetch recent audit logs. For simplicity, we'll use AuditLog as notifications.
     # You might want to create a dedicated Notification model for more complex scenarios.
-    if is_legislator(request.user):
-        # Legislators only see their own activity
+    if not request.user.is_superuser:
+        # Encoders and Legislators only see their own activity
         raw_notifications = AuditLog.objects.filter(user=request.user).order_by('-timestamp')[:limit + 1]
     else:
-        # Admins/Staff see all activity
+        # Admins see all activity
         raw_notifications = AuditLog.objects.all().order_by('-timestamp')[:limit + 1]
 
     has_more = len(raw_notifications) > limit
