@@ -87,7 +87,7 @@ class SupabaseBackup:
                 if rows:
                     col_names = [desc[0] for desc in local_cursor.description]
                     
-                    supabase_cursor.execute(sql.SQL("TRUNCATE TABLE {}").format(sql.Identifier(table)))
+                    supabase_cursor.execute(sql.SQL("TRUNCATE TABLE {} CASCADE").format(sql.Identifier(table)))
                     
                     for row in rows:
                         placeholders = ','.join(['%s'] * len(row))
