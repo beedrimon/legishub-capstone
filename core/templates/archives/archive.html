@@ -67,120 +67,137 @@
     </div>
 
     <div class="archive-view-container">
-
-        <section class="filter-card">
-                    <div class="filter-group">
-                        <label>DOCUMENT TYPE</label>
-                        <select name="doc_type" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Types</option>
-                            <option value="Ordinance" {% if current_filters.doc_type == 'Ordinance' %}selected{% endif %}>
-                                Ordinance</option>
-                            <option value="Resolution" {% if current_filters.doc_type == 'Resolution' %}selected{% endif %}>
-                                Resolution</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>Document Number</label>
-                        <select name="original_document_number" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Document No.</option>
-                            {% for num in available_document_numbers %}
-                            <option value="{{ num }}" {% if current_filters.original_document_number == num %}selected{% endif %}>
-                                {{ num }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>YEAR</label>
-                        <select name="year" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Years</option>
-                            {% for y in available_years %}
-                            <option value="{{ y }}" {% if current_filters.year == y|stringformat:"s" %}selected{% endif %}>
-                                {{ y }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label>AUTHOR</label>
-                        <select name="author" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Authors</option>
-                            {% for a in available_authors %}
-                            <option value="{{ a }}" {% if current_filters.author == a %}selected{% endif %}>{{ a }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <a href="{% url 'documents' %}" class="btn-reset"
-                        style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Reset
-                        Filters</a>
-                </section>
         
-        <div class="year-grid-scroll" style="padding: 0;"> <table class="archive-table" style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr>
-                        <th style="padding: 15px;">No.</th>
-                        <th>ARCHIVE ID</th>
-                        <th>DOCUMENT TITLE</th>
-                        <th>AUTHOR</th>
-                        <th>REFERENCE NO.</th>
-                        <th>DATE ENACTED</th>
-                        <th>STATUS</th>
-                        <th>ACTIONS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for doc in archives %}
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td>{{ forloop.counter0|add:archives.start_index }}</td>
-                        <td>{{ doc.archive_id }}</td>
-                        <td>{{ doc.title }}</td>
-                        <td>{{ doc.sponsor|default:'No Sponsor Listed' }}</td>
-                        <td>{{ doc.original_document_number }}</td> 
-                        <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
-                        <td><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></td>
-                        <td class="action-icons">
-                            <i class="fa-regular fa-eye trigger-view" title="View Document"
-                                style="cursor: pointer; color: #888;" 
-                                data-number="{{ doc.archive_id }}"
-                                data-title="{{ doc.title }}" 
-                                data-type="{{ doc.doc_type }}"
-                                data-year="{{ doc.year }}" 
-                                data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
-                                data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
-                                data-keywords="{{ doc.keywords|default:'None' }}"
-                                data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
-                                data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
-                                data-status="Archived"
-                                data-visibility="{{ doc.visibility }}"
-                                data-storage="{{ doc.physical_storage|default:'Not specified' }}"
-                                {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}" {% endif %}></i>
-                       </td>
-    </tr>
-    {% empty %}
-    <tr>
-        <td colspan="7" style="text-align: center; padding: 50px; color: #8a7b6a;">
-            No archived documents found for this selection.
-        </td>
-    </tr>
-    {% endfor %}
-                </tbody>
-            </table>
-            <div class="pagination-container" style="margin-top: 20px; text-align: center;">
-        {% if archives.has_other_pages %}
-            <div class="pagination">
-                {% if archives.has_previous %}
-                    <a href="?page={{ archives.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">&laquo; Previous</a>
-                {% endif %}
+        <form id="filterForm" method="GET" action="{% url 'archive' %}">
+            
+            {% if search_query %}
+            <input type="hidden" name="q" value="{{ search_query }}">
+            {% endif %}
 
-                <span class="current-page">
-                    Page {{ archives.number }} of {{ archives.paginator.num_pages }}
-                </span>
+            <section class="filter-card">
+                <div class="filter-group">
+                    <label>DOCUMENT TYPE</label>
+                    <select name="doc_type" onchange="document.getElementById('filterForm').submit();">
+                        <option value="">All Types</option>
+                        <option value="Ordinance" {% if current_filters.doc_type == 'Ordinance' %}selected{% endif %}>
+                            Ordinance</option>
+                        <option value="Resolution" {% if current_filters.doc_type == 'Resolution' %}selected{% endif %}>
+                            Resolution</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Document Number</label>
+                    <select name="original_document_number" onchange="document.getElementById('filterForm').submit();">
+                        <option value="">All Document No.</option>
+                        {% for num in available_document_numbers %}
+                        <option value="{{ num }}" {% if current_filters.original_document_number == num %}selected{% endif %}>
+                            {{ num }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>YEAR</label>
+                    <select name="year" onchange="document.getElementById('filterForm').submit();">
+                        <option value="">All Years</option>
+                        {% for y in available_years %}
+                        <option value="{{ y }}" {% if current_filters.year == y|stringformat:"s" %}selected{% endif %}>
+                            {{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>AUTHOR</label>
+                    <select name="author" onchange="document.getElementById('filterForm').submit();">
+                        <option value="">All Authors</option>
+                        {% for a in available_authors %}
+                        <option value="{{ a }}" {% if current_filters.author == a %}selected{% endif %}>{{ a }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <a href="{% url 'archive' %}" class="btn-reset"
+                    style="text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">Reset
+                    Filters</a>
+            </section>
+        
+            <div class="year-grid-scroll" style="padding: 0;"> 
+                <table class="archive-table" style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th style="padding: 15px;">No.</th>
+                            <th>ARCHIVE ID</th>
+                            <th>DOCUMENT TITLE</th>
+                            <th>AUTHOR</th>
+                            <th>REFERENCE NO.</th>
+                            <th>DATE ENACTED</th>
+                            <th>STATUS</th>
+                            <th>ACTIONS</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for doc in archives %}
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td>{{ forloop.counter0|add:archives.start_index }}</td>
+                            <td>{{ doc.archive_id }}</td>
+                            <td>{{ doc.title }}</td>
+                            <td>{{ doc.sponsor|default:'No Sponsor Listed' }}</td>
+                            <td>{{ doc.original_document_number }}</td> 
+                            <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
+                            <td><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></td>
+                            <td class="action-icons">
+                                <i class="fa-regular fa-eye trigger-view" title="View Document"
+                                    style="cursor: pointer; color: #888;" 
+                                    data-number="{{ doc.archive_id }}"
+                                    data-title="{{ doc.title }}" 
+                                    data-type="{{ doc.doc_type }}"
+                                    data-year="{{ doc.year }}" 
+                                    data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
+                                    data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
+                                    data-keywords="{{ doc.keywords|default:'None' }}"
+                                    data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
+                                    data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
+                                    data-status="Archived"
+                                    data-visibility="{{ doc.visibility }}"
+                                    data-storage="{{ doc.physical_storage|default:'Not specified' }}"
+                                    {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}" {% endif %}></i>
+                           </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 50px; color: #8a7b6a;">
+                                No archived documents found for this selection.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <input type="hidden" name="page" id="page_number" value="{{ archives.number|default:1 }}">
 
-                {% if archives.has_next %}
-                    <a href="?page={{ archives.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">Next &raquo;</a>
-                {% endif %}
-            </div>
-        {% endif %}
-    </div>
+                <div class="pagination-container" style="margin-top: 30px; width: 100%;">
+                    <div class="pagination" style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 15px;">
+                        
+                        <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                            {% if archives.has_previous %}
+                                <a href="#" onclick="document.getElementById('page_number').value='1'; document.getElementById('filterForm').submit(); return false;">&laquo;&laquo; First</a>
+                                <a href="#" onclick="document.getElementById('page_number').value='{{ archives.previous_page_number }}'; document.getElementById('filterForm').submit(); return false;">&laquo; Previous</a>
+                            {% endif %}
+                        </div>
+
+                        <span class="current-page" style="text-align: center; font-weight: 600; white-space: nowrap;">
+                            Page {{ archives.number|default:1 }} of {{ archives.paginator.num_pages|default:1 }}
+                        </span>
+
+                        <div style="display: flex; justify-content: flex-start; gap: 8px;">
+                            {% if archives.has_next %}
+                                <a href="#" onclick="document.getElementById('page_number').value='{{ archives.next_page_number }}'; document.getElementById('filterForm').submit(); return false;">Next &raquo;</a>
+                                <a href="#" onclick="document.getElementById('page_number').value='{{ archives.paginator.num_pages }}'; document.getElementById('filterForm').submit(); return false;">Last &raquo;&raquo;</a>
+                            {% endif %}
+                        </div>
+                        
+                    </div>
+                </div>
+        
+        </form> </div>
 </div>
         </div>
     </div>

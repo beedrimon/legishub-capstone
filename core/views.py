@@ -26,6 +26,7 @@ import math
 # for settings
 
 from django.contrib.auth.hashers import check_password
+from django.contrib.auth.password_validation import validate_password
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
 from django.utils import timezone
@@ -149,12 +150,12 @@ def forgot_password_view(request):
 def dashboard_view(request):
     
     # 1. CALCULATE REAL STATISTICS
-    # Count how many of each document type exist
-    total_ordinances = LegislativeDocument.objects.filter(doc_type='Ordinance').count()
-    total_resolutions = LegislativeDocument.objects.filter(doc_type='Resolution').count()
+    # Count how many of each document type exist in the Archive
+    total_ordinances = ArchivedDocument.objects.filter(doc_type='Ordinance').count()
+    total_resolutions = ArchivedDocument.objects.filter(doc_type='Resolution').count()
     
-    # Count how many are currently 'Pending'
-    pending_review = LegislativeDocument.objects.filter(status='Pending').count()
+    # Count how many are currently 'Pending' (all except Archived or Vetoed)
+    pending_review = LegislativeDocument.objects.exclude(status__iexact='Archived').exclude(status__iexact='Vetoed').count()
     
     # 2. FETCH RECENT DOCUMENTS
     # Get all documents, order them by newest first (the minus sign means descending), and grab the top 5
@@ -173,9 +174,8 @@ def dashboard_view(request):
         'total_resolutions': total_resolutions,
         'pending_review': pending_review,
         
-        # You can calculate recent uploads by grabbing everything from this month, 
-        # but for now, we'll just show the total count of everything as an example.
-        'recent_uploads_count': LegislativeDocument.objects.all().count(), 
+        # Calculate recent uploads by counting documents filed within the last 7 days
+        'recent_uploads_count': LegislativeDocument.objects.filter(date_filed__gte=timezone.now().date() - timedelta(days=7)).count(), 
         
         'recent_documents': recent_documents,
         'audit_logs': recent_logs,
@@ -265,9 +265,10 @@ def archive_view(request):
     # Start with all archived records
     archive_list = ArchivedDocument.objects.all().order_by('-original_date_filed')
     
-    # Fetch search query
+    # Fetch search query and filters
     search_query = request.GET.get('q', '')
     doc_type = request.GET.get('doc_type', '')
+    original_document_number = request.GET.get('original_document_number', '') # <-- Added!
     year = request.GET.get('year', '')
     author = request.GET.get('author', '')
 
@@ -281,11 +282,18 @@ def archive_view(request):
         )
     if doc_type:
         archive_list = archive_list.filter(doc_type__iexact=doc_type)
+    if original_document_number: # <-- Added!
+        archive_list = archive_list.filter(original_document_number=original_document_number)
     if year:
         archive_list = archive_list.filter(year=year)
     if author:
         archive_list = archive_list.filter(sponsor__icontains=author)
     
+    # --- NEW: Fetch dynamic dropdown choices straight from the database ---
+    available_years = ArchivedDocument.objects.values_list('year', flat=True).distinct().order_by('-year')
+    available_authors = ArchivedDocument.objects.exclude(sponsor__isnull=True).exclude(sponsor__exact='').values_list('sponsor', flat=True).distinct().order_by('sponsor')
+    available_document_numbers = ArchivedDocument.objects.exclude(original_document_number__isnull=True).exclude(original_document_number__exact='').values_list('original_document_number', flat=True).distinct().order_by('original_document_number')
+
     # UI Data: Counts and Folders
     res_count = ArchivedDocument.objects.filter(doc_type__iexact='Resolution').count()
     ord_count = ArchivedDocument.objects.filter(doc_type__iexact='Ordinance').count()
@@ -303,7 +311,10 @@ def archive_view(request):
         'custom_folders': custom_folders,
         'is_legislator': is_legislator(request.user),
         'search_query': search_query,
-        'curent_filters': request.GET,
+        'current_filters': request.GET, # <-- FIXED TYPO! (was curent_filters)
+        'available_years': available_years,               # <-- Added!
+        'available_authors': available_authors,           # <-- Added!
+        'available_document_numbers': available_document_numbers # <-- Added!
     }
     return render(request, 'archives/archive.html', context)
 
@@ -652,6 +663,22 @@ def create_user_view(request):
         role = request.POST.get('role')
 
         try:
+            # 1. Validate email format
+            try:
+                validate_email(email)
+            except ValidationError:
+                messages.error(request, "Account creation failed: Invalid email address format.")
+                return redirect('user_management')
+                
+            # 2. Validate password strength using Django validators
+            try:
+                temp_user = User(username=username, email=email, first_name=first_name, last_name=last_name)
+                validate_password(password, user=temp_user)
+            except ValidationError as e:
+                for error in e.messages:
+                    messages.error(request, f"Password error: {error}")
+                return redirect('user_management')
+
             if User.objects.filter(username__iexact=username).exists():
                 messages.error(request, f"Account creation failed: The username '{username}' is already taken.")
                 return redirect('user_management')
@@ -701,6 +728,13 @@ def edit_user_view(request):
         role = request.POST.get('role')
 
         try:
+            # Validate email format
+            try:
+                validate_email(email)
+            except ValidationError:
+                messages.error(request, "Update failed: Invalid email address format.")
+                return redirect('user_management')
+
             target_user = User.objects.get(id=user_id)
             
             # Ensure new username/email aren't already taken by SOMEONE ELSE
@@ -1171,10 +1205,15 @@ def security_policy_view(request):
             elif len(new_password) < 8:
                 messages.error(request, 'Password must be at least 8 characters.')
             else:
-                request.user.set_password(new_password)
-                request.user.save()
-                messages.success(request, 'Password changed successfully! Please login again.')
-                return redirect('login')
+                try:
+                    validate_password(new_password, user=request.user)
+                    request.user.set_password(new_password)
+                    request.user.save()
+                    messages.success(request, 'Password changed successfully! Please login again.')
+                    return redirect('login')
+                except ValidationError as e:
+                    for error in e.messages:
+                        messages.error(request, f"Password error: {error}")
         
         return redirect('security_policy')
     
