@@ -52,7 +52,7 @@ urlpatterns = [
     # USER SETTINGS/
     path('settings/general-info/', views.general_info_view, name='general_info'),
     path('settings/backup-cloud/', views.backup_cloud_view, name='backup_cloud'),
-    path('settings/metadata-tags/', views.metadata_tags_view, name='metadata_tags'),
+    # path('settings/metadata-tags/', views.metadata_tags_view, name='metadata_tags'),
     path('settings/security-policy/', views.security_policy_view, name='security_policy'),
     path('settings/notifications/', views.notifications_view, name='notifications'),
     path('maintenance/', views.maintenance_view, name='maintenance'),

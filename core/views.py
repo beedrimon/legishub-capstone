@@ -813,17 +813,10 @@ def general_info_view(request):
         new_role = request.POST.get('new_role', '')
         role_select = request.POST.get('role', '')
         
-        # System settings
+        # System settings (Session Timeout REMOVED from here)
         system_name_value = request.POST.get('system_name', 'Marikina LegisHub')
-        session_timeout_value = request.POST.get('session_timeout', 30)
         support_email_value = request.POST.get('support_email', 'admin@marikinalegishub.gov.ph')
         maintenance_mode_value = request.POST.get('maintenance_mode') == 'on'
-        
-        # Convert session_timeout to float (handle 0.5 for 30 seconds)
-        try:
-            session_timeout = float(session_timeout_value)
-        except ValueError:
-            session_timeout = 30
         
         # Determine role
         selected_role = new_role if new_role else role_select
@@ -882,30 +875,20 @@ def general_info_view(request):
         request.user.save()
         print(f"User saved: {request.user.username}")
         
-        # Save system settings to DATABASE (persistent storage)
+        # Save system settings to DATABASE (Session Timeout REMOVED)
         if request.user.is_superuser:
             try:
                 SystemSetting.set('system_name', system_name_value, 'string', 'System display name', request.user)
-                SystemSetting.set('session_timeout', session_timeout, 'float', 'Auto-logout timeout in minutes (0.5 = 30 seconds)', request.user)
                 SystemSetting.set('support_email', support_email_value, 'string', 'Support contact email', request.user)
                 SystemSetting.set('maintenance_mode', maintenance_mode_value, 'boolean', 'Maintenance mode status', request.user)
-                print(f"System settings saved to DATABASE: timeout={session_timeout}")
+                print(f"System settings saved to DATABASE")
             except Exception as e:
                 print(f"Error saving system settings: {e}")
         
-        # Save to session for immediate use in current session
+        # Save to session for immediate use (Session Timeout REMOVED)
         request.session['system_name'] = system_name_value
-        request.session['session_timeout'] = session_timeout
         request.session['support_email'] = support_email_value
         request.session['maintenance_mode'] = maintenance_mode_value
-        
-        # IMPORTANT: Set Django's session expiry to match the timeout
-        if session_timeout == 0.5:
-            request.session.set_expiry(30)  # 30 seconds
-        else:
-            request.session.set_expiry(session_timeout * 60)  # minutes to seconds
-        
-        print(f"Session expiry set to: {request.session.get_expiry_age()} seconds")
         
         # Create audit log
         AuditLog.objects.create(
@@ -922,38 +905,25 @@ def general_info_view(request):
         messages.success(request, 'Profile information updated successfully!')
         return redirect('general_info')
     
-    # GET request - load from DATABASE first, then session as fallback
-    # This ensures settings persist after logout/login
-    
-    # Try to load from database
+    # GET request - load from DATABASE (Session Timeout REMOVED)
     try:
         db_system_name = SystemSetting.get('system_name', 'Marikina LegisHub')
-        db_session_timeout = SystemSetting.get('session_timeout', 30)
         db_support_email = SystemSetting.get('support_email', 'admin@marikinalegishub.gov.ph')
         db_maintenance_mode = SystemSetting.get('maintenance_mode', False)
     except Exception as e:
         print(f"Error loading from database: {e}")
         db_system_name = 'Marikina LegisHub'
-        db_session_timeout = 30
         db_support_email = 'admin@marikinalegishub.gov.ph'
         db_maintenance_mode = False
     
-    # Also save to session for current use
+    # Save to session
     request.session['system_name'] = db_system_name
-    request.session['session_timeout'] = db_session_timeout
     request.session['support_email'] = db_support_email
     request.session['maintenance_mode'] = db_maintenance_mode
-    
-    # Set session expiry based on loaded value
-    if db_session_timeout == 0.5:
-        request.session.set_expiry(30)
-    else:
-        request.session.set_expiry(db_session_timeout * 60)
     
     context = {
         'user': request.user,
         'system_name': db_system_name,
-        'session_timeout': db_session_timeout,
         'support_email': db_support_email,
         'maintenance_mode': db_maintenance_mode,
         'is_legislator': is_legislator(request.user),
@@ -1064,63 +1034,63 @@ def backup_cloud_view(request):
     }
     return render(request, 'settings_page/backup_cloud.html', context)
 
-#METADATA TAGS VIEW
-@login_required(login_url='login')
-def metadata_tags_view(request):
-    if not request.user.is_superuser:
-        messages.error(request, 'Access denied. Admin privileges required.')
-        return redirect('documents')
+# #METADATA TAGS VIEW
+# @login_required(login_url='login')
+# def metadata_tags_view(request):
+#     if not request.user.is_superuser:
+#         messages.error(request, 'Access denied. Admin privileges required.')
+#         return redirect('documents')
     
-    # Initialize session storage for tags if not exists
-    if 'metadata_tags' not in request.session:
-        request.session['metadata_tags'] = {
-            'doc_types': ['Ordinance', 'Resolution', 'Executive Order', 'Committee Report', 'Minutes', 'Agenda'],
-            'statuses': ['Draft', 'Pending', '1st Reading', '2nd Reading', '3rd Reading', 'Approved', 'Vetoed', 'Archived', 'Escalated'],
-            'barangays': [
-                'Barangka', 'Calumpang', 'Concepcion Uno', 'Concepcion Dos',
-                'Industrial Valley', 'Jesus De La Peña', 'Malanday', 'Marikina Heights',
-                'Nangka', 'Parang', 'San Roque', 'Santa Elena',
-                'Santo Niño', 'Tañong', 'Tumana', 'Provident'
-            ],
-            'committees': ['Finance', 'Health', 'Education', 'Public Works', 'Peace & Order', 'Agriculture', 'Tourism'],
-            'keywords': ['Budget', 'Infrastructure', 'Health', 'Education', 'Taxation', 'Environment', 'Peace and Order']
-        }
-        request.session.modified = True
+#     # Initialize session storage for tags if not exists
+#     if 'metadata_tags' not in request.session:
+#         request.session['metadata_tags'] = {
+#             'doc_types': ['Ordinance', 'Resolution', 'Executive Order', 'Committee Report', 'Minutes', 'Agenda'],
+#             'statuses': ['Draft', 'Pending', '1st Reading', '2nd Reading', '3rd Reading', 'Approved', 'Vetoed', 'Archived', 'Escalated'],
+#             'barangays': [
+#                 'Barangka', 'Calumpang', 'Concepcion Uno', 'Concepcion Dos',
+#                 'Industrial Valley', 'Jesus De La Peña', 'Malanday', 'Marikina Heights',
+#                 'Nangka', 'Parang', 'San Roque', 'Santa Elena',
+#                 'Santo Niño', 'Tañong', 'Tumana', 'Provident'
+#             ],
+#             'committees': ['Finance', 'Health', 'Education', 'Public Works', 'Peace & Order', 'Agriculture', 'Tourism'],
+#             'keywords': ['Budget', 'Infrastructure', 'Health', 'Education', 'Taxation', 'Environment', 'Peace and Order']
+#         }
+#         request.session.modified = True
     
-    if request.method == 'POST':
-        if 'add_tag' in request.POST:
-            tag_type = request.POST.get('tag_type')
-            tag_value = request.POST.get('tag_value', '').strip()
+#     if request.method == 'POST':
+#         if 'add_tag' in request.POST:
+#             tag_type = request.POST.get('tag_type')
+#             tag_value = request.POST.get('tag_value', '').strip()
             
-            if tag_value and tag_type in request.session['metadata_tags']:
-                if tag_value not in request.session['metadata_tags'][tag_type]:
-                    request.session['metadata_tags'][tag_type].append(tag_value)
-                    request.session.modified = True
-                    messages.success(request, f'Tag "{tag_value}" added successfully!')
-                else:
-                    messages.warning(request, f'Tag "{tag_value}" already exists.')
+#             if tag_value and tag_type in request.session['metadata_tags']:
+#                 if tag_value not in request.session['metadata_tags'][tag_type]:
+#                     request.session['metadata_tags'][tag_type].append(tag_value)
+#                     request.session.modified = True
+#                     messages.success(request, f'Tag "{tag_value}" added successfully!')
+#                 else:
+#                     messages.warning(request, f'Tag "{tag_value}" already exists.')
         
-        elif 'delete_tag' in request.POST:
-            tag_type = request.POST.get('tag_type')
-            tag_value = request.POST.get('tag_value')
+#         elif 'delete_tag' in request.POST:
+#             tag_type = request.POST.get('tag_type')
+#             tag_value = request.POST.get('tag_value')
             
-            if tag_type in request.session['metadata_tags'] and tag_value in request.session['metadata_tags'][tag_type]:
-                request.session['metadata_tags'][tag_type].remove(tag_value)
-                request.session.modified = True
-                messages.success(request, f'Tag "{tag_value}" deleted successfully!')
+#             if tag_type in request.session['metadata_tags'] and tag_value in request.session['metadata_tags'][tag_type]:
+#                 request.session['metadata_tags'][tag_type].remove(tag_value)
+#                 request.session.modified = True
+#                 messages.success(request, f'Tag "{tag_value}" deleted successfully!')
         
-        return redirect('metadata_tags')
+#         return redirect('metadata_tags')
     
-    # Get tags from session
-    context = {
-        'doc_types': request.session['metadata_tags']['doc_types'],
-        'statuses': request.session['metadata_tags']['statuses'],
-        'barangays': request.session['metadata_tags']['barangays'],
-        'committees': request.session['metadata_tags']['committees'],
-        'keywords': request.session['metadata_tags']['keywords'],
-        'is_legislator': is_legislator(request.user),
-    }
-    return render(request, 'settings_page/metadata_tags.html', context)
+#     # Get tags from session
+#     context = {
+#         'doc_types': request.session['metadata_tags']['doc_types'],
+#         'statuses': request.session['metadata_tags']['statuses'],
+#         'barangays': request.session['metadata_tags']['barangays'],
+#         'committees': request.session['metadata_tags']['committees'],
+#         'keywords': request.session['metadata_tags']['keywords'],
+#         'is_legislator': is_legislator(request.user),
+#     }
+#     return render(request, 'settings_page/metadata_tags.html', context)
 
 #SECURITY POLICY VIEW
 @login_required(login_url='login')
@@ -1131,20 +1101,17 @@ def security_policy_view(request):
     
     # Initialize security settings
     retention_days = request.session.get('audit_retention_days', 3650)
+    session_timeout = request.session.get('session_timeout', 30)
     
     if request.method == 'POST':
         # Handle audit log purge
         if 'run_purge' in request.POST:
             confirm_text = request.POST.get('confirm_purge', '')
             if confirm_text == 'PURGE':
-                # Calculate cutoff date
                 cutoff_date = timezone.now() - timedelta(days=retention_days)
-                
-                # Count and delete old audit logs
                 old_logs = AuditLog.objects.filter(timestamp__lt=cutoff_date)
                 deleted_count = old_logs.count()
                 
-                # Store purge record before deletion for history
                 purge_record = {
                     'date': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
                     'records_deleted': deleted_count,
@@ -1152,29 +1119,42 @@ def security_policy_view(request):
                     'status': 'success'
                 }
                 
-                # Perform deletion
                 old_logs.delete()
                 
-                # Update purge history
                 purge_history = request.session.get('purge_history', [])
                 purge_history.insert(0, purge_record)
-                request.session['purge_history'] = purge_history[:20]  # Keep last 20
+                request.session['purge_history'] = purge_history[:20]
                 request.session.modified = True
                 
                 messages.success(request, f'Successfully purged {deleted_count} audit logs older than {retention_days} days.')
             else:
                 messages.error(request, 'PURGE confirmation text did not match. No logs were deleted.')
         
-        # Handle security policy updates
+        # Handle security policy updates (includes session_timeout now)
         elif 'update_policy' in request.POST:
-            request.session['mfa_enabled'] = request.POST.get('mfa_enabled') == 'on'
-            request.session['require_complex_password'] = request.POST.get('require_complex_password') == 'on'
-            request.session['password_expiry'] = int(request.POST.get('password_expiry', 180))
-            request.session['max_failed_attempts'] = int(request.POST.get('max_failed_attempts', 5))
-            request.session['session_timeout'] = int(request.POST.get('session_timeout', 30))
-            request.session['ip_whitelist_enabled'] = request.POST.get('ip_whitelist_enabled') == 'on'
+            session_timeout_value = request.POST.get('session_timeout', 30)
+            
+            # Convert to float (handle 0.5 for 30 seconds)
+            try:
+                session_timeout = float(session_timeout_value)
+            except ValueError:
+                session_timeout = 30
+            
+            request.session['session_timeout'] = session_timeout
             request.session['audit_retention_days'] = int(request.POST.get('retention_days', 3650))
             request.session['purge_schedule'] = request.POST.get('purge_schedule', 'weekly')
+            
+            # Save to database for persistence
+            SystemSetting.set('session_timeout', session_timeout, 'float', 'Session timeout in minutes', request.user)
+            SystemSetting.set('audit_retention_days', int(request.POST.get('retention_days', 3650)), 'integer', 'Audit log retention days', request.user)
+            SystemSetting.set('purge_schedule', request.POST.get('purge_schedule', 'weekly'), 'string', 'Purge schedule', request.user)
+            
+            # Set Django session expiry
+            if session_timeout == 0.5:
+                request.session.set_expiry(30)
+            else:
+                request.session.set_expiry(session_timeout * 60)
+            
             request.session.modified = True
             messages.success(request, 'Security policy updated successfully!')
         
@@ -1188,8 +1168,8 @@ def security_policy_view(request):
                 messages.error(request, 'Current password is incorrect.')
             elif new_password != confirm_password:
                 messages.error(request, 'New passwords do not match.')
-            elif len(new_password) < request.session.get('password_min_length', 8):
-                messages.error(request, f'Password must be at least {request.session.get("password_min_length", 8)} characters.')
+            elif len(new_password) < 8:
+                messages.error(request, 'Password must be at least 8 characters.')
             else:
                 request.user.set_password(new_password)
                 request.user.save()
@@ -1204,28 +1184,19 @@ def security_policy_view(request):
     old_logs_count = AuditLog.objects.filter(timestamp__lt=cutoff_date).count()
     
     # Get purge history
-    purge_history = request.session.get('purge_history', [
-        # {'date': 'May 1, 2026 02:00:00 AM', 'records_deleted': 452, 'triggered_by': 'System (Auto)', 'status': 'success'},
-        # {'date': 'Apr 24, 2026 02:00:00 AM', 'records_deleted': 389, 'triggered_by': 'System (Auto)', 'status': 'success'},
-        # {'date': 'Apr 17, 2026 02:00:00 AM', 'records_deleted': 421, 'triggered_by': 'System (Auto)', 'status': 'success'},
-    ])
+    purge_history = request.session.get('purge_history', [])
     
     context = {
-        # Security settings
-        'mfa_enabled': request.session.get('mfa_enabled', True),
-        'require_complex_password': request.session.get('require_complex_password', True),
-        'password_expiry': request.session.get('password_expiry', 180),
-        'max_failed_attempts': request.session.get('max_failed_attempts', 5),
-        'session_timeout': request.session.get('session_timeout', 30),
-        'ip_whitelist_enabled': request.session.get('ip_whitelist_enabled', False),
-        'password_min_length': request.session.get('password_min_length', 8),
+        # Session settings
+        'session_timeout': session_timeout,
+        'password_min_length': 8,
         
         # Purge settings
         'retention_days': retention_days,
         'purge_schedule': request.session.get('purge_schedule', 'weekly'),
         'total_logs': total_logs,
         'old_logs_count': old_logs_count,
-        'audit_db_size': '124 MB',  # Calculate if needed
+        'audit_db_size': '124 MB',
         'purge_history': purge_history,
         
         'is_legislator': is_legislator(request.user),
