@@ -9,10 +9,11 @@
 
 {% block main_content %}
 <header class="top-header">
-            <div class="search-bar">
+            <form class="search-bar" method="GET" action="{% url 'resolutions' %}">
                 <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" placeholder="Search Archived Documents by Title, ID, or Keywords...">
-            </div>
+                <input type="text" name="q" value="{{ search_query }}" placeholder="Search Archived Documents by Title, ID, or Keywords...">
+                <button type="submit" style="display: none;"></button>
+            </form>
             <div class="header-actions">
                     {% if not is_legislator %}
                     <div class="upload-dropdown">
