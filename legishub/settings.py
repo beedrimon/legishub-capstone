@@ -129,9 +129,26 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
+
+# ==========================================
+# FILE STORAGE (SUPABASE S3 COMPATIBLE)
+# ==========================================
+USE_S3 = os.getenv('USE_S3', 'False') == 'True'
+
+if USE_S3:
+    # Use Supabase Storage via django-storages (boto3)
+    STORAGES = {"default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}, "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}}
+    AWS_ACCESS_KEY_ID = os.getenv('SUPABASE_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.getenv('SUPABASE_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = os.getenv('SUPABASE_BUCKET_NAME', 'legishub-media')
+    AWS_S3_ENDPOINT_URL = os.getenv('SUPABASE_S3_ENDPOINT_URL')
+    AWS_S3_REGION_NAME = os.getenv('SUPABASE_REGION_NAME', 'ap-southeast-1')
+    AWS_S3_FILE_OVERWRITE = False
+else:
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = BASE_DIR / 'media'
 
 # ==========================================
 # IFRAME SECURITY (ALLOW PDF PREVIEWS)
@@ -145,8 +162,8 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'noreply.marikinalegishub@gmail.com' # Your actual Gmail address
-EMAIL_HOST_PASSWORD = 'pieowkzhlptctbmm' # The 16-character App Password (no spaces)
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'noreply.marikinalegishub@gmail.com')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD') # Move the password to your .env file
 DEFAULT_FROM_EMAIL = 'Marikina LegisHub <jakehafalla1@gmail.com>'
 
 # ==========================================

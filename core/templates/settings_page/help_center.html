@@ -1,0 +1,99 @@
+{% extends 'admin_panel/base.html' %}
+{% load static %}
+
+{% block title %}Help Center - Marikina LegisHub{% endblock %}
+
+{% block top_header_content %}
+<div class="header-title">Help Center</div>
+<div class="header-actions">
+    <div class="notification-wrapper">
+        <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer; font-size: 1.2rem;"></i>
+        <span class="notif-badge" style="display: none;"></span>
+    </div>
+    <a href="{% url 'help_center' %}" style="color: inherit; text-decoration: none;">
+        <i class="fa-regular fa-circle-question"></i>
+    </a>
+    <div class="profile">
+        <i class="fa-regular fa-circle-user"></i> {{ request.user.username }}
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+    <div class="dashboard-header">
+        <h1>Help Center</h1>
+        <p>Find answers to common questions and learn how to use the Marikina LegisHub system.</p>
+    </div>
+
+    <div class="content-grid" style="grid-template-columns: 1fr; max-width: 900px; margin: 0 auto;">
+        
+        <!-- Quick Guide Section -->
+        <div class="widget">
+            <h3><i class="fa-solid fa-book-open" style="color: var(--sidebar-bg);"></i> Quick Start Guide</h3>
+            <div class="quick-actions" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 15px;">
+                <button class="btn-tan" onclick="window.location.href='{% url 'documents' %}'">
+                    <i class="fa-solid fa-file-invoice"></i> Manage Documents
+                </button>
+                <button class="btn-tan" onclick="window.location.href='{% url 'archive' %}'">
+                    <i class="fa-solid fa-box-archive"></i> View Archives
+                </button>
+                <button class="btn-tan" onclick="window.location.href='{% url 'audit_logs' %}'">
+                    <i class="fa-solid fa-clipboard-list"></i> Check Activity Logs
+                </button>
+            </div>
+        </div>
+
+        <!-- FAQ Section -->
+        <div class="table-card" style="margin-top: 24px;">
+            <h2 style="border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 20px;">
+                <i class="fa-solid fa-circle-question"></i> Frequently Asked Questions
+            </h2>
+            
+            <div class="faq-list">
+                <div class="faq-item" style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color);">
+                    <h4 style="color: var(--sidebar-bg); margin: 0 0 8px 0; font-size: 1.05rem;">How do I upload a new document?</h4>
+                    <p style="color: var(--text-main); font-size: 0.9rem; margin: 0; line-height: 1.5;">
+                        Click the "Upload" button located in the top-right corner of the Documents page. Fill in the required metadata and select your PDF file, then click "Upload".
+                    </p>
+                </div>
+
+                <div class="faq-item" style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color);">
+                    <h4 style="color: var(--sidebar-bg); margin: 0 0 8px 0; font-size: 1.05rem;">What happens when a document is archived?</h4>
+                    <p style="color: var(--text-main); font-size: 0.9rem; margin: 0; line-height: 1.5;">
+                        Archiving a document permanently moves it out of the active "Documents" repository and into the "Archives". This action tracks retention policies and secures the historical record.
+                    </p>
+                </div>
+
+                <div class="faq-item" style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color);">
+                    <h4 style="color: var(--sidebar-bg); margin: 0 0 8px 0; font-size: 1.05rem;">Why can't I edit certain documents?</h4>
+                    <p style="color: var(--text-main); font-size: 0.9rem; margin: 0; line-height: 1.5;">
+                        If you are logged in as a <strong>Legislator</strong>, you only have "Read-Only" access and cannot modify or upload records. Only <strong>Encoders (Staff)</strong> and <strong>Admins</strong> have edit privileges.
+                    </p>
+                </div>
+                
+                <div class="faq-item" style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color);">
+                    <h4 style="color: var(--sidebar-bg); margin: 0 0 8px 0; font-size: 1.05rem;">How does Auto-Approve work?</h4>
+                    <p style="color: var(--text-main); font-size: 0.9rem; margin: 0; line-height: 1.5;">
+                        Any document left in the <strong>"For Approval"</strong> status for more than 14 days will be automatically approved and transferred to the Archives by the system's background routine. Staff will be notified via email.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Support -->
+        <div class="storage-card" style="margin-top: 24px;">
+            <div class="storage-info" style="justify-content: flex-start; gap: 15px;">
+                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--sidebar-bg); box-shadow: var(--shadow-sm);">
+                    <i class="fa-solid fa-headset"></i>
+                </div>
+                <div>
+                    <h3 style="margin: 0; font-size: 1.1rem; color: var(--sidebar-bg);">Need Technical Assistance?</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.85rem; color: var(--text-main);">
+                        Contact the system administrator at: <br>
+                        <a href="mailto:{{ support_email }}" style="color: #1e88e5; font-weight: bold; text-decoration: none;">{{ support_email }}</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

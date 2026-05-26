@@ -56,6 +56,7 @@ urlpatterns = [
     path('settings/security-policy/', views.security_policy_view, name='security_policy'),
     path('settings/notifications/', views.notifications_view, name='notifications'),
     path('maintenance/', views.maintenance_view, name='maintenance'),
+    path('help/', views.help_center_view, name='help_center'),
     
     # SETTINGS API ENDPOINTS 
     # path('api/trigger-backup/', views.trigger_backup_api, name='trigger_backup'),

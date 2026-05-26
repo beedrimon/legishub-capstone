@@ -1375,6 +1375,23 @@ def notifications_view(request):
     return render(request, 'settings_page/notifications.html', context)
 
 
+# ==========================================
+# 8. HELP CENTER VIEW
+# ==========================================
+@login_required(login_url='login')
+def help_center_view(request):
+    try:
+        support_email = SystemSetting.get('support_email', 'admin@marikinalegishub.gov.ph')
+    except Exception:
+        support_email = 'admin@marikinalegishub.gov.ph'
+        
+    context = {
+        'support_email': support_email,
+        'is_legislator': is_legislator(request.user),
+    }
+    return render(request, 'settings_page/help_center.html', context)
+
+
 #API
 # cinomment out ko muna to kasi meron ako ginawa sa backup_cloud_view, baka kasi mag conflict
 # # ===== API: TRIGGER BACKUP =====
