@@ -1227,9 +1227,43 @@ def security_policy_view(request):
                 messages.success(request, f'Successfully purged {deleted_count} audit logs older than {retention_days} days.')
             else:
                 messages.error(request, 'PURGE confirmation text did not match. No logs were deleted.')
+            return redirect('security_policy')
         
-        # Handle security policy updates (includes session_timeout now)
-        elif 'update_policy' in request.POST:
+        # Get password fields
+        current_password = request.POST.get('current_password', '')
+        new_password = request.POST.get('new_password', '')
+        confirm_password = request.POST.get('confirm_password', '')
+        
+        # Check if this is a password change attempt
+        is_password_change = current_password or new_password or confirm_password
+        
+        if is_password_change:
+            # Handle password change
+            if not current_password:
+                messages.error(request, 'Current password is required to change password.')
+            elif not new_password:
+                messages.error(request, 'New password is required.')
+            elif not confirm_password:
+                messages.error(request, 'Please confirm your new password.')
+            elif not request.user.check_password(current_password):
+                messages.error(request, 'Current password is incorrect.')
+            elif new_password != confirm_password:
+                messages.error(request, 'New passwords do not match.')
+            elif len(new_password) < 8:
+                messages.error(request, 'Password must be at least 8 characters.')
+            else:
+                try:
+                    from django.contrib.auth.password_validation import validate_password
+                    validate_password(new_password, user=request.user)
+                    request.user.set_password(new_password)
+                    request.user.save()
+                    messages.success(request, 'Password changed successfully! Please login again.')
+                    return redirect('login')
+                except ValidationError as e:
+                    for error in e.messages:
+                        messages.error(request, f"Password error: {error}")
+        else:
+            # Handle security policy updates (session_timeout, retention, purge schedule)
             session_timeout_value = request.POST.get('session_timeout', 30)
             
             # Convert to float (handle 0.5 for 30 seconds)
@@ -1255,29 +1289,6 @@ def security_policy_view(request):
             
             request.session.modified = True
             messages.success(request, 'Security policy updated successfully!')
-        
-        # Handle password change
-        elif 'change_password' in request.POST:
-            current_password = request.POST.get('current_password')
-            new_password = request.POST.get('new_password')
-            confirm_password = request.POST.get('confirm_password')
-            
-            if not request.user.check_password(current_password):
-                messages.error(request, 'Current password is incorrect.')
-            elif new_password != confirm_password:
-                messages.error(request, 'New passwords do not match.')
-            elif len(new_password) < 8:
-                messages.error(request, 'Password must be at least 8 characters.')
-            else:
-                try:
-                    validate_password(new_password, user=request.user)
-                    request.user.set_password(new_password)
-                    request.user.save()
-                    messages.success(request, 'Password changed successfully! Please login again.')
-                    return redirect('login')
-                except ValidationError as e:
-                    for error in e.messages:
-                        messages.error(request, f"Password error: {error}")
         
         return redirect('security_policy')
     
