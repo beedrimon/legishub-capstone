@@ -91,8 +91,9 @@
                     <p>Logs older than the specified period are automatically flagged for deletion (RA 10173 Data Privacy Act compliant).</p>
                 </div>
                 <select name="retention_days" id="retention_days" class="timeout-dropdown">
+                    <option value="0.00694" {% if retention_days == 0.00694 %}selected{% endif %}>10 minutes (Testing)</option>
                     <option value="1825" {% if retention_days == 1825 %}selected{% endif %}>5 Years</option>
-                    <option value="3650" {% if retention_days == 3650 %}selected{% endif %} selected>10 Years (Default)</option>
+                    <option value="3650" {% if retention_days == 3650 %}selected{% endif %}>10 Years (Default)</option>
                     <option value="7300" {% if retention_days == 7300 %}selected{% endif %}>20 Years</option>
                     <option value="0" {% if retention_days == 0 %}selected{% endif %}>Permanent (Not Recommended)</option>
                 </select>
@@ -105,7 +106,7 @@
                 </div>
                 <select name="purge_schedule" id="purge_schedule" class="timeout-dropdown">
                     <option value="daily" {% if purge_schedule == 'daily' %}selected{% endif %}>Daily at 2:00 AM</option>
-                    <option value="weekly" {% if purge_schedule == 'weekly' %}selected{% endif %} selected>Weekly (Sunday, 2:00 AM)</option>
+                    <option value="weekly" {% if purge_schedule == 'weekly' %}selected{% endif %}>Weekly (Sunday, 2:00 AM)</option>
                     <option value="monthly" {% if purge_schedule == 'monthly' %}selected{% endif %}>Monthly (1st of month)</option>
                     <option value="never" {% if purge_schedule == 'never' %}selected{% endif %}>Never (Manual Only)</option>
                 </select>
@@ -119,8 +120,15 @@
                         <div class="purge-stat-value">{{ total_logs|default:"0" }}</div>
                     </div>
                     <div class="purge-stat">
-                        <div class="purge-stat-label">Logs Older than {{ retention_days|default:"3650" }} days</div>
-                        <div class="purge-stat-value warning">{{ old_logs_count|default:"0" }}</div>
+                        <div class="purge-stat-label">Logs Older than</div>
+                        <div class="purge-stat-value warning">
+                            {% if retention_days == 0.00694 %}10 minutes (Testing)
+                            {% elif retention_days == 1825 %}1,825 days (5 Years)
+                            {% elif retention_days == 3650 %}3,650 days (10 Years)
+                            {% elif retention_days == 7300 %}7,300 days (20 Years)
+                            {% elif retention_days == 0 %}Permanent
+                            {% else %}{{ retention_days }} days{% endif %}
+                        </div>
                     </div>
                     <div class="purge-stat">
                         <div class="purge-stat-label">Database Size (Audit)</div>
@@ -130,14 +138,6 @@
                 <div class="storage-bar">
                     <div class="storage-bar-fill" style="width: {% widthratio old_logs_count total_logs 100|default:0 %}%;"></div>
                 </div>
-                <p class="purge-info-text">
-                    <i class="fa-solid fa-info-circle"></i> 
-                    {% if old_logs_count > 0 %}
-                        {{ old_logs_count }} records are scheduled for automatic deletion based on your retention policy.
-                    {% else %}
-                        No records exceed the retention period.
-                    {% endif %}
-                </p>
             </div>
 
             <!-- Manual Purge Button -->
@@ -146,7 +146,15 @@
                 <div class="danger-card">
                     <div>
                         <strong>Purge Expired Audit Logs</strong>
-                        <p>Permanently delete all audit logs older than {{ retention_days|default:"3650" }} days. This action cannot be undone.</p>
+                        <p>Permanently delete audit logs older than 
+                            {% if retention_days == 0.00694 %}10 minutes
+                            {% elif retention_days == 1825 %}5 Years
+                            {% elif retention_days == 3650 %}10 Years
+                            {% elif retention_days == 7300 %}20 Years
+                            {% elif retention_days == 0 %}Permanent
+                            {% else %}{{ retention_days }} days{% endif %}. 
+                            This action cannot be undone.
+                        </p>
                     </div>
                     <button type="button" class="btn-danger" id="openPurgeModalBtn">
                         <i class="fa-regular fa-trash-can"></i> Run Purge
@@ -164,6 +172,7 @@
                             <th>Records Deleted</th>
                             <th>Triggered By</th>
                             <th>Status</th>
+                            <th>Retention Used</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -173,10 +182,23 @@
                             <td>{{ purge.records_deleted|default:"452" }}</td>
                             <td>{{ purge.triggered_by|default:"System (Auto)" }}</td>
                             <td><span class="badge-success">✓ {{ purge.status|default:"Success" }}</span></td>
+                            <td>
+                                {% if purge.retention_days == 0.00694 %}
+                                    <span class="badge-warning">10 minutes (Test)</span>
+                                {% elif purge.retention_days == 1825 %}
+                                    <span class="badge-info">5 Years</span>
+                                {% elif purge.retention_days == 3650 %}
+                                    <span class="badge-info">10 Years</span>
+                                {% elif purge.retention_days == 7300 %}
+                                    <span class="badge-info">20 Years</span>
+                                {% else %}
+                                    <span class="badge-info">{{ purge.retention_days }} days</span>
+                                {% endif %}
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" class="empty-table">No purge history available</td>
+                            <td colspan="5" class="empty-table">No purge history available</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -212,26 +234,64 @@
     </div>
 </div>
 
-<!-- PURGE CONFIRMATION MODAL -->
+<!-- PURGE CONFIRMATION MODAL (WITH EXPORT FIRST) -->
 <div id="purgeModal" class="modal-overlay" style="display: none;">
-    <div class="modal-container">
+    <div class="modal-container" style="max-width: 550px;">
         <div class="modal-header">
-            <h3><i class="fa-solid fa-triangle-exclamation"></i> Confirm Audit Log Purge</h3>
+            <h3><i class="fa-solid fa-triangle-exclamation"></i> Purge Audit Logs</h3>
             <button type="button" id="closeModalBtn" class="modal-close-btn">&times;</button>
         </div>
         <div class="modal-body">
-            <p>You are about to permanently delete:</p>
-            <div class="warning-text">
-                <strong>📅 Logs older than: {{ retention_days|default:"3650" }} days</strong>
-                <strong>🗑️ Records affected: {{ old_logs_count|default:"0" }} audit entries</strong>
+            <div id="purgeStep1">
+                <p>You are about to permanently delete:</p>
+                <div class="warning-text" id="purgeWarningText">
+                    {% if retention_days == 0.00694 %}
+                    <strong>🧪 TESTING MODE ACTIVE!</strong><br>
+                    <strong>⏱️ Logs older than: 10 minutes</strong><br>
+                    <strong>🗑️ Records affected: {{ old_logs_count|default:"0" }} audit entries</strong>
+                    {% elif retention_days == 1825 %}
+                    <strong>📅 Logs older than: 5 Years (1,825 days)</strong>
+                    <strong>🗑️ Records affected: {{ old_logs_count|default:"0" }} audit entries</strong>
+                    {% elif retention_days == 3650 %}
+                    <strong>📅 Logs older than: 10 Years (3,650 days)</strong>
+                    <strong>🗑️ Records affected: {{ old_logs_count|default:"0" }} audit entries</strong>
+                    {% elif retention_days == 7300 %}
+                    <strong>📅 Logs older than: 20 Years (7,300 days)</strong>
+                    <strong>🗑️ Records affected: {{ old_logs_count|default:"0" }} audit entries</strong>
+                    {% elif retention_days == 0 %}
+                    <strong>⚠️ PERMANENT: No logs will be deleted</strong>
+                    <strong>🗑️ Records affected: 0 audit entries</strong>
+                    {% else %}
+                    <strong>📅 Logs older than: {{ retention_days }} days</strong>
+                    <strong>🗑️ Records affected: {{ old_logs_count|default:"0" }} audit entries</strong>
+                    {% endif %}
+                </div>
+                <p><strong>This action CANNOT be undone.</strong></p>
+                <p><i class="fa-solid fa-file-pdf"></i> For transparency, you must export the audit logs before purging.</p>
             </div>
-            <p><strong>This action CANNOT be undone.</strong></p>
-            <p class="confirm-text">Type <span class="confirm-code">PURGE</span> to confirm:</p>
-            <input type="text" id="purgeConfirmInput" class="purge-input" placeholder="Type PURGE here">
+            
+            <div id="exportLoading" style="display: none; text-align: center; padding: 20px;">
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 40px; color: #8B7355;"></i>
+                <p style="margin-top: 15px;">Generating PDF report... Please wait.</p>
+            </div>
+            
+            <div id="purgeStep2" style="display: none;">
+                <div class="warning-text">
+                    <strong>✅ Export Complete!</strong><br>
+                    <p style="margin-top: 10px;">The audit logs have been exported to PDF.</p>
+                    <p>Type <span class="confirm-code">PURGE</span> to confirm permanent deletion:</p>
+                </div>
+                <input type="text" id="purgeConfirmInput" class="purge-input" placeholder="Type PURGE here" style="margin-top: 15px;">
+            </div>
         </div>
         <div class="modal-footer">
             <button type="button" id="cancelPurgeBtn" class="btn-discard">Cancel</button>
-            <button type="button" id="confirmPurgeBtn" class="btn-danger">Confirm & Delete</button>
+            <button type="button" id="exportAndPurgeBtn" class="btn-apply" style="background: #1976d2;">
+                <i class="fa-solid fa-file-pdf"></i> Export & Continue
+            </button>
+            <button type="button" id="confirmPurgeBtn" class="btn-danger" style="display: none;">
+                <i class="fa-solid fa-trash-can"></i> Confirm Purge
+            </button>
         </div>
     </div>
 </div>
@@ -240,7 +300,7 @@
 // Store original values when page loads
 const originalValues = {
     session_timeout: parseFloat('{{ session_timeout|default:"30" }}'),
-    retention_days: parseInt('{{ retention_days|default:"3650" }}'),
+    retention_days: parseFloat('{{ retention_days|default:"3650" }}'),
     purge_schedule: '{{ purge_schedule|default:"weekly" }}',
 };
 
@@ -254,11 +314,13 @@ function formatTimeout(value) {
 }
 
 function formatRetentionDays(days) {
-    if (days === 1825) return '5 Years';
-    if (days === 3650) return '10 Years';
-    if (days === 7300) return '20 Years';
-    if (days === 0) return 'Permanent';
-    return days + ' days';
+    const numDays = parseFloat(days);
+    if (numDays === 0.00694) return '10 minutes (Testing)';
+    if (numDays === 1825) return '1,825 days (5 Years)';
+    if (numDays === 3650) return '3,650 days (10 Years)';
+    if (numDays === 7300) return '7,300 days (20 Years)';
+    if (numDays === 0) return 'Permanent';
+    return numDays + ' days';
 }
 
 function formatPurgeSchedule(schedule) {
@@ -287,11 +349,11 @@ function showChangeSummary() {
     
     // Check Retention Days
     const retentionDays = document.getElementById('retention_days');
-    if (retentionDays && parseInt(retentionDays.value) !== originalValues.retention_days) {
+    if (retentionDays && parseFloat(retentionDays.value) !== originalValues.retention_days) {
         changes.push({
             field: 'Retention Period',
             oldValue: formatRetentionDays(originalValues.retention_days),
-            newValue: formatRetentionDays(parseInt(retentionDays.value)),
+            newValue: formatRetentionDays(parseFloat(retentionDays.value)),
             italic: true
         });
     }
@@ -363,6 +425,14 @@ function closeSummaryModal() {
 
 function submitForm() {
     const form = document.getElementById('securityPolicyForm');
+    
+    // Add the update_policy indicator so the view knows this is a policy update
+    const updatePolicyInput = document.createElement('input');
+    updatePolicyInput.type = 'hidden';
+    updatePolicyInput.name = 'update_policy';
+    updatePolicyInput.value = '1';
+    form.appendChild(updatePolicyInput);
+    
     closeSummaryModal();
     form.submit();
 }
@@ -373,40 +443,135 @@ function resetForm() {
     }
 }
 
-// Purge Modal Logic
+// ==========================================
+// PURGE MODAL LOGIC (EXPORT BEFORE PURGE)
+// ==========================================
 const purgeModal = document.getElementById('purgeModal');
 const openPurgeBtn = document.getElementById('openPurgeModalBtn');
 const closePurgeBtn = document.getElementById('closeModalBtn');
 const cancelPurgeBtn = document.getElementById('cancelPurgeBtn');
+const exportAndPurgeBtn = document.getElementById('exportAndPurgeBtn');
 const confirmPurgeBtn = document.getElementById('confirmPurgeBtn');
 const purgeConfirmInput = document.getElementById('purgeConfirmInput');
+const purgeStep1 = document.getElementById('purgeStep1');
+const purgeStep2 = document.getElementById('purgeStep2');
+const exportLoading = document.getElementById('exportLoading');
+
+let exportCompleted = false;
+let isExporting = false;
 
 function openPurgeModal() {
-    purgeModal.style.display = 'flex';
+    // Reset to step 1
+    purgeStep1.style.display = 'block';
+    exportLoading.style.display = 'none';
+    purgeStep2.style.display = 'none';
+    exportAndPurgeBtn.style.display = 'inline-block';
+    confirmPurgeBtn.style.display = 'none';
     if (purgeConfirmInput) purgeConfirmInput.value = '';
-    if (purgeConfirmInput) purgeConfirmInput.focus();
+    exportCompleted = false;
+    isExporting = false;
+    purgeModal.style.display = 'flex';
 }
 
 function closePurgeModal() {
     purgeModal.style.display = 'none';
+    exportCompleted = false;
+    isExporting = false;
 }
 
 if (openPurgeBtn) openPurgeBtn.addEventListener('click', openPurgeModal);
 if (closePurgeBtn) closePurgeBtn.addEventListener('click', closePurgeModal);
 if (cancelPurgeBtn) cancelPurgeBtn.addEventListener('click', closePurgeModal);
 
+// Export and Continue button - ONLY CALLED ONCE
+if (exportAndPurgeBtn) {
+    exportAndPurgeBtn.addEventListener('click', function() {
+        // Prevent multiple clicks
+        if (isExporting) return;
+        isExporting = true;
+        
+        // Show loading
+        purgeStep1.style.display = 'none';
+        exportLoading.style.display = 'block';
+        exportAndPurgeBtn.disabled = true;
+        
+        // Get current retention days
+        const retentionDaysSelect = document.getElementById('retention_days');
+        const retentionDays = retentionDaysSelect ? retentionDaysSelect.value : '3650';
+        
+        // Call export API - ONLY ONCE
+        fetch('{% url "export_audit_logs" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                retention_days: parseFloat(retentionDays)
+            })
+        })
+        .then(response => {
+            if (response.ok) {
+                // Download the PDF
+                return response.blob().then(blob => {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `audit_logs_export_${new Date().toISOString().slice(0,19).replace(/:/g, '-')}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                    
+                    // Move to step 2 (Confirmation)
+                    exportLoading.style.display = 'none';
+                    purgeStep2.style.display = 'block';
+                    exportAndPurgeBtn.style.display = 'none';
+                    confirmPurgeBtn.style.display = 'inline-block';
+                    exportCompleted = true;
+                    isExporting = false;
+                    
+                    // Focus on the purge input
+                    if (purgeConfirmInput) purgeConfirmInput.focus();
+                });
+            } else {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Export failed');
+                });
+            }
+        })
+        .catch(error => {
+            alert('Export failed: ' + error.message);
+            // Reset to step 1
+            purgeStep1.style.display = 'block';
+            exportLoading.style.display = 'none';
+            exportAndPurgeBtn.disabled = false;
+            isExporting = false;
+        });
+    });
+}
+
+// Confirm Purge button (only visible after export)
 if (confirmPurgeBtn) {
     confirmPurgeBtn.addEventListener('click', function() {
+        if (!exportCompleted) {
+            alert('Please export the audit logs first.');
+            return;
+        }
+        
         if (purgeConfirmInput && purgeConfirmInput.value === 'PURGE') {
             const form = document.getElementById('securityPolicyForm');
+            
             const purgeInput = document.createElement('input');
             purgeInput.type = 'hidden';
             purgeInput.name = 'run_purge';
             purgeInput.value = '1';
+            
             const confirmInput = document.createElement('input');
             confirmInput.type = 'hidden';
             confirmInput.name = 'confirm_purge';
             confirmInput.value = 'PURGE';
+            
             form.appendChild(purgeInput);
             form.appendChild(confirmInput);
             closePurgeModal();

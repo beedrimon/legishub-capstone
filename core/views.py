@@ -1200,21 +1200,38 @@ def security_policy_view(request):
     # Initialize security settings
     retention_days = request.session.get('audit_retention_days', 3650)
     session_timeout = request.session.get('session_timeout', 30)
+    purge_schedule = request.session.get('purge_schedule', 'weekly')
     
     if request.method == 'POST':
         # Handle audit log purge
         if 'run_purge' in request.POST:
             confirm_text = request.POST.get('confirm_purge', '')
             if confirm_text == 'PURGE':
-                cutoff_date = timezone.now() - timedelta(days=retention_days)
+                # retention_days could be float (0.00694 for 10 minutes)
+                cutoff_date = timezone.now() - timedelta(days=float(retention_days))
                 old_logs = AuditLog.objects.filter(timestamp__lt=cutoff_date)
                 deleted_count = old_logs.count()
+                
+                # Format days display for message
+                if retention_days == 0.00694:
+                    days_display = "10 minutes"
+                elif retention_days == 1825:
+                    days_display = "5 years"
+                elif retention_days == 3650:
+                    days_display = "10 years"
+                elif retention_days == 7300:
+                    days_display = "20 years"
+                elif retention_days == 0:
+                    days_display = "permanently (never)"
+                else:
+                    days_display = f"{retention_days} days"
                 
                 purge_record = {
                     'date': timezone.now().strftime('%Y-%m-%d %H:%M:%S'),
                     'records_deleted': deleted_count,
                     'triggered_by': request.user.username,
-                    'status': 'success'
+                    'status': 'success',
+                    'retention_days': retention_days
                 }
                 
                 old_logs.delete()
@@ -1224,9 +1241,10 @@ def security_policy_view(request):
                 request.session['purge_history'] = purge_history[:20]
                 request.session.modified = True
                 
-                messages.success(request, f'Successfully purged {deleted_count} audit logs older than {retention_days} days.')
+                messages.success(request, f'Successfully purged {deleted_count} audit logs older than {days_display}.')
             else:
                 messages.error(request, 'PURGE confirmation text did not match. No logs were deleted.')
+            
             return redirect('security_policy')
         
         # Get password fields
@@ -1263,37 +1281,53 @@ def security_policy_view(request):
                     for error in e.messages:
                         messages.error(request, f"Password error: {error}")
         else:
-            # Handle security policy updates (session_timeout, retention, purge schedule)
-            session_timeout_value = request.POST.get('session_timeout', 30)
-            
-            # Convert to float (handle 0.5 for 30 seconds)
-            try:
-                session_timeout = float(session_timeout_value)
-            except ValueError:
-                session_timeout = 30
-            
-            request.session['session_timeout'] = session_timeout
-            request.session['audit_retention_days'] = int(request.POST.get('retention_days', 3650))
-            request.session['purge_schedule'] = request.POST.get('purge_schedule', 'weekly')
-            
-            # Save to database for persistence
-            SystemSetting.set('session_timeout', session_timeout, 'float', 'Session timeout in minutes', request.user)
-            SystemSetting.set('audit_retention_days', int(request.POST.get('retention_days', 3650)), 'integer', 'Audit log retention days', request.user)
-            SystemSetting.set('purge_schedule', request.POST.get('purge_schedule', 'weekly'), 'string', 'Purge schedule', request.user)
-            
-            # Set Django session expiry
-            if session_timeout == 0.5:
-                request.session.set_expiry(30)
-            else:
-                request.session.set_expiry(session_timeout * 60)
-            
-            request.session.modified = True
-            messages.success(request, 'Security policy updated successfully!')
+            # Check if this is a policy update (has update_policy field)
+            if 'update_policy' in request.POST:
+                # Handle security policy updates
+                session_timeout_value = request.POST.get('session_timeout', 30)
+                retention_days_value = request.POST.get('retention_days', 3650)
+                purge_schedule_value = request.POST.get('purge_schedule', 'weekly')
+                
+                # Convert session_timeout to float (handle 0.5 for 30 seconds)
+                try:
+                    session_timeout = float(session_timeout_value)
+                except ValueError:
+                    session_timeout = 30
+                
+                # Convert retention_days to float (to handle 0.00694 for 10 minutes)
+                try:
+                    retention_days = float(retention_days_value)
+                except ValueError:
+                    retention_days = 3650
+                
+                # Save to session
+                request.session['session_timeout'] = session_timeout
+                request.session['audit_retention_days'] = retention_days
+                request.session['purge_schedule'] = purge_schedule_value
+                
+                # Save to database for persistence
+                SystemSetting.set('session_timeout', session_timeout, 'float', 'Session timeout in minutes', request.user)
+                SystemSetting.set('audit_retention_days', retention_days, 'float', 'Audit log retention days', request.user)
+                SystemSetting.set('purge_schedule', purge_schedule_value, 'string', 'Purge schedule', request.user)
+                
+                # Set Django session expiry
+                if session_timeout == 0.5:
+                    request.session.set_expiry(30)
+                else:
+                    request.session.set_expiry(session_timeout * 60)
+                
+                request.session.modified = True
+                
+                if retention_days == 0.00694:
+                    messages.warning(request, '🧪 TESTING MODE ENABLED: Purge will delete logs older than 10 minutes.')
+                else:
+                    messages.success(request, 'Security policy updated successfully!')
         
         return redirect('security_policy')
     
     # Calculate purge statistics
-    cutoff_date = timezone.now() - timedelta(days=retention_days)
+    # Convert float days to timedelta (handles 0.00694 for 10 minutes)
+    cutoff_date = timezone.now() - timedelta(days=float(retention_days))
     total_logs = AuditLog.objects.count()
     old_logs_count = AuditLog.objects.filter(timestamp__lt=cutoff_date).count()
     
@@ -1307,7 +1341,8 @@ def security_policy_view(request):
         
         # Purge settings
         'retention_days': retention_days,
-        'purge_schedule': request.session.get('purge_schedule', 'weekly'),
+        'purge_schedule': purge_schedule,
+        'test_mode': (retention_days == 0.00694),
         'total_logs': total_logs,
         'old_logs_count': old_logs_count,
         'audit_db_size': '124 MB',
@@ -1316,6 +1351,112 @@ def security_policy_view(request):
         'is_legislator': is_legislator(request.user),
     }
     return render(request, 'settings_page/security_policy.html', context)
+
+# ==========================================
+# EXPORT AUDIT LOGS TO PDF
+# ==========================================
+@login_required(login_url='login')
+def export_audit_logs(request):
+    if not request.user.is_superuser:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    if request.method == 'POST':
+        try:
+            import json
+            from django.http import HttpResponse
+            from io import BytesIO
+            from datetime import datetime
+            from reportlab.lib.pagesizes import landscape, A4
+            from reportlab.lib import colors
+            from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+            from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+            from reportlab.lib.units import inch
+            
+            data = json.loads(request.body)
+            retention_days = data.get('retention_days', 3650)
+            
+            cutoff_date = timezone.now() - timedelta(days=float(retention_days))
+            logs_to_purge = AuditLog.objects.filter(timestamp__lt=cutoff_date).order_by('-timestamp')
+            total_count = logs_to_purge.count()
+            
+            response = HttpResponse(content_type='application/pdf')
+            response['Content-Disposition'] = f'attachment; filename="audit_logs_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
+            
+            doc = SimpleDocTemplate(response, pagesize=landscape(A4))
+            styles = getSampleStyleSheet()
+            elements = []
+            
+            # Title
+            title_style = ParagraphStyle('TitleStyle', parent=styles['Title'], fontSize=16, textColor=colors.HexColor('#8B7355'), alignment=1, spaceAfter=20)
+            elements.append(Paragraph("MARIKINA LEGISHUB", title_style))
+            elements.append(Paragraph("Audit Log Export Report", styles['Heading2']))
+            elements.append(Spacer(1, 20))
+            
+            # Info table
+            if retention_days == 0.00694:
+                retention_display = "10 minutes"
+            elif retention_days == 1825:
+                retention_display = "5 Years"
+            elif retention_days == 3650:
+                retention_display = "10 Years"
+            elif retention_days == 7300:
+                retention_display = "20 Years"
+            else:
+                retention_display = f"{retention_days} days"
+            
+            info_data = [
+                ["Export Type:", "Pre-Purge Audit Logs"],
+                ["Retention Period:", retention_display],
+                ["Cutoff Date:", cutoff_date.strftime('%Y-%m-%d %H:%M:%S')],
+                ["Total Records to Purge:", str(total_count)],
+                ["Generated By:", request.user.get_full_name() or request.user.username],
+                ["Generated On:", datetime.now().strftime('%Y-%m-%d %H:%M:%S')],
+            ]
+            
+            info_table = Table(info_data, colWidths=[150, 300])
+            info_table.setStyle(TableStyle([('FONTNAME', (0,0), (-1,-1), 'Helvetica'), ('FONTSIZE', (0,0), (-1,-1), 10), ('VALIGN', (0,0), (-1,-1), 'TOP'), ('GRID', (0,0), (-1,-1), 0.5, colors.grey)]))
+            elements.append(info_table)
+            elements.append(Spacer(1, 20))
+            
+            # Audit logs table
+            elements.append(Paragraph("Audit Logs to be Purged", styles['Heading4']))
+            elements.append(Spacer(1, 10))
+            
+            table_data = [['#', 'Timestamp', 'User', 'Action', 'Document', 'Details']]
+            for idx, log in enumerate(logs_to_purge[:1000], 1):
+                table_data.append([
+                    str(idx),
+                    log.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+                    log.user.username if log.user else 'Unknown',
+                    log.action,
+                    log.document.document_number if log.document else 'N/A',
+                    (log.details or 'No details')[:80] + ('...' if len(log.details or '') > 80 else '')
+                ])
+            
+            table = Table(table_data, repeatRows=1)
+            table.setStyle(TableStyle([
+                ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+                ('FONTSIZE', (0,0), (-1,-1), 8),
+                ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#8B7355')),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+                ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+                ('GRID', (0,0), (-1,-1), 0.5, colors.grey),
+            ]))
+            elements.append(table)
+            
+            # Footer
+            elements.append(Spacer(1, 30))
+            footer_text = f"This is an official audit log export from Marikina LegisHub. The logs listed above are scheduled for permanent deletion. Document ID: LEGIS-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            elements.append(Paragraph(footer_text, styles['Normal']))
+            
+            doc.build(elements)
+            return response
+            
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 #NOTIFICATIONS VIEW
 @login_required(login_url='login')

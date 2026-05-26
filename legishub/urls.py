@@ -62,6 +62,8 @@ urlpatterns = [
     # path('api/trigger-backup/', views.trigger_backup_api, name='trigger_backup'),
     path('api/test-email/', views.test_email_api, name='test_email'),
     path('api/notifications/', views.get_notifications, name='get_notifications'),
+    # for audit log export
+    path('api/export-audit-logs/', views.export_audit_logs, name='export_audit_logs'),
 
     # DOCUMENT MANAGEMENT 
     path('upload/', views.upload_document, name='upload_document'),
