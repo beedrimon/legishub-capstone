@@ -1117,12 +1117,17 @@ def backup_cloud_view(request):
     auto_sync = SystemSetting.get('auto_sync_on_login', True)
     request.session['auto_sync_on_login'] = auto_sync
     
-    # Get statistics
-    backup = SupabaseBackup()
-    counts = backup.get_local_counts()
-    
-    # Test cloud connection
-    connected, connection_message = backup.test_connection()
+    # Get statistics and test cloud connection
+    try:
+        backup = SupabaseBackup()
+        counts = backup.get_local_counts()
+        
+        # Test cloud connection
+        connected, connection_message = backup.test_connection()
+    except Exception as e:
+        counts = {'documents': 0, 'archives': 0, 'audit_logs': 0, 'users': 0, 'total': 0}
+        connected = False
+        connection_message = f"Cloud Backup missing credentials or failed to initialize: {str(e)}"
     
     # Get last 20 backup logs
     backup_logs = BackupLog.objects.all()[:20]
