@@ -110,7 +110,7 @@
                         <button type="button" class="btn-upload trigger-upload-new">Upload New Proposal</button>
                         <button type="button" class="btn-tan trigger-upload-existing">Upload Existing Doc</button>
                         {% endif %}
-                        <button class="btn-tan">Generate Report</button>
+                        <button class="btn-tan" onclick="window.location.href='{% url 'generate_report' %}'">Generate Report</button>
                     </div>
 
                     {% if not is_legislator %}
@@ -118,17 +118,38 @@
                         <h3><i class="fa-solid fa-cloud-arrow-up"></i> Cloud Sync</h3>
                         <div class="sync-status">
                             <span>Status</span>
-                            <span class="status">• Synced</span>
+                            <span class="status" style="color: {% if not latest_backup_attempt %}#6c757d{% elif latest_backup_attempt.status == 'success' %}#28a745{% elif latest_backup_attempt.status == 'failed' %}#dc3545{% else %}#17a2b8{% endif %}; font-weight: 600;">
+                                {% if not latest_backup_attempt %}
+                                    • Not Configured
+                                {% elif latest_backup_attempt.status == 'success' %}
+                                    • Synced
+                                {% elif latest_backup_attempt.status == 'failed' %}
+                                    • Sync Failed
+                                {% elif latest_backup_attempt.status == 'in_progress' %}
+                                    • Syncing... <i class="fa-solid fa-spinner fa-spin"></i>
+                                {% else %}
+                                    • Pending
+                                {% endif %}
+                            </span>
                         </div>
                         <div class="sync-status" style="margin-bottom: 15px;">
                             <span>Last Backup</span>
                             <span>{{ last_backup_date }}</span>
                         </div>
-                        <p
-                            style="font-size: 0.75rem; color: #888; border-top: 1px solid #eee; padding-top: 10px; margin: 0;">
-                            <i class="fa-solid fa-check" style="color: #ccc; margin-right: 5px;"></i> All legislative
-                            documents are securely backed up.
+                        <p style="font-size: 0.75rem; color: #888; border-top: 1px solid #eee; padding-top: 10px; margin: 0;">
+                            {% if not latest_backup_attempt %}
+                                <i class="fa-solid fa-circle-info" style="color: #6c757d; margin-right: 5px;"></i> Cloud backup has not been initialized.
+                            {% elif latest_backup_attempt.status == 'success' %}
+                                <i class="fa-solid fa-check" style="color: #28a745; margin-right: 5px;"></i> All legislative documents are securely backed up.
+                            {% elif latest_backup_attempt.status == 'failed' %}
+                                <i class="fa-solid fa-triangle-exclamation" style="color: #dc3545; margin-right: 5px;"></i> Cloud backup encountered an error.
+                            {% else %}
+                                <i class="fa-solid fa-circle-info" style="color: #17a2b8; margin-right: 5px;"></i> Backup system is standing by.
+                            {% endif %}
                         </p>
+                        {% if request.user.is_superuser %}
+                        <button class="btn-tan" style="width: 100%; margin-top: 12px; padding: 6px;" onclick="window.location.href='{% url 'backup_cloud' %}'">Manage Settings</button>
+                        {% endif %}
                     </div>
                     {% endif %}
 

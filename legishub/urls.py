@@ -39,6 +39,7 @@ urlpatterns = [
     path('edit_user/', views.edit_user_view, name='edit_user'),
     path('delete_user/<int:user_id>/', views.delete_user_view, name='delete_user'),
     path('toggle_permission/<int:user_id>/<str:perm_type>/', views.toggle_permission_view, name='toggle_permission'),
+    path('generate-report/', views.generate_report_view, name='generate_report'),
 
     #ARCHIVE VIEWS
     path('archive/', views.archive_view, name='archive'),
