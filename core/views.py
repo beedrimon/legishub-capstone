@@ -39,6 +39,7 @@ import subprocess
 from django.db.models import Sum, Q
 from django.core.mail import send_mail, EmailMessage
 from django.template.loader import render_to_string
+from django_q.tasks import async_task
 
 #for backup
 from .backup_utils import SupabaseBackup
@@ -136,7 +137,8 @@ def forgot_password_view(request):
                 subject = "Password Reset Request - Marikina LegisHub"
                 message = f"Hello {user.first_name or user.username},\n\nYou recently requested to reset your password for your Marikina LegisHub account.\n\nPlease click the link below to set a new password:\n{reset_link}\n\nIf you did not request this, please ignore this email."
                 
-                send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
+                # Offload the email sending to the Django Q2 Background Worker
+                async_task('django.core.mail.send_mail', subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
 
             messages.success(request, f"If an account exists for {email}, a password reset link has been sent.")
             return redirect('login')

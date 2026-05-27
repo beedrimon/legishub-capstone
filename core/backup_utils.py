@@ -12,11 +12,11 @@ class SupabaseBackup:
     def __init__(self):
         # Supabase cloud configuration
         self.supabase_config = {
-            'dbname': 'postgres',
-            'user': 'postgres.azovgcwlttaeocctdqdm',
-            'password': 'marikina_legishub_2026',
-            'host': 'aws-1-ap-southeast-1.pooler.supabase.com',
-            'port': 6543,
+            'dbname': os.getenv('SUPABASE_DB_NAME', 'postgres'),
+            'user': os.getenv('SUPABASE_DB_USER', ''),
+            'password': os.getenv('SUPABASE_DB_PASSWORD', ''),
+            'host': os.getenv('SUPABASE_DB_HOST', ''),
+            'port': int(os.getenv('SUPABASE_DB_PORT', '6543')),
         }
         
         # Local PostgreSQL configuration

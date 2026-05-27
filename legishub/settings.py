@@ -42,6 +42,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -82,9 +83,9 @@ DATABASES = {
         'PASSWORD': os.getenv('DB_PASSWORD'),
         'HOST': os.getenv('DB_HOST'),
         'PORT': os.getenv('DB_PORT'),
-        # 'OPTIONS': {
-        #    'sslmode': os.getenv('DB_SSLMODE', 'require'),
-        # },
+        'OPTIONS': {
+            'sslmode': os.getenv('DB_SSLMODE', 'require'),
+        },
     }
 }
 
@@ -177,7 +178,7 @@ LOGIN_URL = 'login'
 # ==========================================
 Q_CLUSTER = {
     'name': 'legishub_cluster',
-    'workers': 2,           # How many tasks can run at the exact same time
+    'workers': 1,           # Reduced to 1 for Render Free Tier RAM limits
     'recycle': 500,         # Restarts workers to prevent memory leaks
     'timeout': 60,          # Max seconds a task is allowed to run
     'compress': True,       # Compresses database logs to save space
