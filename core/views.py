@@ -1129,8 +1129,11 @@ def backup_cloud_view(request):
         connected = False
         connection_message = f"Cloud Backup missing credentials or failed to initialize: {str(e)}"
     
-    # Get last 20 backup logs
-    backup_logs = BackupLog.objects.all()[:20]
+    # Get backup logs and limit with pagination
+    backup_logs_qs = BackupLog.objects.all().order_by('-started_at')
+    paginator = Paginator(backup_logs_qs, 5)
+    page_number = request.GET.get('page')
+    backup_logs = paginator.get_page(page_number)
     
     # Get last backup
     last_backup = BackupLog.objects.filter(status='success', backup_type__in=['auto', 'manual']).first()

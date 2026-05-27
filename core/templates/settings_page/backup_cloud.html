@@ -177,6 +177,24 @@
                 </table>
             </div>
 
+            <!-- Pagination -->
+            {% if backup_logs.has_other_pages %}
+            <div class="pagination">
+                <div class="total-records">
+                    Showing page {{ backup_logs.number }} of {{ backup_logs.paginator.num_pages }}
+                </div>
+                <div class="page-numbers">
+                    {% if backup_logs.has_previous %}
+                    <button type="button" onclick="window.location.href='?page={{ backup_logs.previous_page_number }}'"><i class="fa-solid fa-chevron-left"></i></button>
+                    {% endif %}
+                    <button type="button" class="active">{{ backup_logs.number }}</button>
+                    {% if backup_logs.has_next %}
+                    <button type="button" onclick="window.location.href='?page={{ backup_logs.next_page_number }}'"><i class="fa-solid fa-chevron-right"></i></button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
             <div class="settings-footer">
                 <button type="reset" class="discard-link">Discard Changes</button>
                 <button type="submit" name="update_backup" class="btn-apply">Save Configuration</button>

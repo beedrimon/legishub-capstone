@@ -31,6 +31,11 @@
         <a href="{% url 'notifications' %}" class="settings-nav-item">
             <i class="fa-solid fa-bell"></i> Notifications
         </a>
+        {% if request.user.is_superuser %}
+        <a href="{% url 'admin:index' %}" class="settings-nav-item" target="_blank" style="margin-top: 15px; border: 1px dashed #d9c8ac; background-color: #fcfaf7;">
+            <i class="fa-solid fa-screwdriver-wrench"></i> Django Admin Panel
+        </a>
+        {% endif %}
     </div>
 
     <div class="settings-card">
