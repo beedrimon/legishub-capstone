@@ -1736,17 +1736,36 @@ def get_notifications(request):
     formatted_notifications = []
     for notif in notifications_to_send:
         
-        # --- NEW: INCLUDE EXACT CHANGES IN NOTIFICATION ---
-        doc_number = notif.document.document_number if notif.document else "a document"
+        # --- 1. EXTRACT DOCUMENT NUMBER ---
+        if notif.document:
+            doc_number = notif.document.document_number
+        else:
+            doc_number = "a document"
+            # If the original was deleted (archived/vetoed), pull the number from the details text
+            if getattr(notif, 'details', None):
+                import re
+                match = re.search(r"'([^']+)'", notif.details)
+                if match:
+                    doc_number = match.group(1)
         
-        # SAFEGUARD: Provide a fallback name if the user account was deleted
-        actor_name = notif.user.username if notif.user else "Unknown/Deleted User"
+        # --- 2. IDENTIFY THE ACTOR ---
+        if notif.user:
+            actor_name = notif.user.username
+        else:
+            # If there is no user attached, it was the background system
+            actor_name = "the System"
         
+        # --- 3. BUILD THE MESSAGE ---
         if notif.action == 'Upload':
             message = f"<strong>New Upload:</strong> {doc_number} was uploaded by <strong>{actor_name}</strong>."
         elif notif.action == 'Edit':
             details_text = f"<br><span style='font-size:0.75rem; color:#888;'>{notif.details}</span>" if getattr(notif, 'details', None) else ""
-            message = f"<strong>Document Updated:</strong> {doc_number} was modified by <strong>{actor_name}</strong>.{details_text}"
+            
+            # --- FIXED: Professional system message ---
+            if actor_name == "the System":
+                message = f"<strong>Automated Update:</strong> {doc_number} was processed by the background system.{details_text}"
+            else:
+                message = f"<strong>Document Updated:</strong> {doc_number} was modified by <strong>{actor_name}</strong>.{details_text}"
         else:
             message = f"<strong>System Action:</strong> {notif.action} document <strong>\"{doc_number}\"</strong>."
         
