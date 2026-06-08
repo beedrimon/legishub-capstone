@@ -1733,15 +1733,18 @@ def get_notifications(request):
     has_more = len(raw_notifications) > limit
     notifications_to_send = raw_notifications[:limit]
 
+    import html # Allows us to safely format text with single quotes
+
     formatted_notifications = []
     for notif in notifications_to_send:
         
-        # --- 1. EXTRACT DOCUMENT NUMBER ---
+        # --- 1. EXTRACT DATA ---
         if notif.document:
             doc_number = notif.document.document_number
+            doc_title = notif.document.title
         else:
             doc_number = "a document"
-            # If the original was deleted (archived/vetoed), pull the number from the details text
+            doc_title = "Archived / Vetoed Record"
             if getattr(notif, 'details', None):
                 import re
                 match = re.search(r"'([^']+)'", notif.details)
@@ -1752,22 +1755,36 @@ def get_notifications(request):
         if notif.user:
             actor_name = notif.user.username
         else:
-            # If there is no user attached, it was the background system
             actor_name = "the System"
+            
+        # --- 3. BUILD THE HIDDEN DATA LAYER FOR THE MODAL ---
+        clean_details = html.escape(notif.details) if getattr(notif, 'details', None) else "No additional details provided."
+        clean_title = html.escape(doc_title)
+        clean_actor = html.escape(actor_name)
+        exact_time = notif.timestamp.strftime('%B %d, %Y, %I:%M %p')
+
+        hidden_data = (
+            f"<div class='notif-meta-data' style='display:none;' "
+            f"data-actor='{clean_actor}' "
+            f"data-action='{notif.action}' "
+            f"data-number='{doc_number}' "
+            f"data-title='{clean_title}' "
+            f"data-time='{exact_time}' "
+            f"data-details='{clean_details}'>"
+            f"</div>"
+        )
         
-        # --- 3. BUILD THE MESSAGE ---
+        # --- 4. BUILD THE MESSAGE (AND ATTACH HIDDEN DATA) ---
         if notif.action == 'Upload':
-            message = f"<strong>New Upload:</strong> {doc_number} was uploaded by <strong>{actor_name}</strong>."
+            message = f"<strong>New Upload:</strong> {doc_number} was uploaded by <strong>{actor_name}</strong>.{hidden_data}"
         elif notif.action == 'Edit':
             details_text = f"<br><span style='font-size:0.75rem; color:#888;'>{notif.details}</span>" if getattr(notif, 'details', None) else ""
-            
-            # --- FIXED: Professional system message ---
             if actor_name == "the System":
-                message = f"<strong>Automated Update:</strong> {doc_number} was processed by the background system.{details_text}"
+                message = f"<strong>Automated Update:</strong> {doc_number} was processed by the background system.{details_text}{hidden_data}"
             else:
-                message = f"<strong>Document Updated:</strong> {doc_number} was modified by <strong>{actor_name}</strong>.{details_text}"
+                message = f"<strong>Document Updated:</strong> {doc_number} was modified by <strong>{actor_name}</strong>.{details_text}{hidden_data}"
         else:
-            message = f"<strong>System Action:</strong> {notif.action} document <strong>\"{doc_number}\"</strong>."
+            message = f"<strong>System Action:</strong> {notif.action} document <strong>\"{doc_number}\"</strong>.{hidden_data}"
         
         formatted_notifications.append({
             'id': notif.id,

@@ -10,13 +10,14 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/main.css' %}?v=2">
     {% block extra_css %}{% endblock %}
-    
+
     <style>
         /* Clean Detailed View & Review Modals */
         .detail-view-container {
             max-width: 1000px !important;
             width: 90% !important;
-            height: 85vh !important; /* Fixed viewport height to prevent extending off-screen */
+            height: 85vh !important;
+            /* Fixed viewport height to prevent extending off-screen */
             display: flex;
             flex-direction: column;
             background: #fff;
@@ -27,7 +28,8 @@
             display: flex !important;
             flex-direction: row !important;
             padding: 0 !important;
-            flex: 1; /* Fills remaining space between header and footer */
+            flex: 1;
+            /* Fills remaining space between header and footer */
             overflow: hidden;
             border-top: 1px solid #e5e7eb;
             border-bottom: 1px solid #e5e7eb;
@@ -39,7 +41,8 @@
             padding: 30px 25px;
             background-color: #fafafa;
             border-right: 1px solid #e5e7eb;
-            overflow-y: auto; /* Independent scrolling for long metadata */
+            overflow-y: auto;
+            /* Independent scrolling for long metadata */
             display: flex;
             flex-direction: column;
             gap: 24px;
@@ -60,7 +63,8 @@
         .meta-group label {
             font-size: 0.72rem;
             font-weight: 700;
-            color: #8b7355; /* Matches theme accent */
+            color: #8b7355;
+            /* Matches theme accent */
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin: 0;
@@ -91,7 +95,8 @@
         }
 
         .pdf-preview-container {
-            flex: 1; /* Takes the remaining 65% width */
+            flex: 1;
+            /* Takes the remaining 65% width */
             background-color: #525659;
             position: relative;
             display: flex;
@@ -129,8 +134,10 @@
     <!-- MAINTENANCE MODE BANNER (Admin Only) -->
     <!-- ========================================== -->
     {% if request.session.maintenance_mode and request.user.is_superuser %}
-    <div style="background: #ff9800; color: white; text-align: center; padding: 10px; font-size: 14px; position: sticky; top: 0; z-index: 1000; font-weight: 500;">
-        <i class="fa-solid fa-tools"></i> <strong>MAINTENANCE MODE ACTIVE</strong> - Only administrators can access the system. Regular users will see a maintenance page.
+    <div
+        style="background: #ff9800; color: white; text-align: center; padding: 10px; font-size: 14px; position: sticky; top: 0; z-index: 1000; font-weight: 500;">
+        <i class="fa-solid fa-tools"></i> <strong>MAINTENANCE MODE ACTIVE</strong> - Only administrators can access the
+        system. Regular users will see a maintenance page.
     </div>
     {% endif %}
 
@@ -213,7 +220,8 @@
                 <h2>NEW DOCUMENT PROPOSAL</h2>
                 <button type="button" class="close-modal">&times;</button>
             </div>
-        <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data" id="uploadNewForm">
+            <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data"
+                id="uploadNewForm">
                 {% csrf_token %}
                 <div class="form-row">
                     <div class="form-group full-width">
@@ -305,7 +313,7 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn-discard">Discard</button>
-                <button type="button" class="btn-add btn-review-upload">Review Details</button>
+                    <button type="button" class="btn-add btn-review-upload">Review Details</button>
                 </div>
             </form>
         </div>
@@ -317,7 +325,8 @@
                 <h2>NEW LEGISLATIVE ENTRY (EXISTING)</h2>
                 <button type="button" class="close-modal">&times;</button>
             </div>
-        <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data" id="uploadExistingForm">
+            <form class="modal-body" method="POST" action="{% url 'upload_document' %}" enctype="multipart/form-data"
+                id="uploadExistingForm">
                 {% csrf_token %}
                 <div class="form-row">
                     <div class="form-group full-width">
@@ -404,7 +413,7 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn-discard">Discard</button>
-                <button type="button" class="btn-add btn-review-upload">Review Details</button>
+                    <button type="button" class="btn-add btn-review-upload">Review Details</button>
                 </div>
             </form>
         </div>
@@ -525,6 +534,54 @@
             </div>
         </div>
     </div>
+
+    <div id="notifDetailModal" class="modal-overlay" style="z-index: 10000;">
+        <div class="modal-container detail-view-container"
+            style="max-width: 550px; height: auto !important; min-height: unset;">
+            <div class="modal-header"
+                style="background-color: #f3f4f6; border-bottom: 1px solid #e5e7eb; padding: 15px 25px;">
+                <h2 style="margin:0; font-size: 1.1rem; color: #374151;"><i class="fa-solid fa-bell"
+                        style="color: #8b7355; margin-right: 8px;"></i> NOTIFICATION DETAILS</h2>
+                <button class="close-modal"
+                    onclick="document.getElementById('notifDetailModal').style.display='none'">&times;</button>
+            </div>
+            <div class="modal-body"
+                style="padding: 25px; display: flex; flex-direction: column; gap: 15px; border: none;">
+                <div class="meta-group">
+                    <label>TIMESTAMP</label>
+                    <p class="meta-val" id="nd-time"></p>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-group">
+                        <label>ACTION PERFORMED BY</label>
+                        <p class="meta-val highlight" id="nd-actor"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>ACTION TYPE</label>
+                        <p class="meta-val" id="nd-action" style="font-weight: 600;"></p>
+                    </div>
+                </div>
+                <div class="meta-group">
+                    <label>TARGET REFERENCE NO.</label>
+                    <p class="meta-val" id="nd-doc-number" style="font-weight: 600; color: #111827;"></p>
+                </div>
+                <div class="meta-group">
+                    <label>DOCUMENT TITLE</label>
+                    <p class="meta-val" id="nd-doc-title"></p>
+                </div>
+                <div class="meta-group"
+                    style="background: #fffbeb; padding: 15px; border-radius: 6px; border-left: 4px solid #f59e0b; margin-top: 5px;">
+                    <label style="color: #b45309;">ACTION DETAILS & SUMMARY</label>
+                    <p class="meta-val" id="nd-details" style="margin-top: 8px; font-style: italic; color: #374151;">
+                    </p>
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 15px 25px; background: #f9fafb;">
+                <button type="button" class="btn-discard"
+                    onclick="document.getElementById('notifDetailModal').style.display='none'">Close Window</button>
+            </div>
+        </div>
+    </div>
     {% endblock modals %}
 
     <script src="{% static 'js/modals.js' %}?v=9"></script>
@@ -534,83 +591,119 @@
     <!-- ========================================== -->
     {% if request.session.session_timeout %}
     <script>
-        (function() {
+        (function () {
             let timeoutTimer;
             let warningTimer;
             let logoutTimer;
-            
-            const sessionTimeoutValue = {{ request.session.session_timeout|default:30 }};
-            
-            // Convert to milliseconds
-            let timeoutMs;
-            if (sessionTimeoutValue === 0.5) {
-                timeoutMs = 30 * 1000; // 30 seconds
-            } else {
-                timeoutMs = sessionTimeoutValue * 60 * 1000;
-            }
-            
-            console.log(`Session timeout set to: ${sessionTimeoutValue === 0.5 ? '30 seconds' : sessionTimeoutValue + ' minutes'} (${timeoutMs/1000} seconds)`);
-            
-            // Remove any existing warning
-            function removeWarning() {
-                const existingWarning = document.querySelector('.session-timeout-warning');
-                if (existingWarning) existingWarning.remove();
-            }
-            
-            // Show warning before logout
-            function showWarning() {
-                removeWarning();
-                
-                const warningMsg = document.createElement('div');
-                warningMsg.className = 'session-timeout-warning';
-                warningMsg.innerHTML = `
+
+            const sessionTimeoutValue = {{ request.session.session_timeout|default: 30
+        }};
+
+        // Convert to milliseconds
+        let timeoutMs;
+        if (sessionTimeoutValue === 0.5) {
+            timeoutMs = 30 * 1000; // 30 seconds
+        } else {
+            timeoutMs = sessionTimeoutValue * 60 * 1000;
+        }
+
+        console.log(`Session timeout set to: ${sessionTimeoutValue === 0.5 ? '30 seconds' : sessionTimeoutValue + ' minutes'} (${timeoutMs / 1000} seconds)`);
+
+        // Remove any existing warning
+        function removeWarning() {
+            const existingWarning = document.querySelector('.session-timeout-warning');
+            if (existingWarning) existingWarning.remove();
+        }
+
+        // Show warning before logout
+        function showWarning() {
+            removeWarning();
+
+            const warningMsg = document.createElement('div');
+            warningMsg.className = 'session-timeout-warning';
+            warningMsg.innerHTML = `
                     <div style="position: fixed; top: 20px; right: 20px; background: #ff9800; color: white; padding: 15px 20px; border-radius: 8px; z-index: 9999; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
                         <strong>⚠️ Session Expiring!</strong><br>
                         You will be logged out in <span id="logoutCountdown">10</span> seconds due to inactivity.
                     </div>
                 `;
-                document.body.appendChild(warningMsg);
-                
-                // Countdown timer
-                let countdown = 10;
-                const countdownSpan = document.getElementById('logoutCountdown');
-                const countdownInterval = setInterval(() => {
-                    countdown--;
-                    if (countdownSpan) countdownSpan.textContent = countdown;
-                    if (countdown <= 0) {
-                        clearInterval(countdownInterval);
+            document.body.appendChild(warningMsg);
+
+            // Countdown timer
+            let countdown = 10;
+            const countdownSpan = document.getElementById('logoutCountdown');
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                if (countdownSpan) countdownSpan.textContent = countdown;
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                }
+            }, 1000);
+
+            // Logout after 10 seconds
+            logoutTimer = setTimeout(() => {
+                window.location.href = '{% url "logout" %}';
+            }, 10000);
+        }
+
+        // Reset all timers
+        function resetTimers() {
+            clearTimeout(timeoutTimer);
+            clearTimeout(warningTimer);
+            clearTimeout(logoutTimer);
+            removeWarning();
+
+            timeoutTimer = setTimeout(() => {
+                warningTimer = setTimeout(() => {
+                    showWarning();
+                }, timeoutMs - 10000);
+            }, 0);
+        }
+
+        // Reset timer on user activity
+        const events = ['mousemove', 'keypress', 'click', 'scroll', 'touchstart'];
+        events.forEach(event => {
+            window.addEventListener(event, resetTimers);
+        });
+
+        // Initial start
+        resetTimers();
+        }) ();
+    </script>
+    {% endif %}
+    <script>
+        document.addEventListener('click', function (e) {
+            // 1. Did we click anywhere inside the Notification Dropdown list?
+            const dropdownBody = e.target.closest('#notifModalBody');
+
+            if (dropdownBody && e.target.tagName !== 'A') {
+
+                // 2. Find the specific notification row we clicked on, regardless of its class name!
+                let clickedRow = e.target;
+                while (clickedRow && clickedRow.parentElement !== dropdownBody && clickedRow !== dropdownBody) {
+                    clickedRow = clickedRow.parentElement;
+                }
+
+                if (clickedRow && clickedRow !== dropdownBody) {
+                    // 3. Look for our hidden data inside this specific row
+                    const metaDiv = clickedRow.querySelector('.notif-meta-data');
+
+                    if (metaDiv) {
+                        // Read the hidden data and paste it into the detail modal
+                        document.getElementById('nd-actor').innerText = metaDiv.getAttribute('data-actor');
+                        document.getElementById('nd-action').innerText = metaDiv.getAttribute('data-action');
+                        document.getElementById('nd-doc-number').innerText = metaDiv.getAttribute('data-number');
+                        document.getElementById('nd-doc-title').innerText = metaDiv.getAttribute('data-title');
+                        document.getElementById('nd-details').innerHTML = metaDiv.getAttribute('data-details');
+                        document.getElementById('nd-time').innerText = metaDiv.getAttribute('data-time');
+
+                        // Show the new modal and close the dropdown
+                        document.getElementById('notifDetailModal').style.display = 'flex';
+                        document.getElementById('notificationDropdown').style.display = 'none';
                     }
-                }, 1000);
-                
-                // Logout after 10 seconds
-                logoutTimer = setTimeout(() => {
-                    window.location.href = '{% url "logout" %}';
-                }, 10000);
+                }
             }
-            
-            // Reset all timers
-            function resetTimers() {
-                clearTimeout(timeoutTimer);
-                clearTimeout(warningTimer);
-                clearTimeout(logoutTimer);
-                removeWarning();
-                
-                timeoutTimer = setTimeout(() => {
-                    warningTimer = setTimeout(() => {
-                        showWarning();
-                    }, timeoutMs - 10000);
-                }, 0);
-            }
-            
-            // Reset timer on user activity
-            const events = ['mousemove', 'keypress', 'click', 'scroll', 'touchstart'];
-            events.forEach(event => {
-                window.addEventListener(event, resetTimers);
-            });
-            
-            // Initial start
-            resetTimers();
-        })();
+        });
     </script>
 
     <style>
@@ -618,19 +711,20 @@
             animation: slideIn 0.3s ease;
             z-index: 9999;
         }
+
         @keyframes slideIn {
             from {
                 transform: translateX(100%);
                 opacity: 0;
             }
+
             to {
                 transform: translateX(0);
                 opacity: 1;
             }
         }
     </style>
-    {% endif %}
-    
+
     {% block extra_js %}{% endblock %}
 </body>
 
