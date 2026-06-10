@@ -56,8 +56,17 @@ def is_legislator(user):
 # 1. LOGIN VIEW
 # ==========================================
 def login_view(request):
+    try:
+        maintenance_mode = SystemSetting.get('maintenance_mode', False)
+    except Exception:
+        maintenance_mode = False
+
     # If the user is already logged in, send them to the dashboard
     if request.user.is_authenticated:
+        if maintenance_mode and not request.user.is_superuser:
+            auth_logout(request)
+            return redirect('login')
+
         if request.user.is_superuser:
             return redirect('dashboard')
         else:
@@ -80,6 +89,10 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
 
         if user is not None:
+            if maintenance_mode and not user.is_superuser:
+                messages.error(request, 'System is currently under maintenance. Only administrators can log in.')
+                return redirect('login')
+
             auth_login(request, user)
             
             # AUTO-SYNC: Trigger backup when admin logs in
