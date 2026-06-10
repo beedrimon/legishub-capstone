@@ -47,20 +47,140 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Generic Modal Trigger Logic
     // This looks for specific classes and opens the matching modal ID
-    const setupTrigger = (selector, modalKey) => {
+    const setupTrigger = (selector, modalKey, formId = null) => {
         const buttons = document.querySelectorAll(selector);
         buttons.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 closeAllOverlays();
-                if (modals[modalKey]) modals[modalKey].style.display = 'flex';
+                if (modals[modalKey]) {
+                    modals[modalKey].style.display = 'flex';
+                    if (formId) {
+                        setTimeout(() => loadDraft(formId), 50);
+                    }
+                }
             });
         });
     };
 
-    setupTrigger('.trigger-upload-new', 'uploadNew');
-    setupTrigger('.trigger-upload-existing', 'uploadExisting');
+    // ==========================================
+    // AUTO-SAVE DRAFTS (Upload & Edit)
+    // ==========================================
+    const DRAFT_KEYS = {
+        'uploadNewForm': 'draft_uploadNew',
+        'uploadExistingForm': 'draft_uploadExisting',
+        'editDocumentForm': 'draft_edit'
+    };
+
+    function saveDraft(formId, docId = null) {
+        const form = document.getElementById(formId);
+        if (!form) return;
+        
+        let key = DRAFT_KEYS[formId];
+        if (!key) return;
+        
+        if (formId === 'editDocumentForm' && docId) {
+            key = `${key}_${docId}`;
+        }
+        
+        const formData = new FormData(form);
+        const data = {};
+        let hasData = false;
+        formData.forEach((value, name) => {
+            if (name !== 'csrfmiddlewaretoken' && name !== 'file_attachment') {
+                if (value.trim() !== '') hasData = true;
+                data[name] = value;
+            }
+        });
+        if (hasData) {
+            localStorage.setItem(key, JSON.stringify(data));
+        } else {
+            localStorage.removeItem(key);
+        }
+    }
+
+    function loadDraft(formId, docId = null) {
+        const form = document.getElementById(formId);
+        if (!form) return false;
+
+        let key = DRAFT_KEYS[formId];
+        if (!key) return false;
+
+        if (formId === 'editDocumentForm' && docId) {
+            key = `${key}_${docId}`;
+        }
+
+        const draftStr = localStorage.getItem(key);
+        
+        if (draftStr) {
+            try {
+                const data = JSON.parse(draftStr);
+                
+                if(confirm("A saved draft was found for this form. Do you want to restore it?")) {
+                    for (const name in data) {
+                        const input = form.querySelector(`[name="${name}"]`);
+                        if (input && input.type !== 'file') {
+                            input.value = data[name];
+                            if (name === 'status') {
+                                input.dispatchEvent(new Event('change'));
+                            }
+                        }
+                    }
+                    return true;
+                } else {
+                    localStorage.removeItem(key);
+                }
+            } catch(e) {
+                localStorage.removeItem(key);
+            }
+        }
+        return false;
+    }
+
+    function clearDraft(formId, docId = null) {
+        let key = DRAFT_KEYS[formId];
+        if (!key) return;
+        if (formId === 'editDocumentForm' && docId) {
+            key = `${key}_${docId}`;
+        }
+        localStorage.removeItem(key);
+    }
+
+    ['uploadNewForm', 'uploadExistingForm', 'editDocumentForm'].forEach(formId => {
+        const form = document.getElementById(formId);
+        if (form) {
+            form.addEventListener('input', (e) => {
+                if (e.target.type !== 'file') {
+                    const docId = formId === 'editDocumentForm' ? document.getElementById('edit-doc-id')?.value : null;
+                    saveDraft(formId, docId);
+                }
+            });
+            form.addEventListener('change', (e) => {
+                if (e.target.type !== 'file') {
+                    const docId = formId === 'editDocumentForm' ? document.getElementById('edit-doc-id')?.value : null;
+                    saveDraft(formId, docId);
+                }
+            });
+
+            const discardBtn = form.querySelector('.btn-discard');
+            if (discardBtn) {
+                discardBtn.addEventListener('click', () => {
+                    const docId = formId === 'editDocumentForm' ? document.getElementById('edit-doc-id')?.value : null;
+                    clearDraft(formId, docId);
+                    form.reset();
+                });
+            }
+            
+            form.addEventListener('submit', () => {
+                const docId = formId === 'editDocumentForm' ? document.getElementById('edit-doc-id')?.value : null;
+                clearDraft(formId, docId);
+            });
+        }
+    });
+
+    setupTrigger('.trigger-upload-new', 'uploadNew', 'uploadNewForm');
+    setupTrigger('.trigger-upload-existing', 'uploadExisting', 'uploadExistingForm');
     setupTrigger('.trigger-view', 'view');
     setupTrigger('.trigger-edit', 'edit');
     setupTrigger('.trigger-user', 'user');
@@ -142,6 +262,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 this.innerHTML = 'Uploading... <i class="fa-solid fa-spinner fa-spin"></i>';
                 this.style.pointerEvents = 'none';
                 this.style.opacity = '0.7';
+
+                const formId = activeUploadForm.id;
+                const docId = formId === 'editDocumentForm' ? document.getElementById('edit-doc-id')?.value : null;
+                clearDraft(formId, docId);
+
                 activeUploadForm.submit();
             }
         });
@@ -507,6 +632,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 fileText.innerHTML = `Current File: <strong style="color: #888;">No file attached</strong>`;
                 if (uploadSpan) uploadSpan.innerText = 'Click to browse or drag and drop';
             }
+
+            setTimeout(() => {
+                loadDraft('editDocumentForm', docId);
+            }, 50);
         });
     });
 

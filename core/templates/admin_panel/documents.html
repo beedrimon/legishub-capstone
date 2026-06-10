@@ -307,7 +307,7 @@
                 <h2>EDIT LEGISLATIVE RECORD</h2>
                 <button class="close-modal" onclick="closeModal('editModal')">&times;</button>
             </div>
-            <form class="modal-body" method="POST" action="{% url 'edit_document' %}" enctype="multipart/form-data">
+            <form class="modal-body" method="POST" action="{% url 'edit_document' %}" enctype="multipart/form-data" id="editDocumentForm">
                 {% csrf_token %}
                 <input type="hidden" name="doc_id" id="edit-doc-id">
 
