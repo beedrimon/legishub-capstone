@@ -162,6 +162,16 @@ class SupabaseBackup:
                                 )
                                 supabase_cursor.execute(insert_query, row)
                             
+                            # Reset sequence on Supabase side to prevent IntegrityError on new inserts
+                            try:
+                                if 'id' in col_names:
+                                    seq_query = sql.SQL(
+                                        "SELECT setval(pg_get_serial_sequence(%s, 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM {}"
+                                    ).format(sql.Identifier(table))
+                                    supabase_cursor.execute(seq_query, [table])
+                            except Exception as seq_e:
+                                logger.error(f"Sequence reset failed for {table} on Supabase: {seq_e}")
+
                             total_synced += len(rows)
                             print(f"Synced {len(rows)} records from {table}")
                     
@@ -257,6 +267,16 @@ class SupabaseBackup:
                                 )
                                 local_cursor.execute(insert_query, row)
                             
+                            # Reset local sequence to prevent IntegrityError on new inserts
+                            try:
+                                if 'id' in col_names:
+                                    seq_query = sql.SQL(
+                                        "SELECT setval(pg_get_serial_sequence(%s, 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM {}"
+                                    ).format(sql.Identifier(table))
+                                    local_cursor.execute(seq_query, [table])
+                            except Exception as seq_e:
+                                logger.error(f"Sequence reset failed for {table} locally: {seq_e}")
+
                             total_restored += len(rows)
                             local_conn.commit()
                             print(f"Restored {len(rows)} records to {table}")
