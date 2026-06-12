@@ -70,6 +70,7 @@
                         <label>STATUS</label>
                         <select name="status" onchange="document.getElementById('filterForm').submit();">
                             <option value="">All Statuses</option>
+                            <option value="Urgent" {% if current_filters.status == 'Urgent' %}selected{% endif %}>Urgent</option>
                             <option value="1st reading" {% if current_filters.status == '1st reading' %}selected{% endif %}>1st reading</option>
                             <option value="2nd reading" {% if current_filters.status == '2nd reading' %}selected{% endif %}>2nd reading</option>
                             <option value="3rd reading" {% if current_filters.status == '3rd reading' %}selected{% endif %}>3rd reading</option>

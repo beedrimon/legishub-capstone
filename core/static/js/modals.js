@@ -162,15 +162,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     saveDraft(formId, docId);
                 }
             });
-
-            const discardBtn = form.querySelector('.btn-discard');
-            if (discardBtn) {
-                discardBtn.addEventListener('click', () => {
-                    const docId = formId === 'editDocumentForm' ? document.getElementById('edit-doc-id')?.value : null;
-                    clearDraft(formId, docId);
-                    form.reset();
-                });
-            }
             
             form.addEventListener('submit', () => {
                 const docId = formId === 'editDocumentForm' ? document.getElementById('edit-doc-id')?.value : null;
@@ -287,12 +278,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 4. Close Buttons Logic
-    // Handles any button with class 'close-modal' or 'btn-discard' inside any modal
     document.addEventListener('click', (e) => {
-        if (e.target.classList.contains('close-modal') ||
-            e.target.classList.contains('btn-discard') ||
-            e.target.id === 'discardBtn' ||
-            e.target.id === 'closeModal') {
+        const closeBtn = e.target.closest('.close-modal, .btn-discard, #discardBtn, #closeModal');
+        
+        if (closeBtn) {
+            // Prevent "Back to Edit" or "Clear Data" from triggering a full close
+            if (closeBtn.id === 'backToEditBtn' || closeBtn.innerText.includes('Clear Data')) return;
+
+            // SMART CONFIRMATION LOGIC FOR UPLOADS
+            const parentModal = closeBtn.closest('.modal-overlay');
+            if (parentModal && (parentModal.id === 'uploadNewModal' || parentModal.id === 'uploadExistingModal')) {
+                
+                const form = parentModal.querySelector('form');
+                let isDirty = false;
+                
+                if (form) {
+                    const inputs = form.querySelectorAll('input[type="text"], input[type="date"], input[type="file"]');
+                    inputs.forEach(input => {
+                        if (input.value && input.value.trim() !== '') isDirty = true;
+                    });
+                    
+                    const selects = form.querySelectorAll('select');
+                    selects.forEach(select => {
+                        if (select.value && select.value !== '') isDirty = true;
+                    });
+                }
+
+                // If they have data, ask for confirmation!
+                if (isDirty) {
+                    // FIXED: Updated the warning message since data is no longer erased!
+                    if (!confirm("Are you sure you want to close? Your inputs will be kept here in the background.")) {
+                        return; // Cancel the close action
+                    }
+                }
+                
+                // FIXED: Completely removed form.reset() and clearDraft() so the data stays!
+                
+            } else if (parentModal && parentModal.id === 'editModal') {
+                // FIXED: Removed form.reset() and clearDraft() here too!
+            }
+
             closeAllOverlays();
         }
     });
@@ -444,8 +469,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 6. Global Click Listener (Close when clicking outside)
     window.addEventListener('click', (event) => {
-        // Close modal if clicking the background overlay
+        // Close modal if clicking the dark background overlay
         if (event.target.classList.contains('modal-overlay')) {
+            
+            // SMART CONFIRMATION LOGIC FOR BACKGROUND CLICKS
+            if (event.target.id === 'uploadNewModal' || event.target.id === 'uploadExistingModal') {
+                const form = event.target.querySelector('form');
+                let isDirty = false;
+                
+                if (form) {
+                    const inputs = form.querySelectorAll('input[type="text"], input[type="date"], input[type="file"]');
+                    inputs.forEach(input => {
+                        if (input.value && input.value.trim() !== '') isDirty = true;
+                    });
+                    
+                    const selects = form.querySelectorAll('select');
+                    selects.forEach(select => {
+                        if (select.value && select.value !== '') isDirty = true;
+                    });
+                }
+
+                if (isDirty) {
+                    // FIXED: Updated the warning message since data is no longer erased!
+                    if (!confirm("Are you sure you want to close? Your inputs will be kept here in the background.")) {
+                        return; // Cancel the close action
+                    }
+                }
+                
+                // FIXED: Completely removed form.reset() and clearDraft() so the data stays!
+                
+            } else if (event.target.id === 'editModal') {
+                // FIXED: Removed form.reset() and clearDraft() here too!
+            }
+            
             closeAllOverlays();
         }
 

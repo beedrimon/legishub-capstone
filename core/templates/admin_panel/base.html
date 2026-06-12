@@ -313,6 +313,7 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn-discard">Discard</button>
+                    <button type="button" class="btn-discard" onclick="event.stopPropagation(); document.getElementById('uploadNewForm').reset();">Clear Data</button>
                     <button type="button" class="btn-add btn-review-upload">Review Details</button>
                 </div>
             </form>
@@ -413,6 +414,7 @@
 
                 <div class="modal-footer">
                     <button type="button" class="btn-discard">Discard</button>
+                    <button type="button" class="btn-discard" onclick="event.stopPropagation(); document.getElementById('uploadExistingForm').reset();">Clear Data</button>
                     <button type="button" class="btn-add btn-review-upload">Review Details</button>
                 </div>
             </form>
