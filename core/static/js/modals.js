@@ -467,6 +467,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 5.6 Profile Dropdown Logic
+    const profileBtn = document.getElementById('profileDropdownBtn');
+    const profileDropdownContent = document.getElementById('profileDropdown');
+
+    if (profileBtn && profileDropdownContent) {
+        profileBtn.addEventListener('click', (e) => {
+            // Only toggle if we didn't click a link inside the dropdown
+            if (e.target.closest('a')) {
+                return;
+            }
+            e.preventDefault();
+            e.stopPropagation();
+            profileBtn.classList.toggle('show');
+        });
+    }
+
     // 6. Global Click Listener (Close when clicking outside)
     window.addEventListener('click', (event) => {
         // Close modal if clicking the dark background overlay
@@ -515,6 +531,11 @@ document.addEventListener('DOMContentLoaded', () => {
             !notifDropdown.contains(event.target) &&
             bell && !bell.contains(event.target)) {
             notifDropdown.style.display = 'none';
+        }
+        
+        // Close profile dropdown if clicking outside
+        if (profileBtn && !profileBtn.contains(event.target)) {
+            profileBtn.classList.remove('show');
         }
     });
 

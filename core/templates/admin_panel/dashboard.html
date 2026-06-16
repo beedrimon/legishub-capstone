@@ -28,8 +28,13 @@
                 <a href="{% url 'help_center' %}" class="help-link">
                     <i class="fa-regular fa-circle-question" title="Help"></i>
                 </a>
-                <div class="profile">
+                <div class="profile" id="profileDropdownBtn">
                     <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
+                    <div class="profile-dropdown-content" id="profileDropdown">
+                        <a href="{% url 'general_info' %}"><i class="fa-solid fa-user"></i> My Profile</a>
+                        <a href="{% url 'security_policy' %}"><i class="fa-solid fa-lock"></i> Security & Password</a>
+                        <a href="{% url 'logout' %}" style="color: #dc3545;"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+                    </div>
                 </div>
             </div>
 {% endblock %}
