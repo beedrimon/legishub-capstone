@@ -178,6 +178,8 @@ if USE_S3:
     AWS_STORAGE_BUCKET_NAME = os.getenv('SUPABASE_BUCKET_NAME', 'legishub-media')
     AWS_S3_ENDPOINT_URL = os.getenv('SUPABASE_S3_ENDPOINT_URL')
     AWS_S3_REGION_NAME = os.getenv('SUPABASE_REGION_NAME', 'ap-southeast-1')
+    AWS_S3_SIGNATURE_VERSION = 's3v4'
+    AWS_S3_ADDRESSING_STYLE = 'path'
     AWS_S3_FILE_OVERWRITE = False
 else:
     MEDIA_URL = '/media/'
