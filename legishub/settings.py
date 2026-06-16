@@ -22,9 +22,11 @@ load_dotenv(BASE_DIR / '.env')
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'fallback-dev-key')
+SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'legishub.marikina.gov.ph,localhost,127.0.0.1,192.168.0.173').split(',')
+if not DEBUG and not SECRET_KEY:
+    raise ValueError("The SECRET_KEY environment variable must be set in production.")
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', 'legishub.marikina.gov.ph,localhost,127.0.0.1,192.168.0.173').split(',')]
 
 
 # Application definition
@@ -42,7 +44,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    # 'whitenoise.middleware.WhiteNoiseMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -75,19 +77,26 @@ WSGI_APPLICATION = 'legishub.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
-        # 'OPTIONS': {
-        #     'sslmode': os.getenv('DB_SSLMODE', 'require'),
-        # },
+DB_NAME = os.getenv('DB_NAME')
+
+if DB_NAME:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': DB_NAME,
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Password validations
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -134,13 +143,27 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 
 # ==========================================
+# PRODUCTION SECURITY SETTINGS
+# ==========================================
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    
+    # REQUIRED FOR DJANGO 4.0+ OVER HTTPS TO ALLOW LOGINS/POST REQUESTS
+    CSRF_TRUSTED_ORIGINS = [f"https://{host.strip()}" for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host.strip()]
+
+# ==========================================
 # FILE STORAGE (SUPABASE S3 COMPATIBLE)
 # ==========================================
 USE_S3 = os.getenv('USE_S3', 'False') == 'True'
 
 if USE_S3:
     # Use Supabase Storage via django-storages (boto3)
-    STORAGES = {"default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}, "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}}
+    STORAGES = {
+        "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"}, 
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"}
+    }
     AWS_ACCESS_KEY_ID = os.getenv('SUPABASE_ACCESS_KEY_ID')
     AWS_SECRET_ACCESS_KEY = os.getenv('SUPABASE_SECRET_ACCESS_KEY')
     AWS_STORAGE_BUCKET_NAME = os.getenv('SUPABASE_BUCKET_NAME', 'legishub-media')
@@ -150,6 +173,10 @@ if USE_S3:
 else:
     MEDIA_URL = '/media/'
     MEDIA_ROOT = BASE_DIR / 'media'
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"}
+    }
 
 # ==========================================
 # IFRAME SECURITY (ALLOW PDF PREVIEWS)

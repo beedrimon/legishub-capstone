@@ -216,7 +216,6 @@
             </div>
 
             <div class="settings-footer">
-                <button type="button" class="discard-link" onclick="resetForm()">Discard Changes</button>
                 <button type="button" class="btn-apply" onclick="showChangeSummary()">Save Changes</button>
             </div>
         </form>
@@ -445,12 +444,6 @@ function submitForm() {
     
     closeSummaryModal();
     form.submit();
-}
-
-function resetForm() {
-    if (confirm('Discard all unsaved changes?')) {
-        location.reload();
-    }
 }
 
 // ==========================================

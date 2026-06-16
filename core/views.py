@@ -100,13 +100,16 @@ def login_view(request):
                 auto_sync_enabled = SystemSetting.get('auto_sync_on_login', True)
                 if auto_sync_enabled:
                     try:
-                        from threading import Thread
-                        def sync_in_background():
-                            perform_sync(user=user, sync_type='auto')
-                        Thread(target=sync_in_background).start()
-                        print(f"Auto-sync triggered for admin: {user.username}")
+                        # Use Django-Q to offload the sync task to a background worker
+                        async_task(
+                            'core.views.perform_sync',
+                            user=user,
+                            sync_type='auto',
+                            task_name=f"Auto-Sync for {user.username}"
+                        )
+                        print(f"Auto-sync task queued for admin: {user.username}")
                     except Exception as e:
-                        print(f"Auto-sync error: {e}")
+                        print(f"Auto-sync queuing error: {e}")
             
             if user.is_superuser:
                 return redirect('dashboard')
