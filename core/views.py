@@ -752,6 +752,13 @@ def create_user_view(request):
                 user.is_staff = False
 
             user.save()
+
+            AuditLog.objects.create(
+                user=request.user,
+                action='Edit',
+                details=f"Created new user account: '{username}'."
+            )
+
             messages.success(request, f"User '{username}' successfully created!")
 
         except Exception as e:
@@ -810,6 +817,12 @@ def edit_user_view(request):
 
             target_user.save()
             
+            AuditLog.objects.create(
+                user=request.user,
+                action='Edit',
+                details=f"Updated user account details for '{username}'."
+            )
+
             messages.success(request, f"Account for '{username}' successfully updated!")
         except User.DoesNotExist:
             messages.error(request, "Error: User not found.")
@@ -830,6 +843,13 @@ def delete_user_view(request, user_id):
             else:
                 username = user_to_delete.username
                 user_to_delete.delete()
+
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='Delete',
+                    details=f"Deleted user account '{username}'."
+                )
+
                 messages.success(request, f"User '{username}' successfully deleted.")
         except User.DoesNotExist:
             messages.error(request, "Error: User not found.")
@@ -859,6 +879,13 @@ def toggle_permission_view(request, user_id, perm_type):
                 target_user.is_staff = not target_user.is_staff
                 
             target_user.save()
+
+            AuditLog.objects.create(
+                user=request.user,
+                action='Edit',
+                details=f"Toggled '{perm_type}' permission for user '{target_user.username}'."
+            )
+
             messages.success(request, f"Permissions updated successfully for '{target_user.username}'.")
         except User.DoesNotExist:
             messages.error(request, "Error: User not found.")
