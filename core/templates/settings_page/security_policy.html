@@ -27,9 +27,11 @@
         <a href="{% url 'general_info' %}" class="settings-nav-item">
             <i class="fa-solid fa-building"></i> General Info
         </a>
+        {% if request.user.is_superuser %}
         <a href="{% url 'backup_cloud' %}" class="settings-nav-item">
             <i class="fa-solid fa-cloud-arrow-up"></i> Backup & Cloud
         </a>
+        {% endif %}
         <a href="{% url 'security_policy' %}" class="settings-nav-item active">
             <i class="fa-solid fa-shield-halved"></i> Security Policy
         </a>
@@ -70,6 +72,7 @@
 
             <hr class="section-divider">
 
+            {% if request.user.is_superuser %}
             <!-- ========================================== -->
             <!-- SECTION 2: SESSION TIMEOUT -->
             <!-- ========================================== -->
@@ -214,6 +217,7 @@
                     </tbody>
                 </table>
             </div>
+            {% endif %}
 
             <div class="settings-footer">
                 <button type="button" class="btn-apply" onclick="showChangeSummary()">Save Changes</button>
