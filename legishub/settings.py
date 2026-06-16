@@ -26,8 +26,15 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 if not DEBUG and not SECRET_KEY:
     raise ValueError("The SECRET_KEY environment variable must be set in production.")
-ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', 'legishub.marikina.gov.ph,localhost,127.0.0.1,192.168.0.173').split(',')]
 
+# Safely parse Allowed Hosts
+allowed_hosts_env = os.getenv('ALLOWED_HOSTS', 'legishub.marikina.gov.ph,localhost,127.0.0.1,192.168.0.173')
+ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',') if host.strip()]
+
+# Automatically allow the Render deployment URL
+RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 # Application definition
 
@@ -146,12 +153,14 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 # PRODUCTION SECURITY SETTINGS
 # ==========================================
 if not DEBUG:
+    # Tells Django it is running behind a secure proxy (Render) so CSRF cookies work
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     
     # REQUIRED FOR DJANGO 4.0+ OVER HTTPS TO ALLOW LOGINS/POST REQUESTS
-    CSRF_TRUSTED_ORIGINS = [f"https://{host.strip()}" for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host.strip()]
+    CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in ALLOWED_HOSTS if host not in ['localhost', '127.0.0.1']]
 
 # ==========================================
 # FILE STORAGE (SUPABASE S3 COMPATIBLE)
