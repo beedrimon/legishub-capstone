@@ -209,7 +209,7 @@
                 <div class="form-group">
                     <label>PASSWORD</label>
                     <div style="position: relative;">
-                        <input type="password" id="create-password" name="password" required minlength="8" style="padding-right: 40px; width: 100%; box-sizing: border-box;">
+                        <input type="password" id="create-password" name="password" required minlength="8" pattern="(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[^A-Za-z0-9]).{8,}" title="Must contain at least 8 characters, one uppercase, one lowercase, one number, and one special character" style="padding-right: 40px; width: 100%; box-sizing: border-box;">
                         <i class="fa-regular fa-eye" id="toggleCreatePassword" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #888;"></i>
                     </div>
                     <div id="password-validation-feedback" style="font-size: 0.75rem; line-height: 1.4; margin-top: 6px; display: flex; flex-direction: column; gap: 2px;">
