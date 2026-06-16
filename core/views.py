@@ -1274,10 +1274,6 @@ def backup_cloud_view(request):
 #SECURITY POLICY VIEW
 @login_required(login_url='login')
 def security_policy_view(request):
-    if not request.user.is_superuser:
-        messages.error(request, 'Access denied. Admin privileges required.')
-        return redirect('documents')
-    
     # Initialize security settings
     retention_days = request.session.get('audit_retention_days', 3650)
     session_timeout = request.session.get('session_timeout', 30)
@@ -1286,6 +1282,10 @@ def security_policy_view(request):
     if request.method == 'POST':
         # Handle audit log purge
         if 'run_purge' in request.POST:
+            if not request.user.is_superuser:
+                messages.error(request, 'Access denied. Admin privileges required.')
+                return redirect('security_policy')
+
             confirm_text = request.POST.get('confirm_purge', '')
             if confirm_text == 'PURGE':
                 # retention_days could be float (0.00694 for 10 minutes)
@@ -1364,6 +1364,10 @@ def security_policy_view(request):
         else:
             # Check if this is a policy update (has update_policy field)
             if 'update_policy' in request.POST:
+                if not request.user.is_superuser:
+                    messages.error(request, 'Access denied. Admin privileges required.')
+                    return redirect('security_policy')
+
                 # Handle security policy updates
                 session_timeout_value = request.POST.get('session_timeout', 30)
                 retention_days_value = request.POST.get('retention_days', 3650)
