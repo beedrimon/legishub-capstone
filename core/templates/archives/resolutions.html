@@ -9,40 +9,40 @@
 
 {% block main_content %}
 <header class="top-header">
-            <form class="search-bar" method="GET" action="{% url 'resolutions' %}">
-                <i class="fa-solid fa-magnifying-glass"></i>
-                <input type="text" name="q" value="{{ search_query }}" placeholder="Search Archived Documents by Title, ID, or Keywords...">
-                <button type="submit" style="display: none;"></button>
-            </form>
-            <div class="header-actions">
-                    {% if not is_legislator %}
-                    <div class="upload-dropdown">
-                        <button type="button" class="btn-upload btn-upload-dropdown"><i class="fa-solid fa-plus"></i> Upload Document</button>
-                        <div class="upload-dropdown-content">
-                            <button type="button" class="trigger-upload-new">New Document Proposal</button>
-                            <button type="button" class="trigger-upload-existing">Existing Document</button>
-                        </div>
-                    </div>
-                    {% endif %}
-                    <div class="notification-wrapper">
-                        <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer; font-size: 1.2rem;"></i>
-                        <span class="notif-badge"></span>
-                    </div>
-                    <i class="fa-regular fa-circle-question" title="Help"></i>
-                    <div class="profile">
-                        <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
-                    </div>
-                </div>
-            </header>
+    <form class="search-bar" method="GET" action="{% url 'resolutions' %}">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" name="q" value="{{ search_query }}" placeholder="Search Archived Documents by Title, ID, or Keywords...">
+        <button type="submit" style="display: none;"></button>
+    </form>
+    <div class="header-actions">
+        {% if not is_legislator %}
+        <div class="upload-dropdown">
+            <button type="button" class="btn-upload btn-upload-dropdown"><i class="fa-solid fa-plus"></i> Upload Document</button>
+            <div class="upload-dropdown-content">
+                <button type="button" class="trigger-upload-new">New Document Proposal</button>
+                <button type="button" class="trigger-upload-existing">Existing Document</button>
+            </div>
+        </div>
+        {% endif %}
+        <div class="notification-wrapper">
+            <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer; font-size: 1.2rem;"></i>
+            <span class="notif-badge"></span>
+        </div>
+        <i class="fa-regular fa-circle-question" title="Help"></i>
+        <div class="profile">
+            <i class="fa-regular fa-circle-user"></i> {{ request.user.username|default:"Name" }}
+        </div>
+    </div>
+</header>
 
-    <div class="dashboard-body">
-            <div class="dashboard-header">
-            <div class="header-text">
-                    <h1>Digital Archives</h1>
-                    <p>Access and manage all archived legislative documents</p>
-            </div>
-            </div>
-    
+<div class="dashboard-body">
+    <div class="dashboard-header">
+        <div class="header-text">
+            <h1>Digital Archives</h1>
+            <p>Access and manage all archived legislative documents</p>
+        </div>
+    </div>
+
     <nav class="breadcrumb">
         <a href="{% url 'documents' %}">Repository /</a>
         <a href="{% url 'archive' %}">Archive /</a> 
@@ -59,13 +59,11 @@
         {% endif %}
     </nav>
 
-        <div class="folder-section">
+    <div class="folder-section">
         <a href="{% if selected_year %}{% url 'resolutions' %}?range={{ selected_range }}{% elif selected_range %}{% url 'resolutions' %}{% else %}{% url 'archive' %}{% endif %}" class="folder-card back-card">
             <i class="fa-solid fa-arrow-left"></i>
             <span>BACK</span>
         </a>
-
-        
 
         {% if not selected_range and not selected_year %}
             {% for range in decade_ranges %}
@@ -83,7 +81,6 @@
                 </a>
             {% endfor %}
         {% endif %}
-        
     </div>
 
     <div class="archive-view-container">
@@ -111,9 +108,20 @@
                         <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
                         <td class="action-icons">
                             <i class="fa-regular fa-eye trigger-view" 
-                               data-number="{{ doc.archive_id }}"
-                               data-title="{{ doc.title }}"
-                               style="cursor: pointer;"></i>
+                            data-number="{{ doc.archive_id }}"
+                            data-title="{{ doc.title }}"
+                            data-type="{{ doc.doc_type }}"
+                            data-year="{{ doc.year }}"
+                            data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
+                            data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
+                            data-keywords="{{ doc.keywords|default:'None' }}"
+                            data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
+                            data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
+                            data-status="Archived"
+                            data-visibility="{{ doc.visibility }}"
+                            data-storage="{{ doc.physical_storage|default:'Not specified' }}"
+                            {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}"{% endif %}
+                            style="cursor: pointer; color: #888;"></i>
                         </td>
                     </tr>
                     {% empty %}
@@ -127,3 +135,220 @@
     </div>
 </div>
 {% endblock %}
+
+<!-- ========================================== -->
+<!-- VIEW MODAL -->
+<!-- ========================================== -->
+{% block modals %}
+{{ block.super }}
+
+<div id="viewModal" class="modal-overlay">
+    <div class="modal-container detail-view-container">
+        <div class="modal-header">
+            <h2>ARCHIVED RECORD DETAILS</h2>
+            <button class="close-modal" onclick="closeModal('viewModal')">&times;</button>
+        </div>
+        <div class="modal-body detail-view-body">
+            <div class="meta-sidebar">
+                <div class="meta-group">
+                    <label>ARCHIVE ID</label>
+                    <p class="meta-val highlight" id="view-number"></p>
+                </div>
+                <div class="meta-group">
+                    <label>DOCUMENT TITLE / SUBJECT</label>
+                    <p class="meta-val" id="view-title"></p>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-group">
+                        <label>CATEGORY</label>
+                        <p class="meta-val" id="view-type"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>SERIES YEAR</label>
+                        <p class="meta-val" id="view-year"></p>
+                    </div>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-group">
+                        <label>ORIGINAL DATE FILED</label>
+                        <p class="meta-val" id="view-date"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>DATE ENACTED</label>
+                        <p class="meta-val" id="view-enacted"></p>
+                    </div>
+                </div>
+                <div class="meta-group">
+                    <label>PRIMARY AUTHOR / SPONSOR</label>
+                    <p class="meta-val" id="view-sponsor"></p>
+                </div>
+                <div class="meta-group">
+                    <label>CO-SPONSOR(S)</label>
+                    <p class="meta-val" id="view-cosponsors"></p>
+                </div>
+                <div class="meta-row">
+                    <div class="meta-group">
+                        <label>STATUS</label>
+                        <p class="meta-val" id="view-status"></p>
+                    </div>
+                    <div class="meta-group">
+                        <label>RETENTION POLICY</label>
+                        <p class="meta-val"><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></p>
+                    </div>
+                </div>
+                <div class="meta-group">
+                    <label>PHYSICAL STORAGE</label>
+                    <p class="meta-val" id="view-storage"></p>
+                </div>
+                <div class="meta-group">
+                    <label>KEYWORDS</label>
+                    <p class="meta-val abstract" id="view-keywords"></p>
+                </div>
+            </div>
+
+            <div class="pdf-preview-container"
+                style="padding: 0; background-color: #525659; border-radius: 0 8px 8px 0; overflow: hidden;">
+                <iframe id="view-pdf-iframe" src="" width="100%" height="100%"
+                    style="border: none; display: none; min-height: 600px;"></iframe>
+
+                <div id="view-pdf-missing"
+                    style="display: none; text-align: center; padding-top: 200px; color: #ccc;">
+                    <i class="fa-regular fa-file-pdf" style="font-size: 4rem; margin-bottom: 15px;"></i>
+                    <p>No PDF document attached to this record.</p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn-discard" onclick="closeModal('viewModal')">Close View</button>
+            <button type="button" class="btn-add" id="view-download-btn" style="display: none;">Download Archive PDF</button>
+        </div>
+    </div>
+</div>
+{% endblock modals %}
+
+<!-- ========================================== -->
+<!-- EXTRA JS -->
+<!-- ========================================== -->
+{% block extra_js %}
+<script>
+    // Close modal function
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    }
+
+    // ==========================================
+    // RESOLUTIONS VIEW HANDLER
+    // ==========================================
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Resolutions page loaded - View handler initializing...');
+        
+        // Handle view clicks
+        const viewButtons = document.querySelectorAll('.trigger-view');
+        console.log('View buttons found:', viewButtons.length);
+        
+        viewButtons.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log('View button clicked!');
+                
+                // Read data from the icon
+                const docNumber = this.getAttribute('data-number') || 'N/A';
+                const docTitle = this.getAttribute('data-title') || 'N/A';
+                const docType = this.getAttribute('data-type') || 'Resolution';
+                const docYear = this.getAttribute('data-year') || 'N/A';
+                const docDate = this.getAttribute('data-date') || 'N/A';
+                const docSponsor = this.getAttribute('data-sponsor') || 'N/A';
+                const docKeywords = this.getAttribute('data-keywords') || 'N/A';
+                const docEnacted = this.getAttribute('data-enacted') || 'N/A';
+                const docCosponsors = this.getAttribute('data-cosponsors') || 'N/A';
+                const docStatus = this.getAttribute('data-status') || 'Archived';
+                const docStorage = this.getAttribute('data-storage') || 'N/A';
+                const fileUrl = this.getAttribute('data-file') || '';
+                
+                // Get modal
+                const modal = document.getElementById('viewModal');
+                if (!modal) {
+                    console.error('View modal not found!');
+                    alert('View modal not found!');
+                    return;
+                }
+                
+                // Populate fields
+                const fields = {
+                    'view-number': docNumber,
+                    'view-title': docTitle,
+                    'view-type': docType,
+                    'view-year': docYear,
+                    'view-date': docDate,
+                    'view-sponsor': docSponsor,
+                    'view-keywords': docKeywords,
+                    'view-enacted': docEnacted,
+                    'view-cosponsors': docCosponsors,
+                    'view-storage': docStorage
+                };
+                
+                Object.keys(fields).forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) {
+                        el.textContent = fields[id];
+                    }
+                });
+                
+                // Status
+                const statusEl = document.getElementById('view-status');
+                if (statusEl) {
+                    statusEl.innerHTML = `<span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">${docStatus}</span>`;
+                }
+                
+                // Handle PDF
+                const pdfIframe = document.getElementById('view-pdf-iframe');
+                const pdfMissing = document.getElementById('view-pdf-missing');
+                const downloadBtn = document.getElementById('view-download-btn');
+                
+                if (fileUrl && fileUrl !== 'None' && fileUrl !== 'null' && fileUrl.trim() !== '') {
+                    pdfIframe.src = fileUrl + '#view=FitH';
+                    pdfIframe.style.display = 'block';
+                    pdfMissing.style.display = 'none';
+                    downloadBtn.style.display = 'inline-block';
+                    downloadBtn.onclick = function() {
+                        window.open(fileUrl, '_blank');
+                    };
+                } else {
+                    pdfIframe.src = '';
+                    pdfIframe.style.display = 'none';
+                    pdfMissing.style.display = 'block';
+                    downloadBtn.style.display = 'none';
+                }
+                
+                // Show modal
+                modal.style.display = 'flex';
+                console.log('Modal opened for:', docNumber);
+            });
+        });
+        
+        // Close modal when clicking outside
+        document.querySelectorAll('.modal-overlay').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+        });
+        
+        // Close modal with close buttons
+        document.querySelectorAll('.close-modal, .btn-discard, .modal-close-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const modal = this.closest('.modal-overlay');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    });
+</script>
+{% endblock extra_js %}

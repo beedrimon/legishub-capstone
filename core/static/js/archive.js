@@ -218,3 +218,102 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 console.log("archive.js loaded");
+
+// ==========================================
+// ARCHIVE VIEW MODAL HANDLER
+// ==========================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle view clicks for archived documents
+    const viewButtons = document.querySelectorAll('.trigger-view');
+    
+    viewButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Read data from the icon
+            const docNumber = this.getAttribute('data-number');
+            const docTitle = this.getAttribute('data-title');
+            const docType = this.getAttribute('data-type');
+            const docYear = this.getAttribute('data-year');
+            const docDate = this.getAttribute('data-date');
+            const docSponsor = this.getAttribute('data-sponsor');
+            const docKeywords = this.getAttribute('data-keywords');
+            const docEnacted = this.getAttribute('data-enacted');
+            const docCosponsors = this.getAttribute('data-cosponsors');
+            const docStatus = this.getAttribute('data-status');
+            const docVisibility = this.getAttribute('data-visibility');
+            const docStorage = this.getAttribute('data-storage');
+            const fileUrl = this.getAttribute('data-file');
+            
+            // Get modal elements
+            const modal = document.getElementById('viewModal');
+            if (!modal) {
+                console.error('View modal not found!');
+                return;
+            }
+            
+            // Populate modal fields
+            const numberEl = document.getElementById('view-number');
+            const titleEl = document.getElementById('view-title');
+            const typeEl = document.getElementById('view-type');
+            const yearEl = document.getElementById('view-year');
+            const dateEl = document.getElementById('view-date');
+            const sponsorEl = document.getElementById('view-sponsor');
+            const keywordsEl = document.getElementById('view-keywords');
+            const enactedEl = document.getElementById('view-enacted');
+            const cosponsorsEl = document.getElementById('view-cosponsors');
+            const statusEl = document.getElementById('view-status');
+            const storageEl = document.getElementById('view-storage');
+            
+            if (numberEl) numberEl.textContent = docNumber || 'N/A';
+            if (titleEl) titleEl.textContent = docTitle || 'N/A';
+            if (typeEl) typeEl.textContent = docType || 'N/A';
+            if (yearEl) yearEl.textContent = docYear || 'N/A';
+            if (dateEl) dateEl.textContent = docDate || 'N/A';
+            if (sponsorEl) sponsorEl.textContent = docSponsor || 'N/A';
+            if (keywordsEl) keywordsEl.textContent = docKeywords || 'N/A';
+            if (enactedEl) enactedEl.textContent = docEnacted || 'N/A';
+            if (cosponsorsEl) cosponsorsEl.textContent = docCosponsors || 'N/A';
+            if (statusEl) statusEl.innerHTML = `<span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">${docStatus || 'Archived'}</span>`;
+            if (storageEl) storageEl.textContent = docStorage || 'N/A';
+            
+            // Handle PDF preview
+            const pdfIframe = document.getElementById('view-pdf-iframe');
+            const pdfMissing = document.getElementById('view-pdf-missing');
+            const downloadBtn = document.getElementById('view-download-btn');
+            
+            if (fileUrl && fileUrl !== 'None' && fileUrl !== 'null' && fileUrl.trim() !== '') {
+                if (pdfIframe) {
+                    pdfIframe.src = fileUrl + '#view=FitH';
+                    pdfIframe.style.display = 'block';
+                }
+                if (pdfMissing) pdfMissing.style.display = 'none';
+                if (downloadBtn) {
+                    downloadBtn.style.display = 'inline-block';
+                    downloadBtn.onclick = function() {
+                        window.open(fileUrl, '_blank');
+                    };
+                }
+            } else {
+                if (pdfIframe) {
+                    pdfIframe.src = '';
+                    pdfIframe.style.display = 'none';
+                }
+                if (pdfMissing) pdfMissing.style.display = 'block';
+                if (downloadBtn) downloadBtn.style.display = 'none';
+            }
+            
+            // Show the modal
+            modal.style.display = 'flex';
+        });
+    });
+    
+    // Close modal function
+    window.closeModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
+            modal.style.display = 'none';
+        }
+    };
+});
