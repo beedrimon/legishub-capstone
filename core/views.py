@@ -1758,70 +1758,91 @@ def upload_document(request):
 
     if request.method == 'POST':
         # 1. Grab all text data from the HTML form
-        title = request.POST.get('title')
-        document_number = request.POST.get('document_number')
-        status = request.POST.get('status', '1st Reading') # Default to '1st Reading' if not provided
-        doc_type = request.POST.get('doc_type')
-        year = request.POST.get('year')
+        title = request.POST.get('title', '').strip()
+        document_number = request.POST.get('document_number', '').strip()
+        status = request.POST.get('status', '1st reading') # Default to '1st reading' if not provided
+        doc_type = request.POST.get('doc_type', '').strip()
+        
+        year_str = request.POST.get('year', '')
+        try:
+            year = int(year_str)
+        except ValueError:
+            messages.error(request, 'Upload failed: A valid year is required.')
+            return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+            
         date_enacted = request.POST.get('date_enacted')
-        sponsor = request.POST.get('sponsor')
-        co_sponsors = request.POST.get('co_sponsors')
-        visibility = request.POST.get('visibility')
-        keywords = request.POST.get('keywords')
-        physical_storage = request.POST.get('physical_storage')
+        sponsor = request.POST.get('sponsor', '').strip()
+        co_sponsors = request.POST.get('co_sponsors', '').strip()
+        visibility = request.POST.get('visibility', 'Public Access')
+        keywords = request.POST.get('keywords', '').strip()
+        physical_storage = request.POST.get('physical_storage', '').strip()
         file_attachment = request.FILES.get('file_attachment')
 
-        if LegislativeDocument.objects.filter(document_number=document_number).exists() or \
-           ArchivedDocument.objects.filter(original_document_number=document_number).exists():
+        if not document_number:
+            messages.error(request, 'Upload failed: Document Number is required.')
+            return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+
+        if LegislativeDocument.objects.filter(document_number__iexact=document_number).exists() or \
+           ArchivedDocument.objects.filter(original_document_number__iexact=document_number).exists() or \
+           VetoedDocument.objects.filter(document_number__iexact=document_number).exists():
             messages.error(request, f'Upload failed: The Number "{document_number}" is already in use!')
             return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
         
-        if status == 'Archived':
-            ArchivedDocument.objects.create(
-                archive_id=f"ARC-{document_number}",
-                original_document_number=document_number,
-                title=title,
-                doc_type=doc_type,
-                year=year,
-                date_enacted=date_enacted if date_enacted else None,
-                sponsor=sponsor,
-                co_sponsors=co_sponsors,
-                visibility=visibility,
-                keywords=keywords,
-                physical_storage=physical_storage,
-                file_attachment=file_attachment,
-                original_date_filed=timezone.now().date(), 
-                archived_by=request.user
-            )
-            messages.success(request, f'Document {document_number} uploaded directly to Archives.')
-            return redirect('archive')
+        try:
+            if status == 'Archived':
+                ArchivedDocument.objects.create(
+                    archive_id=f"ARC-{document_number}",
+                    original_document_number=document_number,
+                    title=title,
+                    doc_type=doc_type,
+                    year=year,
+                    date_enacted=date_enacted if date_enacted else None,
+                    sponsor=sponsor,
+                    co_sponsors=co_sponsors,
+                    visibility=visibility,
+                    keywords=keywords,
+                    physical_storage=physical_storage,
+                    file_attachment=file_attachment,
+                    original_date_filed=timezone.now().date(), 
+                    archived_by=request.user
+                )
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='Upload',
+                    details=f"Uploaded '{document_number}' directly to Archives."
+                )
+                messages.success(request, f'Document {document_number} uploaded directly to Archives.')
+                return redirect('archive')
 
-        # 3. Save the document to the database
-        else:
-            new_doc = LegislativeDocument.objects.create(
-            title=title,
-            document_number=document_number,
-            doc_type=doc_type,
-            year=year,                
-            date_enacted=date_enacted if date_enacted else None, 
-            sponsor=sponsor,
-            co_sponsors=co_sponsors,
-            visibility=visibility,
-            keywords=keywords,
-            physical_storage=physical_storage,
-            file_attachment=file_attachment,
-            uploaded_by=request.user,
-            status=status
-        )
+            # 3. Save the document to the database
+            else:
+                new_doc = LegislativeDocument.objects.create(
+                    title=title,
+                    document_number=document_number,
+                    doc_type=doc_type,
+                    year=year,                
+                    date_enacted=date_enacted if date_enacted else None, 
+                    sponsor=sponsor,
+                    co_sponsors=co_sponsors,
+                    visibility=visibility,
+                    keywords=keywords,
+                    physical_storage=physical_storage,
+                    file_attachment=file_attachment,
+                    uploaded_by=request.user,
+                    status=status
+                )
 
-        # 4. Save an Audit Log entry
-        AuditLog.objects.create(
-            user=request.user,
-            action='Upload',
-            document=new_doc
-        )
+                # 4. Save an Audit Log entry
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='Upload',
+                    document=new_doc,
+                    details=f"Uploaded new document '{document_number}'"
+                )
 
-        messages.success(request, 'Document successfully uploaded!')
+                messages.success(request, 'Document successfully uploaded!')
+        except Exception as e:
+            messages.error(request, f"Upload failed: {str(e)}")
         
     return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
 
