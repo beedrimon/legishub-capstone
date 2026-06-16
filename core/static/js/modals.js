@@ -674,6 +674,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const docVisibility = this.getAttribute('data-visibility');
             const docStorage = this.getAttribute('data-storage');
             const fileName = this.getAttribute('data-file');
+            const vetoReason = this.getAttribute('data-vetoreason');
 
             // 2. Inject data into the Edit form inputs
             document.getElementById('edit-doc-id').value = docId;
@@ -909,6 +910,82 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
     });
+
+    // ==========================================
+    // GLOBAL SEARCH AUTOCOMPLETE
+    // ==========================================
+    const globalSearchInput = document.querySelector('.search-bar input');
+    const searchContainer = document.querySelector('.search-bar');
+    
+    if (globalSearchInput && searchContainer) {
+        searchContainer.classList.add('search-container');
+        
+        const searchDropdown = document.createElement('div');
+        searchDropdown.className = 'search-dropdown';
+        searchContainer.appendChild(searchDropdown);
+        
+        let searchTimeout = null;
+        
+        globalSearchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            clearTimeout(searchTimeout);
+            
+            if (query.length < 2) {
+                searchDropdown.classList.remove('show');
+                return;
+            }
+            
+            searchTimeout = setTimeout(() => {
+                fetch(`/api/global-search/?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        searchDropdown.innerHTML = '';
+                        
+                        if (Object.keys(data.results).length === 0) {
+                            searchDropdown.innerHTML = `
+                                <div class="search-no-results">
+                                    <i class="fa-solid fa-magnifying-glass" style="font-size: 1.5rem; margin-bottom: 10px; opacity: 0.5;"></i><br>
+                                    No results found for "${query}"
+                                </div>
+                            `;
+                        } else {
+                            for (const [category, items] of Object.entries(data.results)) {
+                                const categoryHeader = document.createElement('div');
+                                categoryHeader.className = 'search-category';
+                                categoryHeader.textContent = category;
+                                searchDropdown.appendChild(categoryHeader);
+                                
+                                items.forEach(item => {
+                                    const itemEl = document.createElement('a');
+                                    itemEl.href = item.url;
+                                    itemEl.className = 'search-item';
+                                    itemEl.innerHTML = `
+                                        <div class="search-item-icon">
+                                            <i class="fa-solid ${item.icon}"></i>
+                                        </div>
+                                        <div class="search-item-text">
+                                            <div class="search-item-title">${item.title}</div>
+                                            <div class="search-item-subtitle">${item.subtitle}</div>
+                                        </div>
+                                    `;
+                                    searchDropdown.appendChild(itemEl);
+                                });
+                            }
+                        }
+                        
+                        searchDropdown.classList.add('show');
+                    })
+                    .catch(err => console.error('Search error:', err));
+            }, 300);
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (!searchContainer.contains(e.target)) {
+                searchDropdown.classList.remove('show');
+            }
+        });
+    }
 
     // ==========================================
     // PAGE TRANSITION SKELETON LOADER

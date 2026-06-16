@@ -164,6 +164,13 @@ def forgot_password_view(request):
 @login_required(login_url='login')
 def dashboard_view(request):
     
+    # Redirect search queries from Dashboard directly to Documents page
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        from django.utils.http import urlencode
+        query_string = urlencode({'q': search_query})
+        return redirect(f"/documents/?{query_string}")
+    
     # 1. CALCULATE REAL STATISTICS
     # Count how many of each document type exist in the Archive
     total_ordinances = ArchivedDocument.objects.filter(doc_type='Ordinance').count()
@@ -532,8 +539,18 @@ def vetoed_view(request):
     # --- CHANGED: Now pulls from the new dedicated VetoedDocument database ---
     vetoed_docs = VetoedDocument.objects.all().order_by('-date_vetoed')
     
+    search_query = request.GET.get('q', '').strip()
+    if search_query:
+        vetoed_docs = vetoed_docs.filter(
+            Q(title__icontains=search_query) | 
+            Q(document_number__icontains=search_query) |
+            Q(sponsor__icontains=search_query) |
+            Q(keywords__icontains=search_query)
+        )
+    
     return render(request, 'archives/vetoed.html', {
         'archives': vetoed_docs,
+        'search_query': search_query,
         'is_legislator': is_legislator(request.user)
     })
 
@@ -1644,6 +1661,87 @@ def test_email_api(request):
         return JsonResponse({'success': True, 'message': 'Test email sent successfully'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+
+# ===== API: GLOBAL SEARCH =====
+@login_required(login_url='login')
+def global_search_api(request):
+    query = request.GET.get('q', '').strip()
+    if len(query) < 2:
+        return JsonResponse({'results': {}})
+
+    results = {
+        'Documents': [],
+        'Archives': [],
+        'Vetoed': [],
+        'Users': [],
+    }
+
+    # 1. Search Active Documents
+    active_docs = LegislativeDocument.objects.filter(
+        Q(title__icontains=query) | 
+        Q(document_number__icontains=query) |
+        Q(sponsor__icontains=query)
+    ).exclude(status__iexact='Archived').exclude(status__iexact='Vetoed')[:5]
+    
+    for doc in active_docs:
+        results['Documents'].append({
+            'title': doc.title,
+            'subtitle': doc.document_number,
+            'url': f"/documents/?q={query}",
+            'icon': 'fa-file-invoice'
+        })
+
+    # 2. Search Archives
+    archived_docs = ArchivedDocument.objects.filter(
+        Q(title__icontains=query) | 
+        Q(archive_id__icontains=query) |
+        Q(original_document_number__icontains=query)
+    )[:5]
+    
+    for doc in archived_docs:
+        results['Archives'].append({
+            'title': doc.title,
+            'subtitle': doc.archive_id,
+            'url': f"/archive/?q={query}",
+            'icon': 'fa-box-archive'
+        })
+
+    # 3. Search Vetoed
+    vetoed_docs = VetoedDocument.objects.filter(
+        Q(title__icontains=query) | 
+        Q(document_number__icontains=query)
+    )[:5]
+    
+    for doc in vetoed_docs:
+        results['Vetoed'].append({
+            'title': doc.title,
+            'subtitle': doc.document_number,
+            'url': f"/vetoed/?q={query}",
+            'icon': 'fa-ban'
+        })
+
+    # 4. Search Users (Admin only)
+    if request.user.is_superuser:
+        users = User.objects.filter(
+            Q(username__icontains=query) |
+            Q(first_name__icontains=query) |
+            Q(last_name__icontains=query) |
+            Q(email__icontains=query)
+        )[:5]
+        
+        for u in users:
+            results['Users'].append({
+                'title': f"{u.first_name} {u.last_name}".strip() or u.username,
+                'subtitle': u.email,
+                'url': f"/user_management/?q={query}",
+                'icon': 'fa-user'
+            })
+
+    # Remove empty categories
+    results = {k: v for k, v in results.items() if v}
+
+    return JsonResponse({'results': results})
 
 
 # ==========================================
