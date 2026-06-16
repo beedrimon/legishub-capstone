@@ -107,22 +107,22 @@
                         <td>{{ doc.original_document_number }}</td> 
                         <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
                         <td class="action-icons">
-                        <i class="fa-regular fa-eye trigger-view" 
-                        data-number="{{ doc.archive_id }}"
-                        data-title="{{ doc.title }}"
-                        data-type="{{ doc.doc_type }}"
-                        data-year="{{ doc.year }}"
-                        data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
-                        data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
-                        data-keywords="{{ doc.keywords|default:'None' }}"
-                        data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
-                        data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
-                        data-status="Archived"
-                        data-visibility="{{ doc.visibility }}"
-                        data-storage="{{ doc.physical_storage|default:'Not specified' }}"
-                        {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}"{% endif %}
-                        style="cursor: pointer; color: #888;"></i>
-                    </td>
+                            <i class="fa-regular fa-eye trigger-view" 
+                            data-number="{{ doc.archive_id }}"
+                            data-title="{{ doc.title }}"
+                            data-type="{{ doc.doc_type }}"
+                            data-year="{{ doc.year }}"
+                            data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
+                            data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
+                            data-keywords="{{ doc.keywords|default:'None' }}"
+                            data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
+                            data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
+                            data-status="Archived"
+                            data-visibility="{{ doc.visibility }}"
+                            data-storage="{{ doc.physical_storage|default:'Not specified' }}"
+                            {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}"{% endif %}
+                            style="cursor: pointer; color: #888;"></i>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
