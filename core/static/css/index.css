@@ -17,7 +17,7 @@
         /* Left Panel (Background Image) */
         .left-panel {
             flex: 5.5;
-            /* Remove the background: url(...) line from here */
+            /* Remove the background URL line from here */
             background-repeat: no-repeat;
             background-position: center center;
             background-size: cover; 
