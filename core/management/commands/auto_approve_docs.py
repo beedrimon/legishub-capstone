@@ -4,6 +4,7 @@ from core.models import LegislativeDocument, AuditLog, ArchivedDocument, SystemS
 from django.contrib.auth.models import User # <-- NEW: Imports the User database
 from django.db import transaction
 from core.views import send_dynamic_email
+from django.core.mail import get_connection, EmailMessage
 import datetime
 
 class Command(BaseCommand):
@@ -44,6 +45,11 @@ class Command(BaseCommand):
         if not recipient_emails:
             recipient_emails = ['noreply.marikinalegishub@gmail.com']
 
+        # Open a single persistent connection to Gmail to avoid timeouts
+        email_connection = None
+        if settings.EMAIL_HOST_PASSWORD:
+            email_connection = get_connection()
+            email_connection.open()
 
         # 3. Process each overdue document
         for doc in overdue_docs:
@@ -100,11 +106,17 @@ class Command(BaseCommand):
                         f"Please review this document in the Archives page."
                     )
                     
-                    send_dynamic_email(subject, message, recipient_emails)
+                    if email_connection:
+                        # Send the email using the persistent connection
+                        email = EmailMessage(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_emails, connection=email_connection)
+                        email.send(fail_silently=True)
 
                     self.stdout.write(self.style.SUCCESS(f"Successfully auto-approved and archived: {doc_number}"))
             
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"Failed to process {doc.document_number}: {str(e)}"))
+
+        if email_connection:
+            email_connection.close()
 
         self.stdout.write(self.style.SUCCESS(f"Task Complete! {count} documents processed. Emails sent to: {', '.join(recipient_emails)}"))
