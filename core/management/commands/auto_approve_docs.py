@@ -47,9 +47,13 @@ class Command(BaseCommand):
 
         # Open a single persistent connection to Gmail to avoid timeouts
         email_connection = None
-        if settings.EMAIL_HOST_PASSWORD:
-            email_connection = get_connection()
-            email_connection.open()
+        try:
+            if settings.EMAIL_HOST_PASSWORD:
+                email_connection = get_connection()
+                email_connection.open()
+        except Exception as e:
+            self.stdout.write(self.style.ERROR(f"SMTP Connection Warning: {e}"))
+            # Proceed without the email connection; documents will still be successfully archived!
 
         # 3. Process each overdue document
         for doc in overdue_docs:
