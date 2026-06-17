@@ -219,6 +219,7 @@ Q_CLUSTER = {
     'workers': 1,           # Reduced to 1 for Render Free Tier RAM limits
     'recycle': 500,         # Restarts workers to prevent memory leaks
     'timeout': 300,         # Max seconds a task is allowed to run
+    'retry': 360,           # Must be greater than timeout so slow tasks aren't duplicated
     'compress': True,       # Compresses database logs to save space
     'save_limit': 250,      # Keeps the last 250 task logs in the database
     'queue_limit': 500,
