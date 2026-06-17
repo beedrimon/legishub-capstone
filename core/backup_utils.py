@@ -117,6 +117,7 @@ class SupabaseBackup:
             
             tables = ['auth_user', 'core_legislativedocument', 'core_archiveddocument', 'core_auditlog']
             total_synced = 0
+            missing_tables = []
             
             # Process each table
             for table in tables:
@@ -149,6 +150,7 @@ class SupabaseBackup:
                         if backup_cursor.fetchone()[0]:
                             backup_cursor.execute(sql.SQL("TRUNCATE TABLE {} CASCADE").format(sql.Identifier(table)))
                         else:
+                            missing_tables.append(table)
                             logger.warning(f"Destination table '{table}' does not exist in backup DB. Skipping sync. Please run migrations on the backup database.")
                             continue
                         
@@ -178,6 +180,9 @@ class SupabaseBackup:
                 except Exception as e:
                     print(f"Error syncing table {table}: {e}")
                     logger.error(f"Error syncing table {table}: {e}")
+            
+            if missing_tables:
+                raise Exception(f"Backup DB is missing tables: {', '.join(missing_tables)}. Please run 'python manage.py migrate' on the backup database first.")
             
             backup_conn.commit()
             

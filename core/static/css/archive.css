@@ -230,29 +230,13 @@
 
     .archive-view-container {
         border-radius: 10px;
-        overflow-x: auto;
+        /* Let main.css handle table responsiveness */
+        overflow-x: hidden;
     }
 
     .archive-view-header {
         padding: 12px 15px;
         font-size: 0.75rem;
-        white-space: nowrap;
-    }
-
-    .archive-table {
-        min-width: 600px;
-    }
-
-    .archive-table th {
-        padding: 10px 12px;
-        font-size: 0.6rem;
-        white-space: nowrap;
-    }
-
-    .archive-table td {
-        padding: 10px 12px;
-        font-size: 0.7rem;
-        white-space: nowrap;
     }
 
     .retention-pill {
