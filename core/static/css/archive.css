@@ -1,7 +1,7 @@
 /* Dashboard Layout & Spacing */
 .dashboard-body {
     padding: 20px 30px;
-    background-color: #fdfaf7; /* Matches the light cream background */
+    background-color: #fdfaf7;
 }
 
 /* Breadcrumb Styling */
@@ -12,6 +12,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .breadcrumb a {
@@ -24,7 +25,7 @@
     color: #432c0d;
 }
 
-/* Folder Section Grid - Forces 4-column layout */
+/* Folder Section Grid - Forces 5-column layout */
 .folder-section {
     display: grid;
     align-items: center;
@@ -153,6 +154,7 @@
     padding: 5px 12px;
     border-radius: 5px;
     text-transform: uppercase;
+    display: inline-block;
 }
 
 .permanent {
@@ -175,9 +177,148 @@
     margin: 0 3px;
     font-size: 0.9rem;
     transition: 0.2s;
+    display: inline-block;
+    text-decoration: none;
 }
 
 .action-icon:hover {
     background-color: #f5f5f5;
     color: #70562D;
 }
+
+/* ============================================================
+   RESPONSIVE STYLES ONLY (No color changes)
+   ============================================================ */
+
+/* Mobile (≤576px) */
+@media screen and (max-width: 576px) {
+    .dashboard-body {
+        padding: 12px 15px;
+    }
+
+    .breadcrumb {
+        font-size: 0.7rem;
+        gap: 5px;
+    }
+
+    .folder-section {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 10px !important;
+        margin-bottom: 20px;
+    }
+
+    .folder-card {
+        min-height: 70px;
+        padding: 8px;
+        border-radius: 8px;
+    }
+
+    .folder-card i {
+        font-size: 1.3rem;
+        margin-bottom: 4px;
+    }
+
+    .folder-card span {
+        font-size: 0.6rem;
+        letter-spacing: 0.3px;
+    }
+
+    .add-folder-btn {
+        width: 30px;
+        height: 30px;
+    }
+
+    .archive-view-container {
+        border-radius: 10px;
+        overflow-x: auto;
+    }
+
+    .archive-view-header {
+        padding: 12px 15px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+
+    .archive-table {
+        min-width: 600px;
+    }
+
+    .archive-table th {
+        padding: 10px 12px;
+        font-size: 0.6rem;
+        white-space: nowrap;
+    }
+
+    .archive-table td {
+        padding: 10px 12px;
+        font-size: 0.7rem;
+        white-space: nowrap;
+    }
+
+    .retention-pill {
+        font-size: 0.6rem;
+        padding: 3px 8px;
+    }
+
+    .action-icon {
+        padding: 6px;
+        font-size: 0.75rem;
+    }
+}
+
+/* Tablet (577px - 768px) */
+@media screen and (min-width: 577px) and (max-width: 768px) {
+    .dashboard-body {
+        padding: 15px 20px;
+    }
+
+    .folder-section {
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 15px !important;
+    }
+
+    .folder-card {
+        min-height: 85px;
+    }
+
+    .folder-card i {
+        font-size: 1.5rem;
+    }
+
+    .folder-card span {
+        font-size: 0.7rem;
+    }
+
+    .archive-view-container {
+        border-radius: 12px;
+        overflow-x: auto;
+    }
+
+    .archive-table {
+        min-width: 700px;
+    }
+
+    .archive-table th {
+        padding: 12px 16px;
+        font-size: 0.65rem;
+    }
+
+    .archive-table td {
+        padding: 12px 16px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Desktop (769px - 992px) */
+@media screen and (min-width: 769px) and (max-width: 992px) {
+    .folder-section {
+        grid-template-columns: repeat(4, 1fr) !important;
+        gap: 18px !important;
+    }
+
+    .archive-table {
+        min-width: auto;
+    }
+}
+
+/* Large Desktop (993px and up) - Default styles apply */

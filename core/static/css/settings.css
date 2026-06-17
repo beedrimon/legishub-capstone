@@ -1125,3 +1125,46 @@ input:checked + .slider:before {
 label.danger-label {
     color: #dc3545 !important;
 }
+
+
+/* ============================================================
+   SETTINGS PAGE RESPONSIVE ADDITIONS
+   ============================================================ */
+
+/* Mobile hamburger menu for settings nav */
+@media screen and (max-width: 576px) {
+    .settings-nav {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 0;
+        padding: 0;
+        border-radius: 8px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .settings-nav::-webkit-scrollbar {
+        display: none;
+    }
+
+    .settings-nav-item {
+        flex: 0 0 auto;
+        min-width: auto;
+        padding: 10px 14px;
+        font-size: 0.7rem;
+        white-space: nowrap;
+        border-left: none;
+        border-bottom: 3px solid transparent;
+    }
+
+    .settings-nav-item.active {
+        border-left: none;
+        border-bottom-color: var(--sidebar-bg);
+    }
+
+    .settings-nav-item i {
+        font-size: 0.85rem;
+        width: 16px;
+    }
+}
