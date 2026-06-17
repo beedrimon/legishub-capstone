@@ -123,5 +123,6 @@ class Command(BaseCommand):
 
         if email_connection:
             email_connection.close()
-
-        self.stdout.write(self.style.SUCCESS(f"Task Complete! {count} documents processed. Emails sent to: {', '.join(recipient_emails)}"))
+            self.stdout.write(self.style.SUCCESS(f"Task Complete! {count} documents processed. Emails sent to: {', '.join(recipient_emails)}"))
+        else:
+            self.stdout.write(self.style.SUCCESS(f"Task Complete! {count} documents processed. (Emails skipped due to Render network restrictions)"))

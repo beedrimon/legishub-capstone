@@ -2067,6 +2067,13 @@ body.page-dashboard .right-column {
   /* Matches original red dot theme */
   border-radius: 50%;
   border: 2px solid white;
+  animation: pulse-red 2s infinite;
+}
+
+@keyframes pulse-red {
+  0% { box-shadow: 0 0 0 0 rgba(217, 83, 79, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(217, 83, 79, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(217, 83, 79, 0); }
 }
 
 .notif-list-item p {
@@ -2083,12 +2090,20 @@ body.page-dashboard .right-column {
 }
 
 .unread-dot {
-  width: 8px;
-  height: 8px;
-  background: #4d8af0;
+  width: 10px;
+  height: 10px;
+  background: #1e88e5;
   border-radius: 50%;
   margin-top: 5px;
   flex-shrink: 0;
+  box-shadow: 0 0 0 rgba(30, 136, 229, 0.4);
+  animation: pulse-blue 2s infinite;
+}
+
+@keyframes pulse-blue {
+  0% { box-shadow: 0 0 0 0 rgba(30, 136, 229, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(30, 136, 229, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(30, 136, 229, 0); }
 }
 
 /* Empty State & Footer */

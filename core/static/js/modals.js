@@ -384,6 +384,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Grab the last read ID from browser memory (default to 0 if never clicked)
                     const lastReadId = parseInt(localStorage.getItem('lastReadNotifId')) || 0;
+                    const individuallyReadIds = JSON.parse(localStorage.getItem('individuallyReadIds')) || [];
 
                     // Track the highest ID in this current batch so we can save it later
                     window.highestNotifId = data.notifications.length > 0 ? Math.max(...data.notifications.map(n => n.id)) : 0;
@@ -397,13 +398,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             else if (notif.message.includes('Updated') || notif.message.includes('modified')) iconClass = 'fa-file-signature';
 
                             // Determine if THIS specific notification is unread
-                            const isUnread = notif.id > lastReadId;
+                            const isUnread = notif.id > lastReadId && !individuallyReadIds.includes(notif.id);
                             const unreadClass = isUnread ? 'unread' : 'read';
                             const redDotHtml = isUnread ? '<span class="red-dot"></span>' : '';
                             const blueDotHtml = isUnread ? '<div class="unread-dot"></div>' : '';
 
                             htmlContent += `
-                            <div class="notif-list-item ${unreadClass}">
+                            <div class="notif-list-item ${unreadClass}" data-id="${notif.id}" style="cursor: pointer;">
                                 <div class="notif-icon">
                                     <i class="fa-solid ${iconClass}"></i>
                                     ${redDotHtml}
@@ -417,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
 
                         // Only show the red bell badge if there are ACTUALLY unread items
-                        const hasUnreadItems = data.notifications.some(n => n.id > lastReadId);
+                        const hasUnreadItems = data.notifications.some(n => n.id > lastReadId && !individuallyReadIds.includes(n.id));
                         if (notifBadge) {
                             notifBadge.style.display = hasUnreadItems ? 'block' : 'none';
                         }
@@ -456,6 +457,53 @@ document.addEventListener('DOMContentLoaded', () => {
     if (document.getElementById('notifModalBody')) {
         fetchNotifications();
         setInterval(fetchNotifications, 30000);
+    }
+
+    // ==========================================
+    // NOTIFICATION CLICK TO MARK AS READ
+    // ==========================================
+    const notifModalBody = document.getElementById('notifModalBody');
+    if (notifModalBody) {
+        notifModalBody.addEventListener('click', function(e) {
+            const notifItem = e.target.closest('.notif-list-item');
+
+            if (notifItem && notifItem.classList.contains('unread')) {
+                const notifId = parseInt(notifItem.dataset.id);
+                if (notifId) {
+                    // 1. Update localStorage
+                    let individuallyReadIds = JSON.parse(localStorage.getItem('individuallyReadIds')) || [];
+                    if (!individuallyReadIds.includes(notifId)) {
+                        individuallyReadIds.push(notifId);
+                        localStorage.setItem('individuallyReadIds', JSON.stringify(individuallyReadIds));
+                    }
+
+                    // 2. Update UI instantly
+                    notifItem.classList.remove('unread');
+                    notifItem.classList.add('read');
+                    const blueDot = notifItem.querySelector('.unread-dot');
+                    if (blueDot) blueDot.style.display = 'none';
+                    const redDot = notifItem.querySelector('.red-dot');
+                    if (redDot) redDot.style.display = 'none';
+
+                    // 3. Update main bell badge
+                    const remainingUnread = notifModalBody.querySelectorAll('.notif-list-item.unread').length;
+                    const notifBadge = document.querySelector('.notif-badge');
+                    if (notifBadge && remainingUnread === 0) {
+                        notifBadge.style.display = 'none';
+                    }
+
+                    // 4. Hide from unread tab if active
+                    const activeTab = document.querySelector('.notif-tab.active');
+                    if (activeTab && activeTab.getAttribute('data-tab') === 'unread') {
+                        notifItem.style.display = 'none';
+                        const visibleItems = Array.from(notifModalBody.querySelectorAll('.notif-list-item')).filter(item => item.style.display !== 'none').length;
+                        if (visibleItems === 0 && document.getElementById('emptyNotifState')) {
+                            document.getElementById('emptyNotifState').style.display = 'block';
+                        }
+                    }
+                }
+            }
+        });
     }
 
     // 5.5 Upload Dropdown Logic
@@ -818,6 +866,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 1. SAVE TO MEMORY: Remember that we have read everything up to the current highest ID!
             if (window.highestNotifId) {
                 localStorage.setItem('lastReadNotifId', window.highestNotifId);
+                localStorage.removeItem('individuallyReadIds');
             }
 
             // 2. Hide the red bell badge instantly

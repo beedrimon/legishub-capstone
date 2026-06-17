@@ -28,6 +28,7 @@ from django.contrib.auth.hashers import check_password
 from django.contrib.auth.password_validation import validate_password
 from django.core.validators import validate_email
 from django.core.exceptions import ValidationError
+from email_validator import validate_email as ext_validate_email, EmailNotValidError
 from django.utils import timezone
 from datetime import timedelta
 from django.http import JsonResponse
@@ -729,9 +730,11 @@ def create_user_view(request):
         try:
             # 1. Validate email format
             try:
-                validate_email(email)
-            except ValidationError:
-                messages.error(request, "Account creation failed: Invalid email address format.")
+                # This checks syntax AND verifies the domain's MX records to ensure it can receive emails
+                valid_email = ext_validate_email(email, check_deliverability=True)
+                email = valid_email.normalized
+            except EmailNotValidError as e:
+                messages.error(request, f"Account creation failed: {str(e)}")
                 return redirect('user_management')
                 
             # 2. Validate password strength using Django validators
@@ -776,6 +779,14 @@ def create_user_view(request):
                 action='Edit',
                 details=f"Created new user account: '{username}'."
             )
+            
+            # Send a welcome email asynchronously to verify the mailbox exists
+            subject = "Welcome to Marikina LegisHub"
+            message = (f"Hello {first_name or username},\n\n"
+                       f"An account has been created for you on the Marikina LegisHub.\n"
+                       f"Username: {username}\n\n"
+                       f"Please contact your administrator for your temporary password.")
+            async_task('core.views.send_dynamic_email', subject, message, [email])
 
             messages.success(request, f"User '{username}' successfully created!")
 
@@ -801,9 +812,11 @@ def edit_user_view(request):
         try:
             # Validate email format
             try:
-                validate_email(email)
-            except ValidationError:
-                messages.error(request, "Update failed: Invalid email address format.")
+                # This checks syntax AND verifies the domain's MX records to ensure it can receive emails
+                valid_email = ext_validate_email(email, check_deliverability=True)
+                email = valid_email.normalized
+            except EmailNotValidError as e:
+                messages.error(request, f"Update failed: {str(e)}")
                 return redirect('user_management')
 
             target_user = User.objects.get(id=user_id)
