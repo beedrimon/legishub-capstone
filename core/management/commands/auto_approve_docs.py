@@ -53,6 +53,7 @@ class Command(BaseCommand):
                 email_connection.open()
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"SMTP Connection Warning: {e}"))
+            email_connection = None
             # Proceed without the email connection; documents will still be successfully archived!
 
         # 3. Process each overdue document
