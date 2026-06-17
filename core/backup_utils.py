@@ -11,8 +11,8 @@ class SupabaseBackup:
     """Handle backup and sync to Supabase cloud"""
     
     def __init__(self):
-        # Supabase cloud configuration
-        self.supabase_config = {
+        # Backup DB configuration (the destination for backups)
+        self.backup_config = {
             'dbname': os.getenv('SUPABASE_DB_NAME', 'postgres'),
             'user': os.getenv('SUPABASE_DB_USER', ''),
             'password': os.getenv('SUPABASE_DB_PASSWORD', ''),
@@ -20,8 +20,8 @@ class SupabaseBackup:
             'port': int(os.getenv('SUPABASE_DB_PORT', '6543')),
         }
         
-        # Local PostgreSQL configuration
-        self.local_config = {
+        # Primary DB configuration (the source for backups, as defined in settings.py)
+        self.primary_config = {
             'dbname': settings.DATABASES['default']['NAME'],
             'user': settings.DATABASES['default']['USER'],
             'password': settings.DATABASES['default']['PASSWORD'],
@@ -29,28 +29,28 @@ class SupabaseBackup:
             'port': settings.DATABASES['default']['PORT'],
         }
     
-    def test_connection(self):
-        """Test connection to Supabase"""
+    def test_backup_connection(self):
+        """Test connection to the backup database."""
         try:
-            conn = psycopg2.connect(**self.supabase_config)
+            conn = psycopg2.connect(**self.backup_config)
             conn.close()
-            return True, "Connected to Supabase"
+            return True, "Connected to Backup DB"
         except Exception as e:
             return False, str(e)
     
-    def test_local_connection(self):
-        """Test connection to local database"""
+    def test_primary_connection(self):
+        """Test connection to the primary database."""
         try:
-            conn = psycopg2.connect(**self.local_config)
+            conn = psycopg2.connect(**self.primary_config)
             conn.close()
-            return True, "Connected to local database"
+            return True, "Connected to Primary DB"
         except Exception as e:
             return False, str(e)
     
-    def get_local_counts(self):
-        """Get record counts from local database"""
+    def get_primary_db_counts(self):
+        """Get record counts from the primary database."""
         try:
-            conn = psycopg2.connect(**self.local_config)
+            conn = psycopg2.connect(**self.primary_config)
             cursor = conn.cursor()
             
             # Try to get counts, handle missing tables gracefully
@@ -90,100 +90,96 @@ class SupabaseBackup:
             logger.error(f"Error getting counts: {e}")
             return {'documents': 0, 'archives': 0, 'audit_logs': 0, 'users': 0, 'total': 0}
     
-    def sync_all_tables(self, backup_log_id=None):
-        """Sync all tables to Supabase"""
+    def sync_to_backup(self, backup_log_id=None):
+        """Sync all tables from the primary DB to the backup DB."""
         from core.models import BackupLog
         
+        primary_conn = None
+        backup_conn = None
+        
         try:
-            # First test local connection
-            local_ok, local_msg = self.test_local_connection()
-            if not local_ok:
-                raise Exception(f"Cannot connect to local database: {local_msg}")
+            # Test connections first
+            primary_ok, primary_msg = self.test_primary_connection()
+            if not primary_ok:
+                raise Exception(f"Cannot connect to primary DB: {primary_msg}")
             
-            # Then test Supabase connection
-            supabase_ok, supabase_msg = self.test_connection()
-            if not supabase_ok:
-                raise Exception(f"Cannot connect to Supabase: {supabase_msg}")
+            backup_ok, backup_msg = self.test_backup_connection()
+            if not backup_ok:
+                raise Exception(f"Cannot connect to backup DB: {backup_msg}")
             
-            counts = self.get_local_counts()
+            counts = self.get_primary_db_counts()
             
-            supabase_conn = psycopg2.connect(**self.supabase_config)
-            supabase_cursor = supabase_conn.cursor()
+            # Open connections once
+            primary_conn = psycopg2.connect(**self.primary_config)
+            backup_conn = psycopg2.connect(**self.backup_config)
+            primary_cursor = primary_conn.cursor()
+            backup_cursor = backup_conn.cursor()
             
-            # TABLES TO SYNC
-            tables = [
-                'auth_user',
-                'core_legislativedocument', 
-                'core_archiveddocument', 
-                'core_auditlog'
-            ]
+            tables = ['auth_user', 'core_legislativedocument', 'core_archiveddocument', 'core_auditlog']
             total_synced = 0
             
+            # Process each table
             for table in tables:
                 try:
-                    # Check if table exists locally
-                    local_conn = psycopg2.connect(**self.local_config)
-                    local_cursor = local_conn.cursor()
-                    local_cursor.execute("""
+                    # Check if table exists in primary DB
+                    primary_cursor.execute("""
                         SELECT EXISTS (
                             SELECT FROM information_schema.tables 
                             WHERE table_schema = 'public' AND table_name = %s
                         )
                     """, (table,))
                     
-                    if not local_cursor.fetchone()[0]:
-                        local_cursor.close()
-                        local_conn.close()
+                    if not primary_cursor.fetchone()[0]:
                         continue
                     
-                    local_cursor.execute(sql.SQL("SELECT * FROM {}").format(sql.Identifier(table)))
-                    rows = local_cursor.fetchall()
+                    primary_cursor.execute(sql.SQL("SELECT * FROM {}").format(sql.Identifier(table)))
+                    rows = primary_cursor.fetchall()
                     
                     if rows:
-                        col_names = [desc[0] for desc in local_cursor.description]
+                        col_names = [desc[0] for desc in primary_cursor.description]
                         
-                        # Check if table exists in Supabase
-                        supabase_cursor.execute("""
+                        # Check if table exists in backup DB
+                        backup_cursor.execute("""
                             SELECT EXISTS (
                                 SELECT FROM information_schema.tables 
                                 WHERE table_schema = 'public' AND table_name = %s
                             )
                         """, (table,))
                         
-                        if supabase_cursor.fetchone()[0]:
-                            supabase_cursor.execute(sql.SQL("TRUNCATE TABLE {} CASCADE").format(sql.Identifier(table)))
-                            
-                            for row in rows:
-                                placeholders = ','.join(['%s'] * len(row))
-                                insert_query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
-                                    sql.Identifier(table),
-                                    sql.SQL(',').join(map(sql.Identifier, col_names)),
-                                    sql.SQL(placeholders)
-                                )
-                                supabase_cursor.execute(insert_query, row)
-                            
-                            # Reset sequence on Supabase side to prevent IntegrityError on new inserts
-                            try:
-                                if 'id' in col_names:
-                                    seq_query = sql.SQL(
-                                        "SELECT setval(pg_get_serial_sequence(%s, 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM {}"
-                                    ).format(sql.Identifier(table))
-                                    supabase_cursor.execute(seq_query, [table])
-                            except Exception as seq_e:
-                                logger.error(f"Sequence reset failed for {table} on Supabase: {seq_e}")
+                        if backup_cursor.fetchone()[0]:
+                            backup_cursor.execute(sql.SQL("TRUNCATE TABLE {} CASCADE").format(sql.Identifier(table)))
+                        else:
+                            logger.warning(f"Destination table '{table}' does not exist in backup DB. Skipping sync. Please run migrations on the backup database.")
+                            continue
+                        
+                        # *** CRITICAL BUG FIX: This loop was previously unreachable due to wrong indentation ***
+                        for row in rows:
+                            placeholders = ','.join(['%s'] * len(row))
+                            insert_query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
+                                sql.Identifier(table),
+                                sql.SQL(',').join(map(sql.Identifier, col_names)),
+                                sql.SQL(placeholders)
+                            )
+                            backup_cursor.execute(insert_query, row)
+                        
+                        # Reset sequence on backup side to prevent IntegrityError on new inserts
+                        try:
+                            if 'id' in col_names:
+                                seq_query = sql.SQL(
+                                    "SELECT setval(pg_get_serial_sequence(%s, 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM {}"
+                                ).format(sql.Identifier(table))
+                                backup_cursor.execute(seq_query, [table])
+                        except Exception as seq_e:
+                            logger.error(f"Sequence reset failed for {table} on backup DB: {seq_e}")
 
-                            total_synced += len(rows)
-                            print(f"Synced {len(rows)} records from {table}")
-                    
-                    local_cursor.close()
-                    local_conn.close()
+                        total_synced += len(rows)
+                        print(f"Synced {len(rows)} records from {table}")
+                
                 except Exception as e:
                     print(f"Error syncing table {table}: {e}")
                     logger.error(f"Error syncing table {table}: {e}")
             
-            supabase_conn.commit()
-            supabase_cursor.close()
-            supabase_conn.close()
+            backup_conn.commit()
             
             if backup_log_id:
                 BackupLog.objects.filter(id=backup_log_id).update(
@@ -199,9 +195,8 @@ class SupabaseBackup:
             return True, total_synced, counts
             
         except Exception as e:
-            logger.error(f"Sync error: {e}")
+            logger.error(f"Backup failed: {e}")
             if backup_log_id:
-                from core.models import BackupLog
                 BackupLog.objects.filter(id=backup_log_id).update(
                     status='failed',
                     error_message=str(e),
@@ -209,88 +204,89 @@ class SupabaseBackup:
                 )
             return False, 0, {}
 
-    def restore_from_supabase(self, backup_log_id=None):
-        """Restore all tables from Supabase to local database"""
+        finally:
+            if primary_conn: primary_conn.close()
+            if backup_conn: backup_conn.close()
+
+    def restore_from_backup(self, backup_log_id=None):
+        """Restore all tables from the backup DB to the primary DB."""
         from core.models import BackupLog
         
+        primary_conn = None
+        backup_conn = None
+
         try:
-            supabase_conn = psycopg2.connect(**self.supabase_config)
-            supabase_cursor = supabase_conn.cursor()
+            backup_conn = psycopg2.connect(**self.backup_config)
+            primary_conn = psycopg2.connect(**self.primary_config)
+            backup_cursor = backup_conn.cursor()
+            primary_cursor = primary_conn.cursor()
             
-            tables = [
-                'auth_user',
-                'core_legislativedocument', 
-                'core_archiveddocument', 
-                'core_auditlog'
-            ]
+            tables = ['auth_user', 'core_legislativedocument', 'core_archiveddocument', 'core_auditlog']
             total_restored = 0
             
             for table in tables:
                 try:
-                    # Check if table exists in Supabase
-                    supabase_cursor.execute("""
+                    # Check if table exists in backup DB
+                    backup_cursor.execute("""
                         SELECT EXISTS (
                             SELECT FROM information_schema.tables 
                             WHERE table_schema = 'public' AND table_name = %s
                         )
                     """, (table,))
                     
-                    if not supabase_cursor.fetchone()[0]:
+                    if not backup_cursor.fetchone()[0]:
                         continue
                     
-                    supabase_cursor.execute(sql.SQL("SELECT * FROM {}").format(sql.Identifier(table)))
-                    rows = supabase_cursor.fetchall()
+                    backup_cursor.execute(sql.SQL("SELECT * FROM {}").format(sql.Identifier(table)))
+                    rows = backup_cursor.fetchall()
                     
                     if rows:
-                        col_names = [desc[0] for desc in supabase_cursor.description]
+                        col_names = [desc[0] for desc in backup_cursor.description]
                         
-                        local_conn = psycopg2.connect(**self.local_config)
-                        local_cursor = local_conn.cursor()
-                        
-                        # Check if table exists locally
-                        local_cursor.execute("""
+                        # Check if table exists in primary DB
+                        primary_cursor.execute("""
                             SELECT EXISTS (
                                 SELECT FROM information_schema.tables 
                                 WHERE table_schema = 'public' AND table_name = %s
                             )
                         """, (table,))
                         
-                        if local_cursor.fetchone()[0]:
-                            local_cursor.execute(sql.SQL("TRUNCATE TABLE {} CASCADE").format(sql.Identifier(table)))
-                            
-                            for row in rows:
-                                placeholders = ','.join(['%s'] * len(row))
-                                insert_query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
-                                    sql.Identifier(table),
-                                    sql.SQL(',').join(map(sql.Identifier, col_names)),
-                                    sql.SQL(placeholders)
-                                )
-                                local_cursor.execute(insert_query, row)
-                            
-                            # Reset local sequence to prevent IntegrityError on new inserts
-                            try:
-                                if 'id' in col_names:
-                                    seq_query = sql.SQL(
-                                        "SELECT setval(pg_get_serial_sequence(%s, 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM {}"
-                                    ).format(sql.Identifier(table))
-                                    local_cursor.execute(seq_query, [table])
-                            except Exception as seq_e:
-                                logger.error(f"Sequence reset failed for {table} locally: {seq_e}")
-
-                            total_restored += len(rows)
-                            local_conn.commit()
-                            print(f"Restored {len(rows)} records to {table}")
+                        if primary_cursor.fetchone()[0]:
+                            primary_cursor.execute(sql.SQL("TRUNCATE TABLE {} CASCADE").format(sql.Identifier(table)))
+                        else:
+                            logger.warning(f"Destination table '{table}' does not exist in the primary DB. Skipping restore for this table.")
+                            continue
                         
-                        local_cursor.close()
-                        local_conn.close()
+                        # *** CRITICAL BUG FIX: This loop was previously unreachable due to wrong indentation ***
+                        for row in rows:
+                            placeholders = ','.join(['%s'] * len(row))
+                            insert_query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
+                                sql.Identifier(table),
+                                sql.SQL(',').join(map(sql.Identifier, col_names)),
+                                sql.SQL(placeholders)
+                            )
+                            primary_cursor.execute(insert_query, row)
+                        
+                        # Reset primary DB sequence to prevent IntegrityError on new inserts
+                        try:
+                            if 'id' in col_names:
+                                seq_query = sql.SQL(
+                                    "SELECT setval(pg_get_serial_sequence(%s, 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM {}"
+                                ).format(sql.Identifier(table))
+                                primary_cursor.execute(seq_query, [table])
+                        except Exception as seq_e:
+                            logger.error(f"Sequence reset failed for {table} on primary DB: {seq_e}")
+
+                        total_restored += len(rows)
+                        print(f"Restored {len(rows)} records to {table}")
+
                 except Exception as e:
                     print(f"Error restoring table {table}: {e}")
                     logger.error(f"Error restoring table {table}: {e}")
             
-            supabase_cursor.close()
-            supabase_conn.close()
+            primary_conn.commit()
             
-            counts = self.get_local_counts()
+            counts = self.get_primary_db_counts()
             
             if backup_log_id:
                 BackupLog.objects.filter(id=backup_log_id).update(
@@ -306,7 +302,7 @@ class SupabaseBackup:
             return True, total_restored, counts
             
         except Exception as e:
-            logger.error(f"Restore error: {e}")
+            logger.error(f"Restore failed: {e}")
             if backup_log_id:
                 BackupLog.objects.filter(id=backup_log_id).update(
                     status='failed',
@@ -314,3 +310,7 @@ class SupabaseBackup:
                     completed_at=timezone.now()
                 )
             return False, 0, {}
+        
+        finally:
+            if primary_conn: primary_conn.close()
+            if backup_conn: backup_conn.close()

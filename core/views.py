@@ -1089,15 +1089,15 @@ def perform_sync(user=None, sync_type='manual'):
     try:
         backup = SupabaseBackup()
         
-        connected, message = backup.test_connection()
+        connected, message = backup.test_backup_connection()
         if not connected:
             backup_log.status = 'failed'
             backup_log.error_message = f"Cannot connect to Supabase: {message}"
             backup_log.completed_at = timezone.now()
             backup_log.save()
             return False, backup_log
-        
-        success, synced, counts = backup.sync_all_tables(backup_log.id)
+        # Use the renamed method
+        success, synced, counts = backup.sync_to_backup(backup_log.id)
         
         if success:
             backup_log.documents_synced = counts.get('documents', 0)
@@ -1137,15 +1137,15 @@ def perform_restore(user=None):
     try:
         backup = SupabaseBackup()
         
-        connected, message = backup.test_connection()
+        connected, message = backup.test_backup_connection()
         if not connected:
             backup_log.status = 'failed'
             backup_log.error_message = f"Cannot connect to Supabase: {message}"
             backup_log.completed_at = timezone.now()
             backup_log.save()
             return False, backup_log
-        
-        success, restored, counts = backup.restore_from_supabase(backup_log.id)
+        # Use the renamed method
+        success, restored, counts = backup.restore_from_backup(backup_log.id)
         
         if success:
             backup_log.documents_synced = counts.get('documents', 0)
@@ -1211,10 +1211,10 @@ def backup_cloud_view(request):
     # Get statistics and test cloud connection
     try:
         backup = SupabaseBackup()
-        counts = backup.get_local_counts()
+        counts = backup.get_primary_db_counts()
         
         # Test cloud connection
-        connected, connection_message = backup.test_connection()
+        connected, connection_message = backup.test_backup_connection()
     except Exception as e:
         counts = {'documents': 0, 'archives': 0, 'audit_logs': 0, 'users': 0, 'total': 0}
         connected = False

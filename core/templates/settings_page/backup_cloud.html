@@ -72,6 +72,10 @@
                     <div class="stat-value">{{ total_audit_logs|default:"0" }}</div>
                 </div>
                 <div class="stat-item">
+                    <div class="stat-label">Users</div>
+                    <div class="stat-value">{{ total_users|default:"0" }}</div>
+                </div>
+                <div class="stat-item">
                     <div class="stat-label">Total Records</div>
                     <div class="stat-value">{{ total_records|default:"0" }}</div>
                 </div>
@@ -136,6 +140,7 @@
                             <th>Documents</th>
                             <th>Archives</th>
                             <th>Audit Logs</th>
+                            <th>Users</th>
                             <th>Total</th>
                         </tr>
                     </thead>
@@ -166,11 +171,12 @@
                             <td>{{ log.documents_synced }}</td>
                             <td>{{ log.archives_synced }}</td>
                             <td>{{ log.audit_logs_synced }}</td>
+                            <td>{{ log.users_synced }}</td>
                             <td><strong>{{ log.records_synced }}</strong></td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="7" class="empty-table">No backup logs available</td>
+                            <td colspan="8" class="empty-table">No backup logs available</td>
                         </tr>
                         {% endfor %}
                     </tbody>
