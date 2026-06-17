@@ -1722,7 +1722,10 @@ def global_search_api(request):
     active_docs = LegislativeDocument.objects.filter(
         Q(title__icontains=query) | 
         Q(document_number__icontains=query) |
-        Q(sponsor__icontains=query)
+        Q(sponsor__icontains=query) |
+        Q(co_sponsors__icontains=query) |
+        Q(keywords__icontains=query) |
+        Q(doc_type__icontains=query)
     ).exclude(status__iexact='Archived').exclude(status__iexact='Vetoed')[:5]
     
     for doc in active_docs:
@@ -1737,7 +1740,11 @@ def global_search_api(request):
     archived_docs = ArchivedDocument.objects.filter(
         Q(title__icontains=query) | 
         Q(archive_id__icontains=query) |
-        Q(original_document_number__icontains=query)
+        Q(original_document_number__icontains=query) |
+        Q(sponsor__icontains=query) |
+        Q(co_sponsors__icontains=query) |
+        Q(keywords__icontains=query) |
+        Q(doc_type__icontains=query)
     )[:5]
     
     for doc in archived_docs:
@@ -1751,7 +1758,11 @@ def global_search_api(request):
     # 3. Search Vetoed
     vetoed_docs = VetoedDocument.objects.filter(
         Q(title__icontains=query) | 
-        Q(document_number__icontains=query)
+        Q(document_number__icontains=query) |
+        Q(sponsor__icontains=query) |
+        Q(co_sponsors__icontains=query) |
+        Q(keywords__icontains=query) |
+        Q(doc_type__icontains=query)
     )[:5]
     
     for doc in vetoed_docs:
