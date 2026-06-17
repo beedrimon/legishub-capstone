@@ -1,28 +1,29 @@
 from django.core.management.base import BaseCommand
-from django.core.mail import send_mail
 from django.conf import settings
-from core.models import LegislativeDocument, AuditLog, ArchivedDocument
+from core.models import LegislativeDocument, AuditLog, ArchivedDocument, SystemSetting
 from django.contrib.auth.models import User # <-- NEW: Imports the User database
 from django.db import transaction
+from core.views import send_dynamic_email
 import datetime
 
 class Command(BaseCommand):
-    help = "Checks for 'For Approval' documents older than 14 days, auto-approves them, moves them to Archives, and emails staff."
+    help = "Checks for 'For Approval' documents older than the configured review days, auto-approves them, moves them to Archives, and emails staff."
 
     def handle(self, *args, **kwargs):
-        # 1. Calculate the date exactly 14 days ago
-        fourteen_days_ago = datetime.date.today() - datetime.timedelta(days=14)
+        # 1. Calculate the date exactly configured days ago
+        review_days = SystemSetting.get('review_days', 14)
+        target_date = datetime.date.today() - datetime.timedelta(days=review_days)
 
-        # 2. Find all documents that are 'For Approval' AND filed 14 or more days ago
+        # 2. Find all documents that are 'For Approval' AND filed configured or more days ago
         overdue_docs = LegislativeDocument.objects.filter(
             status='For Approval',
-            date_filed__lte=fourteen_days_ago
+            date_filed__lte=target_date
         )
 
         count = overdue_docs.count()
 
         if count == 0:
-            self.stdout.write(self.style.SUCCESS("No 'For Approval' documents have reached the 14-day limit today."))
+            self.stdout.write(self.style.SUCCESS(f"No 'For Approval' documents have reached the {review_days}-day limit today."))
             return
 
         # ==========================================
@@ -30,11 +31,14 @@ class Command(BaseCommand):
         # ==========================================
         # This grabs the emails of all active Admins and Staff members.
         # We filter by `is_staff=True` so we don't accidentally spam read-only Legislators!
-        recipient_emails = list(
-            User.objects.filter(is_active=True, is_staff=True)
-            .exclude(email='')
-            .values_list('email', flat=True)
-        )
+        staff_users = User.objects.filter(is_active=True, is_staff=True).exclude(email='')
+        
+        recipient_emails = []
+        for user in staff_users:
+            # Check their personal email notification preference
+            wants_email = SystemSetting.get(f'email_notifications_{user.id}', True)
+            if wants_email:
+                recipient_emails.append(user.email)
 
         # Safety fallback: If no staff members have emails in the system, send it to your master email
         if not recipient_emails:
@@ -84,25 +88,19 @@ class Command(BaseCommand):
                     AuditLog.objects.create(
                         user=None, 
                         action='Edit',
-                        details=f"System Auto-Approve: 14-day limit reached. '{doc_number}' was automatically approved and transferred to Archives."
+                        details=f"System Auto-Approve: {review_days}-day limit reached. '{doc_number}' was automatically approved and transferred to Archives."
                     )
 
                     # E. Send the Gmail Notification to everyone!
                     subject = f"ALERT: Auto-Approved & Archived {doc_number}"
                     message = (
                         f"Notice from Marikina LegisHub:\n\n"
-                        f"The document '{doc_title}' ({doc_number}) was marked 'For Approval' for 14 days.\n"
+                        f"The document '{doc_title}' ({doc_number}) was marked 'For Approval' for {review_days} days.\n"
                         f"Per legislative protocol, it has been automatically approved and permanently transferred to the Archives.\n\n"
                         f"Please review this document in the Archives page."
                     )
                     
-                    send_mail(
-                        subject=subject,
-                        message=message,
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=recipient_emails, # <-- NOW USES THE DYNAMIC LIST!
-                        fail_silently=False,
-                    )
+                    send_dynamic_email(subject, message, recipient_emails)
 
                     self.stdout.write(self.style.SUCCESS(f"Successfully auto-approved and archived: {doc_number}"))
             

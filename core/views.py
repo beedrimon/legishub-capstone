@@ -52,6 +52,25 @@ def is_legislator(user):
     return not user.is_superuser and not user.is_staff
 
 # ==========================================
+# HELPER: DYNAMIC EMAIL SENDER
+# ==========================================
+def send_dynamic_email(subject, message, recipient_list):
+    """Sends an email using the backend SMTP settings."""
+    password = settings.EMAIL_HOST_PASSWORD
+
+    if not password:
+        print("EMAIL_HOST_PASSWORD is not set.")
+        return False
+    
+    return send_mail(
+        subject,
+        message,
+        settings.DEFAULT_FROM_EMAIL,
+        recipient_list,
+        fail_silently=False,
+    )
+
+# ==========================================
 # 1. LOGIN VIEW
 # ==========================================
 def login_view(request):
@@ -153,7 +172,7 @@ def forgot_password_view(request):
                 message = f"Hello {user.first_name or user.username},\n\nYou recently requested to reset your password for your Marikina LegisHub account.\n\nPlease click the link below to set a new password:\n{reset_link}\n\nIf you did not request this, please ignore this email."
                 
                 # Offload the email sending to the Django Q2 Background Worker
-                async_task('django.core.mail.send_mail', subject, message, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
+                async_task('core.views.send_dynamic_email', subject, message, [user.email])
 
             messages.success(request, f"If an account exists for {email}, a password reset link has been sent.")
             return redirect('login')
@@ -1549,30 +1568,25 @@ def notifications_view(request):
     
     if request.method == 'POST' and 'update_preferences' in request.POST:
         # Save notification preferences
-        request.session[f'email_notifications_{user.id}'] = request.POST.get('email_notifications') == 'on'
-        request.session[f'in_app_notifications_{user.id}'] = request.POST.get('in_app_notifications') == 'on'
-        request.session[f'email_digest_{user.id}'] = request.POST.get('email_digest', 'instant')
-        request.session[f'notify_approvals_{user.id}'] = request.POST.get('notify_approvals') == 'on'
-        request.session[f'notify_escalations_{user.id}'] = request.POST.get('notify_escalations') == 'on'
-        request.session[f'notify_system_{user.id}'] = request.POST.get('notify_system') == 'on'
-        request.session[f'notify_comments_{user.id}'] = request.POST.get('notify_comments') == 'on'
-        request.session[f'sound_alerts_{user.id}'] = request.POST.get('sound_alerts') == 'on'
+        SystemSetting.set(f'email_notifications_{user.id}', request.POST.get('email_notifications') == 'on', 'boolean', 'Email Notifications', request.user)
+        SystemSetting.set(f'in_app_notifications_{user.id}', request.POST.get('in_app_notifications') == 'on', 'boolean', 'In App Notifications', request.user)
+        SystemSetting.set(f'email_digest_{user.id}', request.POST.get('email_digest', 'instant'), 'string', 'Email Digest', request.user)
+        SystemSetting.set(f'notify_approvals_{user.id}', request.POST.get('notify_approvals') == 'on', 'boolean', 'Notify Approvals', request.user)
+        SystemSetting.set(f'notify_escalations_{user.id}', request.POST.get('notify_escalations') == 'on', 'boolean', 'Notify Escalations', request.user)
+        SystemSetting.set(f'notify_system_{user.id}', request.POST.get('notify_system') == 'on', 'boolean', 'Notify System', request.user)
+        SystemSetting.set(f'notify_comments_{user.id}', request.POST.get('notify_comments') == 'on', 'boolean', 'Notify Comments', request.user)
+        SystemSetting.set(f'sound_alerts_{user.id}', request.POST.get('sound_alerts') == 'on', 'boolean', 'Sound Alerts', request.user)
         
         # Admin escalation settings
         if user.is_superuser:
-            request.session['review_days'] = int(request.POST.get('review_days', 15))
-            request.session['grace_period'] = int(request.POST.get('grace_period', 3))
-            request.session['escalation_recipient'] = request.POST.get('escalation_recipient', 'secretary')
-            request.session['daily_digest'] = request.POST.get('daily_digest') == 'on'
+            review_days_val = int(request.POST.get('review_days', 14))
+            request.session['review_days'] = review_days_val
+            SystemSetting.set('review_days', review_days_val, 'integer', 'Default Review Period', request.user)
             
-            # SMTP settings (in production, save to database)
-            if 'smtp_host' in request.POST:
-                SystemSetting.set('smtp_host', request.POST.get('smtp_host'), 'string', 'SMTP Host', user)
-                SystemSetting.set('smtp_port', int(request.POST.get('smtp_port', 587)), 'integer', 'SMTP Port', user)
-                SystemSetting.set('smtp_user', request.POST.get('smtp_user'), 'string', 'SMTP Username', user)
-                SystemSetting.set('smtp_encryption', request.POST.get('smtp_encryption'), 'string', 'SMTP Encryption', user)
+            daily_digest_val = request.POST.get('daily_digest') == 'on'
+            request.session['daily_digest'] = daily_digest_val
+            SystemSetting.set('daily_digest', daily_digest_val, 'boolean', 'Daily Digest Escalations', request.user)
         
-        request.session.modified = True
         messages.success(request, 'Notification preferences updated successfully!')
         return redirect('notifications')
     
@@ -1582,28 +1596,25 @@ def notifications_view(request):
     else:
         notifications = AuditLog.objects.all().order_by('-timestamp')[:50]
     
+    db_review_days = SystemSetting.get('review_days', 14)
+    db_daily_digest = SystemSetting.get('daily_digest', True)
+    
     context = {
         # User preferences
-        'email_notifications': request.session.get(f'email_notifications_{user.id}', True),
-        'in_app_notifications': request.session.get(f'in_app_notifications_{user.id}', True),
-        'email_digest': request.session.get(f'email_digest_{user.id}', 'instant'),
-        'notify_approvals': request.session.get(f'notify_approvals_{user.id}', True),
-        'notify_escalations': request.session.get(f'notify_escalations_{user.id}', True),
-        'notify_system': request.session.get(f'notify_system_{user.id}', True),
-        'notify_comments': request.session.get(f'notify_comments_{user.id}', True),
-        'sound_alerts': request.session.get(f'sound_alerts_{user.id}', False),
+        'email_notifications': SystemSetting.get(f'email_notifications_{user.id}', True),
+        'in_app_notifications': SystemSetting.get(f'in_app_notifications_{user.id}', True),
+        'email_digest': SystemSetting.get(f'email_digest_{user.id}', 'instant'),
+        'notify_approvals': SystemSetting.get(f'notify_approvals_{user.id}', True),
+        'notify_escalations': SystemSetting.get(f'notify_escalations_{user.id}', True),
+        'notify_system': SystemSetting.get(f'notify_system_{user.id}', True),
+        'notify_comments': SystemSetting.get(f'notify_comments_{user.id}', True),
+        'sound_alerts': SystemSetting.get(f'sound_alerts_{user.id}', False),
         
         # Admin escalation settings
-        'review_days': request.session.get('review_days', 15),
+        'review_days': db_review_days,
         'grace_period': request.session.get('grace_period', 3),
         'escalation_recipient': request.session.get('escalation_recipient', 'secretary'),
-        'daily_digest': request.session.get('daily_digest', True),
-        
-        # SMTP settings
-        'smtp_host': SystemSetting.get('smtp_host', settings.EMAIL_HOST),
-        'smtp_port': SystemSetting.get('smtp_port', settings.EMAIL_PORT),
-        'smtp_user': SystemSetting.get('smtp_user', settings.EMAIL_HOST_USER),
-        'smtp_encryption': SystemSetting.get('smtp_encryption', 'tls' if settings.EMAIL_USE_TLS else 'none'),
+        'daily_digest': db_daily_digest,
         
         'notifications': notifications,
         'is_legislator': is_legislator(user),
@@ -1669,40 +1680,11 @@ def test_email_api(request):
         return JsonResponse({'error': 'Unauthorized'}, status=403)
     
     try:
-        # 1. Get settings from the database, with fallbacks to settings.py
-        host = SystemSetting.get('smtp_host', settings.EMAIL_HOST)
-        port = SystemSetting.get('smtp_port', settings.EMAIL_PORT)
-        user = SystemSetting.get('smtp_user', settings.EMAIL_HOST_USER)
-        encryption = SystemSetting.get('smtp_encryption', 'tls' if settings.EMAIL_USE_TLS else 'none')
-        password = settings.EMAIL_HOST_PASSWORD # Securely from .env file
-
-        if not password:
-            return JsonResponse({'success': False, 'error': 'EMAIL_HOST_PASSWORD is not set on the server environment.'}, status=500)
-
-        # 2. Create a custom connection object
-        connection = get_connection(
-            host=host,
-            port=port,
-            username=user,
-            password=password,
-            use_tls=(encryption == 'tls'),
-            use_ssl=(encryption == 'ssl'),
-            fail_silently=False,
-        )
-        
         # Send test email
         subject = "Test Email - Marikina LegisHub"
         message = f"Hello {request.user.first_name or request.user.username},\n\nThis is a test email from Marikina LegisHub. Your email configuration is working correctly!\n\nBest regards,\nMarikina LegisHub System"
         
-        # 3. Send mail using the custom connection
-        send_mail(
-            subject,
-            message,
-            user or settings.DEFAULT_FROM_EMAIL,
-            [request.user.email],
-            fail_silently=False,
-            connection=connection,
-        )
+        send_dynamic_email(subject, message, [request.user.email])
         
         return JsonResponse({'success': True, 'message': 'Test email sent successfully'})
     except Exception as e:
@@ -1896,6 +1878,10 @@ def get_notifications(request):
     # Return 401 JSON for unauthenticated API requests instead of an HTML redirect
     if not request.user.is_authenticated:
         return JsonResponse({'error': 'Unauthorized'}, status=401)
+
+    # Check if user has disabled in-app notifications
+    if not SystemSetting.get(f'in_app_notifications_{request.user.id}', True):
+        return JsonResponse({'notifications': [], 'has_more': False})
 
     limit = int(request.GET.get('limit', 10))
     

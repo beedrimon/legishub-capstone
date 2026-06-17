@@ -203,7 +203,7 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'noreply.marikinalegishub@gmail.com')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD') # Move the password to your .env file
-DEFAULT_FROM_EMAIL = 'Marikina LegisHub <jakehafalla1@gmail.com>'
+DEFAULT_FROM_EMAIL = 'Marikina LegisHub <noreply.marikinalegishub@gmail.com>'
 
 # ==========================================
 # LOGIN REDIRECT URL
