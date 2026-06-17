@@ -18,7 +18,6 @@ from django.db.models import Min, Max, Count
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
-from django.core.mail import send_mail
 from django.conf import settings
 from django.urls import reverse
 import math
@@ -37,7 +36,7 @@ from django.views.decorators.http import require_http_methods
 import json
 import subprocess
 from django.db.models import Sum, Q
-from django.core.mail import send_mail, EmailMessage
+from django.core.mail import send_mail, EmailMessage, get_connection
 from django.template.loader import render_to_string
 from django_q.tasks import async_task
 
@@ -1567,11 +1566,11 @@ def notifications_view(request):
             request.session['daily_digest'] = request.POST.get('daily_digest') == 'on'
             
             # SMTP settings (in production, save to database)
-            if request.POST.get('smtp_host'):
-                request.session['smtp_host'] = request.POST.get('smtp_host')
-                request.session['smtp_port'] = request.POST.get('smtp_port')
-                request.session['smtp_user'] = request.POST.get('smtp_user')
-                request.session['smtp_encryption'] = request.POST.get('smtp_encryption')
+            if 'smtp_host' in request.POST:
+                SystemSetting.set('smtp_host', request.POST.get('smtp_host'), 'string', 'SMTP Host', user)
+                SystemSetting.set('smtp_port', int(request.POST.get('smtp_port', 587)), 'integer', 'SMTP Port', user)
+                SystemSetting.set('smtp_user', request.POST.get('smtp_user'), 'string', 'SMTP Username', user)
+                SystemSetting.set('smtp_encryption', request.POST.get('smtp_encryption'), 'string', 'SMTP Encryption', user)
         
         request.session.modified = True
         messages.success(request, 'Notification preferences updated successfully!')
@@ -1601,10 +1600,10 @@ def notifications_view(request):
         'daily_digest': request.session.get('daily_digest', True),
         
         # SMTP settings
-        'smtp_host': request.session.get('smtp_host', 'smtp.gmail.com'),
-        'smtp_port': request.session.get('smtp_port', '587'),
-        'smtp_user': request.session.get('smtp_user', 'noreply@marikinalegishub.gov.ph'),
-        'smtp_encryption': request.session.get('smtp_encryption', 'tls'),
+        'smtp_host': SystemSetting.get('smtp_host', settings.EMAIL_HOST),
+        'smtp_port': SystemSetting.get('smtp_port', settings.EMAIL_PORT),
+        'smtp_user': SystemSetting.get('smtp_user', settings.EMAIL_HOST_USER),
+        'smtp_encryption': SystemSetting.get('smtp_encryption', 'tls' if settings.EMAIL_USE_TLS else 'none'),
         
         'notifications': notifications,
         'is_legislator': is_legislator(user),
@@ -1670,26 +1669,39 @@ def test_email_api(request):
         return JsonResponse({'error': 'Unauthorized'}, status=403)
     
     try:
-        data = json.loads(request.body)
-        
-        # Configure email settings dynamically (for testing)
-        # In production, save these to database
-        email_host = data.get('host', 'smtp.gmail.com')
-        email_port = int(data.get('port', 587))
-        email_user = data.get('user', '')
-        email_password = data.get('password', '')
-        email_encryption = data.get('encryption', 'tls')
+        # 1. Get settings from the database, with fallbacks to settings.py
+        host = SystemSetting.get('smtp_host', settings.EMAIL_HOST)
+        port = SystemSetting.get('smtp_port', settings.EMAIL_PORT)
+        user = SystemSetting.get('smtp_user', settings.EMAIL_HOST_USER)
+        encryption = SystemSetting.get('smtp_encryption', 'tls' if settings.EMAIL_USE_TLS else 'none')
+        password = settings.EMAIL_HOST_PASSWORD # Securely from .env file
+
+        if not password:
+            return JsonResponse({'success': False, 'error': 'EMAIL_HOST_PASSWORD is not set on the server environment.'}, status=500)
+
+        # 2. Create a custom connection object
+        connection = get_connection(
+            host=host,
+            port=port,
+            username=user,
+            password=password,
+            use_tls=(encryption == 'tls'),
+            use_ssl=(encryption == 'ssl'),
+            fail_silently=False,
+        )
         
         # Send test email
         subject = "Test Email - Marikina LegisHub"
         message = f"Hello {request.user.first_name or request.user.username},\n\nThis is a test email from Marikina LegisHub. Your email configuration is working correctly!\n\nBest regards,\nMarikina LegisHub System"
         
+        # 3. Send mail using the custom connection
         send_mail(
             subject,
             message,
-            email_user or settings.DEFAULT_FROM_EMAIL,
+            user or settings.DEFAULT_FROM_EMAIL,
             [request.user.email],
             fail_silently=False,
+            connection=connection,
         )
         
         return JsonResponse({'success': True, 'message': 'Test email sent successfully'})
