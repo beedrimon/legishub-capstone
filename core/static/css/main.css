@@ -1699,9 +1699,20 @@ body.page-dashboard .right-column {
 .btn-discard {
   background: none;
   border: none;
+  background: transparent;
+  border: 1px solid #d9c8ac;
+  padding: 10px 22px;
+  border-radius: 6px;
   font-weight: 600;
+  font-size: 0.85rem;
   cursor: pointer;
   color: #333;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.btn-discard:hover {
+  background: #f0f0f0;
+  border-color: #a0835d;
 }
 
 .btn-add {
