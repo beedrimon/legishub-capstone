@@ -56,20 +56,22 @@ def is_legislator(user):
 # HELPER: DYNAMIC EMAIL SENDER
 # ==========================================
 def send_dynamic_email(subject, message, recipient_list):
-    """Sends an email using the backend SMTP settings."""
-    password = settings.EMAIL_HOST_PASSWORD
-
-    if not password:
-        print("EMAIL_HOST_PASSWORD is not set.")
-        return False
-    
-    return send_mail(
-        subject,
-        message,
-        settings.DEFAULT_FROM_EMAIL,
-        recipient_list,
-        fail_silently=False,
-    )
+    """Sends an email using the configured backend (Brevo via Anymail)."""
+    try:
+        print(f"Attempting to send email to {recipient_list} via Brevo...")
+        result = send_mail(
+            subject,
+            message,
+            settings.DEFAULT_FROM_EMAIL,
+            recipient_list,
+            fail_silently=False,
+        )
+        print(f"Email sent successfully! Result: {result}")
+        return result
+    except Exception as e:
+        print(f"Error sending email via Brevo: {e}")
+        # Raise the error so Django Q marks the task as failed and logs the real issue
+        raise e
 
 # ==========================================
 # 1. LOGIN VIEW
@@ -122,7 +124,7 @@ def login_view(request):
                         # Use Django-Q to offload the sync task to a background worker
                         async_task(
                             'core.views.perform_sync',
-                            user=user,
+                            user_id=user.id,
                             sync_type='auto',
                             task_name=f"Auto-Sync for {user.username}"
                         )
@@ -168,7 +170,7 @@ def forgot_password_view(request):
                     reverse('password_reset_confirm', kwargs={'uidb64': uid, 'token': token})
                 )
                 
-                # Send the actual email through Gmail SMTP
+                # Send the actual email through the Brevo backend
                 subject = "Password Reset Request - Marikina LegisHub"
                 message = f"Hello {user.first_name or user.username},\n\nYou recently requested to reset your password for your Marikina LegisHub account.\n\nPlease click the link below to set a new password:\n{reset_link}\n\nIf you did not request this, please ignore this email."
                 
@@ -1075,10 +1077,12 @@ def maintenance_view(request):
 # ==========================================
 # PERFORM SYNC FOR BACKUP & CLOUD
 # ==========================================
-def perform_sync(user=None, sync_type='manual'):
+def perform_sync(user_id=None, sync_type='manual', **kwargs):
     """Perform database sync to Supabase"""
     from core.backup_utils import SupabaseBackup
     from core.models import BackupLog
+    
+    user = User.objects.filter(id=user_id).first() if user_id else None
     
     backup_log = BackupLog.objects.create(
         backup_type=sync_type,
@@ -1123,10 +1127,12 @@ def perform_sync(user=None, sync_type='manual'):
 # ==========================================
 # PERFORM RESTORE FOR BACKUP & CLOUD
 # ==========================================
-def perform_restore(user=None):
+def perform_restore(user_id=None, **kwargs):
     """Perform database restore from Supabase"""
     from core.backup_utils import SupabaseBackup
     from core.models import BackupLog
+    
+    user = User.objects.filter(id=user_id).first() if user_id else None
     
     backup_log = BackupLog.objects.create(
         backup_type='restore',
@@ -1188,7 +1194,7 @@ def backup_cloud_view(request):
         
         elif 'manual_backup' in request.POST:
             # Trigger manual sync
-            success, backup_log = perform_sync(user=request.user, sync_type='manual')
+            success, backup_log = perform_sync(user_id=request.user.id, sync_type='manual')
             if success:
                 messages.success(request, f'✅ Manual backup completed! Pushed {backup_log.records_synced} records to cloud.')
             else:
@@ -1197,7 +1203,7 @@ def backup_cloud_view(request):
             
         elif 'manual_restore' in request.POST:
             # Trigger manual restore
-            success, backup_log = perform_restore(user=request.user)
+            success, backup_log = perform_restore(user_id=request.user.id)
             if success:
                 messages.success(request, f'✅ Restore completed! Pulled {backup_log.records_synced} records from cloud.')
             else:

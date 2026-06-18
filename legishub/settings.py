@@ -216,13 +216,13 @@ else:
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # ==========================================
-# EMAIL CONFIGURATION (BREVO API)
+# EMAIL CONFIGURATION (SENDINBLUE API)
 # ==========================================
-EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
+EMAIL_BACKEND = 'anymail.backends.sendinblue.EmailBackend'
 ANYMAIL = {
-    'BREVO_API_KEY': os.getenv('BREVO_API_KEY'),
+    'SENDINBLUE_API_KEY': os.getenv('SENDINBLUE_API_KEY'),
 }
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Marikina LegisHub <noreply.marikinalegishub@gmail.com>')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Marikina LegisHub <noreply@legishub-marikina.me>')
 
 # ==========================================
 # LOGIN REDIRECT URL
@@ -242,7 +242,7 @@ Q_CLUSTER = {
     'compress': True,       # Compresses database logs to save space
     'save_limit': 250,      # Keeps the last 250 task logs in the database
     'queue_limit': 500,
-    'cpu_affinity': 1,
+    # 'cpu_affinity': 1,    # <--- REMOVE/COMMENT THIS OUT ON WINDOWS!
     'label': 'Django Q2',   # Name it will show in the Django Admin
     'orm': 'default'        # <--- CRITICAL: Tells it to use your PostgreSQL DB!
 }

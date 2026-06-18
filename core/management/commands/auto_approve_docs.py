@@ -15,6 +15,8 @@ class Command(BaseCommand):
         review_days = SystemSetting.get('review_days', 14)
         target_date = datetime.date.today() - datetime.timedelta(days=review_days)
 
+        self.stdout.write(self.style.WARNING(f"Scanning for 'For Approval' documents filed on or before: {target_date}..."))
+
         # 2. Find all documents that are 'For Approval' AND filed configured or more days ago
         overdue_docs = LegislativeDocument.objects.filter(
             status='For Approval',
@@ -44,17 +46,6 @@ class Command(BaseCommand):
         # Safety fallback: If no staff members have emails in the system, send it to your master email
         if not recipient_emails:
             recipient_emails = ['noreply.marikinalegishub@gmail.com']
-
-        # Open a single persistent connection to Gmail to avoid timeouts
-        email_connection = None
-        try:
-            if settings.EMAIL_HOST_PASSWORD:
-                email_connection = get_connection()
-                email_connection.open()
-        except Exception as e:
-            self.stdout.write(self.style.ERROR(f"SMTP Connection Warning: {e}"))
-            email_connection = None
-            # Proceed without the email connection; documents will still be successfully archived!
 
         # 3. Process each overdue document
         for doc in overdue_docs:
@@ -111,18 +102,15 @@ class Command(BaseCommand):
                         f"Please review this document in the Archives page."
                     )
                     
-                    if email_connection:
-                        # Send the email using the persistent connection
-                        email = EmailMessage(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_emails, connection=email_connection)
-                        email.send(fail_silently=True)
+                    try:
+                        self.stdout.write(f"Attempting to send email via Brevo to: {recipient_emails}...")
+                        send_dynamic_email(subject, message, recipient_emails)
+                    except Exception as email_err:
+                        self.stdout.write(self.style.ERROR(f"Failed to send email for {doc_number}: {email_err}"))
 
                     self.stdout.write(self.style.SUCCESS(f"Successfully auto-approved and archived: {doc_number}"))
             
             except Exception as e:
                 self.stdout.write(self.style.ERROR(f"Failed to process {doc.document_number}: {str(e)}"))
 
-        if email_connection:
-            email_connection.close()
-            self.stdout.write(self.style.SUCCESS(f"Task Complete! {count} documents processed. Emails sent to: {', '.join(recipient_emails)}"))
-        else:
-            self.stdout.write(self.style.SUCCESS(f"Task Complete! {count} documents processed. (Emails skipped due to Render network restrictions)"))
+        self.stdout.write(self.style.SUCCESS(f"Task Complete! {count} documents processed. Emails sent to: {', '.join(recipient_emails)}"))
