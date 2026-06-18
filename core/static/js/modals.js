@@ -48,9 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Generic Modal Trigger Logic
     // This looks for specific classes and opens the matching modal ID
     const setupTrigger = (selector, modalKey, formId = null) => {
-        const buttons = document.querySelectorAll(selector);
-        buttons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest(selector);
+            if (btn) {
                 e.preventDefault();
                 e.stopPropagation();
                 closeAllOverlays();
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         setTimeout(() => loadDraft(formId), 50);
                     }
                 }
-            });
+            }
         });
     };
 
@@ -331,9 +331,7 @@ document.addEventListener('DOMContentLoaded', () => {
             closeAllOverlays();
             notifDropdown.style.display = isShowing ? 'none' : 'block';
 
-            // Hide the red badge when the user clicks the bell
-            const badge = document.querySelector('.notif-badge');
-            if (badge) badge.style.display = 'none';
+            // The red badge count will now persist until notifications are individually marked as read
         });
     }
 
@@ -417,10 +415,15 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>`;
                         });
 
-                        // Only show the red bell badge if there are ACTUALLY unread items
-                        const hasUnreadItems = data.notifications.some(n => n.id > lastReadId && !individuallyReadIds.includes(n.id));
+                        // Calculate the exact number of unread items and display in the badge
+                        const unreadItemsCount = data.notifications.filter(n => n.id > lastReadId && !individuallyReadIds.includes(n.id)).length;
                         if (notifBadge) {
-                            notifBadge.style.display = hasUnreadItems ? 'block' : 'none';
+                            if (unreadItemsCount > 0) {
+                                notifBadge.style.display = 'flex';
+                                notifBadge.innerText = unreadItemsCount > 99 ? '99+' : unreadItemsCount;
+                            } else {
+                                notifBadge.style.display = 'none';
+                            }
                         }
                     }
 
@@ -488,8 +491,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     // 3. Update main bell badge
                     const remainingUnread = notifModalBody.querySelectorAll('.notif-list-item.unread').length;
                     const notifBadge = document.querySelector('.notif-badge');
-                    if (notifBadge && remainingUnread === 0) {
-                        notifBadge.style.display = 'none';
+                    if (notifBadge) {
+                        if (remainingUnread === 0) {
+                            notifBadge.style.display = 'none';
+                        } else {
+                            notifBadge.innerText = remainingUnread > 99 ? '99+' : remainingUnread;
+                        }
                     }
 
                     // 4. Hide from unread tab if active
@@ -627,25 +634,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // POPULATE DETAILED VIEW MODAL
     // ==========================================
-    const viewButtons = document.querySelectorAll('.trigger-view');
-
-    viewButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.trigger-view');
+        if (btn) {
             // 1. Read the data from the icon we clicked
-            const docNumber = this.getAttribute('data-number');
-            const docTitle = this.getAttribute('data-title');
-            const docType = this.getAttribute('data-type');
-            const docYear = this.getAttribute('data-year');
-            const docDate = this.getAttribute('data-date');
-            const docSponsor = this.getAttribute('data-sponsor');
-            const docKeywords = this.getAttribute('data-keywords');
-            const docEnacted = this.getAttribute('data-enacted');
-            const docCosponsors = this.getAttribute('data-cosponsors');
-            const docStatus = this.getAttribute('data-status');
-            const docVisibility = this.getAttribute('data-visibility');
-            const docStorage = this.getAttribute('data-storage');
-            const fileUrl = this.getAttribute('data-file');
-            const vetoReason = this.getAttribute('data-vetoreason');
+            const docNumber = btn.getAttribute('data-number');
+            const docTitle = btn.getAttribute('data-title');
+            const docType = btn.getAttribute('data-type');
+            const docYear = btn.getAttribute('data-year');
+            const docDate = btn.getAttribute('data-date');
+            const docSponsor = btn.getAttribute('data-sponsor');
+            const docKeywords = btn.getAttribute('data-keywords');
+            const docEnacted = btn.getAttribute('data-enacted');
+            const docCosponsors = btn.getAttribute('data-cosponsors');
+            const docStatus = btn.getAttribute('data-status');
+            const docVisibility = btn.getAttribute('data-visibility');
+            const docStorage = btn.getAttribute('data-storage');
+            const fileUrl = btn.getAttribute('data-file');
+            const vetoReason = btn.getAttribute('data-vetoreason');
 
             // 2. Inject the data into the modal's HTML
             document.getElementById('view-number').innerText = docNumber;
@@ -661,7 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (document.getElementById('view-visibility')) document.getElementById('view-visibility').innerText = docVisibility;
             if (document.getElementById('view-storage')) document.getElementById('view-storage').innerText = docStorage;
 
-            const docVetoReason = this.getAttribute('data-vetoreason');
+            const docVetoReason = btn.getAttribute('data-vetoreason');
             
             if (document.getElementById('view-veto-reason')) {
                 document.getElementById('view-veto-reason').innerText = docVetoReason;
@@ -698,31 +704,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 pdfIframe.style.display = 'none';
                 pdfMissing.style.display = 'block';
             }
-        });
+        }
     });
 
     // ==========================================
     // POPULATE EDIT MODAL
     // ==========================================
-    const editButtons = document.querySelectorAll('.trigger-edit');
-
-    editButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.trigger-edit');
+        if (btn) {
             // 1. Read data from the pencil icon
-            const docId = this.getAttribute('data-id');
-            const docNumber = this.getAttribute('data-number');
-            const docTitle = this.getAttribute('data-title');
-            const docType = this.getAttribute('data-type');
-            const docYear = this.getAttribute('data-year');
-            const docDate = this.getAttribute('data-date');
-            const docSponsor = this.getAttribute('data-sponsor');
-            const docCoSponsors = this.getAttribute('data-cosponsors');
-            const docKeywords = this.getAttribute('data-keywords');
-            const docStatus = this.getAttribute('data-status');
-            const docVisibility = this.getAttribute('data-visibility');
-            const docStorage = this.getAttribute('data-storage');
-            const fileName = this.getAttribute('data-file');
-            const vetoReason = this.getAttribute('data-vetoreason');
+            const docId = btn.getAttribute('data-id');
+            const docNumber = btn.getAttribute('data-number');
+            const docTitle = btn.getAttribute('data-title');
+            const docType = btn.getAttribute('data-type');
+            const docYear = btn.getAttribute('data-year');
+            const docDate = btn.getAttribute('data-date');
+            const docSponsor = btn.getAttribute('data-sponsor');
+            const docCoSponsors = btn.getAttribute('data-cosponsors');
+            const docKeywords = btn.getAttribute('data-keywords');
+            const docStatus = btn.getAttribute('data-status');
+            const docVisibility = btn.getAttribute('data-visibility');
+            const docStorage = btn.getAttribute('data-storage');
+            const fileName = btn.getAttribute('data-file');
+            const vetoReason = btn.getAttribute('data-vetoreason');
 
             // 2. Inject data into the Edit form inputs
             document.getElementById('edit-doc-id').value = docId;
@@ -762,22 +767,21 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(() => {
                 loadDraft('editDocumentForm', docId);
             }, 50);
-        });
+        }
     });
 
     // ==========================================
     // POPULATE EDIT USER MODAL
     // ==========================================
-    const editUserButtons = document.querySelectorAll('.trigger-edit-user');
-
-    editUserButtons.forEach(btn => {
-        btn.addEventListener('click', function () {
-            const userId = this.getAttribute('data-id');
-            const userFirst = this.getAttribute('data-first');
-            const userLast = this.getAttribute('data-last');
-            const userEmail = this.getAttribute('data-email');
-            const userUsername = this.getAttribute('data-username');
-            const userRole = this.getAttribute('data-role');
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('.trigger-edit-user');
+        if (btn) {
+            const userId = btn.getAttribute('data-id');
+            const userFirst = btn.getAttribute('data-first');
+            const userLast = btn.getAttribute('data-last');
+            const userEmail = btn.getAttribute('data-email');
+            const userUsername = btn.getAttribute('data-username');
+            const userRole = btn.getAttribute('data-role');
 
             document.getElementById('edit-user-id').value = userId;
             document.getElementById('edit-user-first').value = userFirst;
@@ -787,7 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (document.getElementById('edit-user-role')) {
                 document.getElementById('edit-user-role').value = userRole;
             }
-        });
+        }
     });
 
     // ==========================================
@@ -1063,4 +1067,122 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    // ==========================================
+    // REAL-TIME WEBSOCKET LISTENER
+    // ==========================================
+    
+    window.createToast = function(message, type = 'info') {
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        let iconClass = 'fa-info-circle';
+        if (type === 'success') iconClass = 'fa-check-circle';
+        if (type === 'error') iconClass = 'fa-exclamation-circle';
+
+        toast.innerHTML = `
+            <div class="toast-icon">
+                <i class="fa-solid ${iconClass}"></i>
+            </div>
+            <div class="toast-content">${message}</div>
+            <button class="close-toast"><i class="fa-solid fa-xmark"></i></button>
+            <div class="toast-progress"></div>
+        `;
+        
+        container.appendChild(toast);
+        
+        const autoDismissTimer = setTimeout(() => {
+            if (!toast.classList.contains('hiding')) {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 5000);
+
+        const closeBtn = toast.querySelector('.close-toast');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                clearTimeout(autoDismissTimer);
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 300);
+            });
+        }
+    };
+
+    let refreshTimeout = null;
+    function triggerSmoothRefresh() {
+        // Debounce allows multiple rapid real-time updates to batch into a single smooth refresh
+        clearTimeout(refreshTimeout);
+        refreshTimeout = setTimeout(() => {
+            fetch(window.location.href)
+                .then(res => res.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const newDoc = parser.parseFromString(html, 'text/html');
+                    
+                    const sections = [
+                        '.table-container', '.stats-grid', '.audit-list', 
+                        '.table-card', '.iam-grid', '.folder-grid', '.pagination'
+                    ];
+                    
+                    sections.forEach(selector => {
+                        const currentEl = document.querySelector(selector);
+                        const newEl = newDoc.querySelector(selector);
+                        if (currentEl && newEl) {
+                            currentEl.innerHTML = newEl.innerHTML;
+                        }
+                    });
+                })
+                .catch(err => console.error("Error smoothly updating content:", err));
+        }, 500); 
+    }
+
+    function connectWebSocket() {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const documentSocket = new WebSocket(wsProtocol + window.location.host + '/ws/documents/');
+
+        documentSocket.onopen = function() {
+            console.log('✅ Real-time WebSocket connected successfully!');
+        };
+
+        documentSocket.onmessage = function(e) {
+            const response = JSON.parse(e.data);
+            
+            if (response.type === 'new_document' || response.type === 'system_update') {
+                
+                let msg = '';
+                if (response.type === 'new_document') {
+                    msg = `A new document (${response.data.document_number}) was just uploaded!`;
+                } else if (response.type === 'system_update') {
+                    const action = response.data.action || 'updated';
+                    const user = response.data.user || 'System';
+                    msg = `System update by ${user}: ${response.data.details || action}`;
+                }
+                
+                createToast(msg, 'info');
+                
+                // Trigger smooth UI refresh
+                triggerSmoothRefresh();
+                
+                // Optionally, trigger a fetch for notifications so the bell icon updates instantly
+                if (typeof fetchNotifications === 'function') {
+                    fetchNotifications();
+                }
+            }
+        };
+
+        documentSocket.onclose = function(e) {
+            console.error('❌ WebSocket closed unexpectedly. Retrying in 3 seconds...');
+            setTimeout(connectWebSocket, 3000); // Auto-reconnect if it fails
+        };
+    }
+
+    // Initialize the connection
+    connectWebSocket();
 });
