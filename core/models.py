@@ -5,6 +5,9 @@ from django.core.exceptions import ValidationError
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.db.models import Count
+from django.db.models.signals import post_save
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 # ==========================================
 # CUSTOM FILE RENAMING FUNCTION
@@ -312,3 +315,47 @@ class BackupLog(models.Model):
     
     def __str__(self):
         return f"{self.get_backup_type_display()} backup on {self.started_at} - {self.get_status_display()}"
+
+# ==========================================
+# WEBSOCKET BROADCAST SIGNAL
+# ==========================================
+@receiver(post_save, sender=LegislativeDocument)
+def notify_new_document(sender, instance, created, **kwargs):
+    if created:  # Only trigger on new uploads, not edits
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                'documents_group',
+                {
+                    'type': 'document_uploaded',  # Maps to the function in consumers.py
+                    'message': {
+                        'id': instance.id,
+                        'document_number': instance.document_number,
+                        'title': instance.title,
+                        'status': instance.status
+                    }
+                }
+            )
+            print(f"✅ SUCCESS: WebSocket broadcast sent for {instance.document_number}!")
+        except Exception as e:
+            print(f"❌ WEBSOCKET ERROR: Failed to broadcast document: {e}")
+
+@receiver(post_save, sender=AuditLog)
+def notify_system_update(sender, instance, created, **kwargs):
+    if created:  # Only trigger when a new audit log is created
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                'documents_group',
+                {
+                    'type': 'system_update',
+                    'message': {
+                        'action': instance.action,
+                        'details': instance.details,
+                        'user': instance.user.username if instance.user else 'System'
+                    }
+                }
+            )
+            print(f"✅ SUCCESS: WebSocket broadcast sent for system update: {instance.action}!")
+        except Exception as e:
+            print(f"❌ WEBSOCKET ERROR: Failed to broadcast system update: {e}")

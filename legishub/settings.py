@@ -28,17 +28,28 @@ if not DEBUG and not SECRET_KEY:
     raise ValueError("The SECRET_KEY environment variable must be set in production.")
 
 # Safely parse Allowed Hosts
-allowed_hosts_env = os.getenv('ALLOWED_HOSTS', 'legishub.marikina.gov.ph,localhost,127.0.0.1,192.168.0.173')
+allowed_hosts_env = os.getenv('ALLOWED_HOSTS', '*')
 ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',') if host.strip()]
+
+# Automatically allow local IPs during development
+if DEBUG:
+    ALLOWED_HOSTS.extend(['192.168.1.34', 'localhost', '127.0.0.1', '172.20.10.1', '*'])
 
 # Automatically allow the Render deployment URL
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
+# Automatically allow the Railway deployment URL
+RAILWAY_PUBLIC_DOMAIN = os.environ.get('RAILWAY_PUBLIC_DOMAIN')
+if RAILWAY_PUBLIC_DOMAIN:
+    ALLOWED_HOSTS.append(RAILWAY_PUBLIC_DOMAIN)
+
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
+    'channels',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -80,22 +91,31 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'legishub.wsgi.application'
+ASGI_APPLICATION = 'legishub.asgi.application'
+
+# WebSocket Channel Layer (Use Redis in Production)
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}
 
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DB_NAME = os.getenv('DB_NAME')
+# Fallback to Railway's default PG variables if DB_NAME isn't set
+DB_NAME = os.getenv('DB_NAME') or os.getenv('PGDATABASE')
 
 if DB_NAME:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': DB_NAME,
-            'USER': os.getenv('DB_USER'),
-            'PASSWORD': os.getenv('DB_PASSWORD'),
-            'HOST': os.getenv('DB_HOST'),
-            'PORT': os.getenv('DB_PORT', '5432'),
+            'USER': os.getenv('DB_USER') or os.getenv('PGUSER'),
+            'PASSWORD': os.getenv('DB_PASSWORD') or os.getenv('PGPASSWORD'),
+            'HOST': os.getenv('DB_HOST') or os.getenv('PGHOST'),
+            'PORT': os.getenv('DB_PORT') or os.getenv('PGPORT', '5432'),
         }
     }
 else:
