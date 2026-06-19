@@ -140,7 +140,7 @@
                     </thead>
                     <tbody>
                         {% for doc in archives %}
-                        <tr style="border-bottom: 1px solid #eee;">
+                        <tr data-doc-id="{{ doc.id }}" data-doc-number="{{ doc.original_document_number }}" style="border-bottom: 1px solid #eee;">
                             <td>{{ forloop.counter0|add:archives.start_index }}</td>
                             <td>{{ doc.archive_id }}</td>
                             <td>{{ doc.title }}</td>

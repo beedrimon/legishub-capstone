@@ -29,3 +29,19 @@ class DocumentConsumer(AsyncWebsocketConsumer):
             'type': 'system_update',
             'data': data
         }))
+
+    # This function handles document updates
+    async def document_updated(self, event):
+        data = event['message']
+        await self.send(text_data=json.dumps({
+            'type': 'document_updated',
+            'data': data
+        }))
+
+    # This function handles document deletions
+    async def document_deleted(self, event):
+        data = event['message']
+        await self.send(text_data=json.dumps({
+            'type': 'document_deleted',
+            'data': data
+        }))

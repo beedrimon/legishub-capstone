@@ -115,7 +115,7 @@
                         <tbody>
                             {% for doc in documents %}
                             
-                            <tr>
+                            <tr data-doc-id="{{ doc.id }}" data-doc-number="{{ doc.document_number }}">
                                 <!-- Numbering -->
                                 <td>{{ forloop.counter }}</td>
                                 <!-- Title and Tracking Number with Urgency Highlight -->

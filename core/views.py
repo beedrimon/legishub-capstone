@@ -593,6 +593,11 @@ def create_archive_folder(request):
                 messages.error(request, f"Folder '{folder_name}' already exists.")
             else:
                 ArchiveFolder.objects.create(name=folder_name, created_by=request.user)
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='Edit',
+                    details=f"Created new Archive Folder: '{folder_name}'."
+                )
                 messages.success(request, f"Folder '{folder_name}' created successfully!")
                 
     return redirect('archive')

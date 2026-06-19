@@ -124,7 +124,7 @@ if DB_NAME:
             'HOST': os.getenv('DB_HOST') or os.getenv('PGHOST'),
             'PORT': os.getenv('DB_PORT') or os.getenv('PGPORT', '5432'),
             'OPTIONS': {
-                'sslmode': os.getenv('DB_SSL_MODE') or os.getenv('SUPABASE_DB_SSL_MODE') or ('require' if not DEBUG else 'prefer'),
+                'sslmode': os.getenv('DB_SSL_MODE') or ('require' if not DEBUG else 'prefer'),
             }
         }
     }

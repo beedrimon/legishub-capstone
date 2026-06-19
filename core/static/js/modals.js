@@ -1116,31 +1116,41 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     let refreshTimeout = null;
-    function triggerSmoothRefresh() {
-        // Debounce allows multiple rapid real-time updates to batch into a single smooth refresh
-        clearTimeout(refreshTimeout);
-        refreshTimeout = setTimeout(() => {
-            fetch(window.location.href)
-                .then(res => res.text())
-                .then(html => {
-                    const parser = new DOMParser();
-                    const newDoc = parser.parseFromString(html, 'text/html');
-                    
-                    const sections = [
-                        '.table-container', '.stats-grid', '.audit-list', 
-                        '.table-card', '.iam-grid', '.folder-grid', '.pagination'
-                    ];
-                    
-                    sections.forEach(selector => {
-                        const currentEl = document.querySelector(selector);
-                        const newEl = newDoc.querySelector(selector);
-                        if (currentEl && newEl) {
-                            currentEl.innerHTML = newEl.innerHTML;
+    function triggerSmoothRefresh(onCompleteCallback) {
+        return new Promise((resolve) => {
+            // Debounce allows multiple rapid real-time updates to batch into a single smooth refresh
+            clearTimeout(refreshTimeout);
+            refreshTimeout = setTimeout(() => {
+                fetch(window.location.href)
+                    .then(res => res.text())
+                    .then(html => {
+                        const parser = new DOMParser();
+                        const newDoc = parser.parseFromString(html, 'text/html');
+                        
+                        const sections = [
+                            '.table-container', '.stats-grid', '.audit-list', 
+                            '.table-card', '.iam-grid', '.folder-grid', '.pagination'
+                        ];
+                        
+                        sections.forEach(selector => {
+                            const currentEl = document.querySelector(selector);
+                            const newEl = newDoc.querySelector(selector);
+                            if (currentEl && newEl) {
+                                currentEl.innerHTML = newEl.innerHTML;
+                            }
+                        });
+                        
+                        if (typeof onCompleteCallback === 'function') {
+                            onCompleteCallback();
                         }
+                        resolve();
+                    })
+                    .catch(err => {
+                        console.error("Error smoothly updating content:", err);
+                        resolve();
                     });
-                })
-                .catch(err => console.error("Error smoothly updating content:", err));
-        }, 500); 
+            }, 500); 
+        });
     }
 
     function connectWebSocket() {
@@ -1154,21 +1164,62 @@ document.addEventListener('DOMContentLoaded', () => {
         documentSocket.onmessage = function(e) {
             const response = JSON.parse(e.data);
             
-            if (response.type === 'new_document' || response.type === 'system_update') {
-                
+            if (['new_document', 'document_updated', 'document_deleted', 'system_update'].includes(response.type)) {
                 let msg = '';
+                let toastType = 'info';
+                
                 if (response.type === 'new_document') {
                     msg = `A new document (${response.data.document_number}) was just uploaded!`;
-                } else if (response.type === 'system_update') {
+                    toastType = 'success';
+                    createToast(msg, toastType);
+                    
+                    triggerSmoothRefresh(() => {
+                        // Flash new row in green
+                        const newRow = document.querySelector(`tr[data-doc-number="${response.data.document_number}"], tr[data-doc-id="${response.data.id}"]`);
+                        if (newRow) {
+                            newRow.classList.add('realtime-flash-success');
+                        }
+                    });
+                } 
+                else if (response.type === 'document_updated') {
+                    msg = `Document (${response.data.document_number}) was updated.`;
+                    createToast(msg, 'info');
+                    
+                    triggerSmoothRefresh(() => {
+                        // Flash updated row in blue
+                        const updatedRow = document.querySelector(`tr[data-doc-number="${response.data.document_number}"], tr[data-doc-id="${response.data.id}"]`);
+                        if (updatedRow) {
+                            updatedRow.classList.add('realtime-flash-info');
+                        }
+                    });
+                }
+                else if (response.type === 'document_deleted') {
+                    msg = `Document (${response.data.document_number}) was archived/removed.`;
+                    createToast(msg, 'error');
+                    
+                    // Animate deletion first (fade out)
+                    const rowToDelete = document.querySelector(`tr[data-doc-number="${response.data.document_number}"], tr[data-doc-id="${response.data.id}"]`);
+                    if (rowToDelete) {
+                        rowToDelete.classList.add('realtime-fade-out');
+                        setTimeout(() => {
+                            triggerSmoothRefresh();
+                        }, 600); // Wait for CSS animation
+                    } else {
+                        triggerSmoothRefresh();
+                    }
+                }
+                else if (response.type === 'system_update') {
                     const action = response.data.action || 'updated';
                     const user = response.data.user || 'System';
                     msg = `System update by ${user}: ${response.data.details || action}`;
+                    
+                    if (action === 'Backup') {
+                        toastType = response.data.details.includes('success') || response.data.details.includes('Success') ? 'success' : 'error';
+                    }
+                    createToast(msg, toastType);
+                    
+                    triggerSmoothRefresh();
                 }
-                
-                createToast(msg, 'info');
-                
-                // Trigger smooth UI refresh
-                triggerSmoothRefresh();
                 
                 // Optionally, trigger a fetch for notifications so the bell icon updates instantly
                 if (typeof fetchNotifications === 'function') {

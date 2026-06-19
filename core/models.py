@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.db.models import Count
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, post_delete
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 
@@ -317,17 +317,17 @@ class BackupLog(models.Model):
         return f"{self.get_backup_type_display()} backup on {self.started_at} - {self.get_status_display()}"
 
 # ==========================================
-# WEBSOCKET BROADCAST SIGNAL
+# WEBSOCKET BROADCAST SIGNALS
 # ==========================================
 @receiver(post_save, sender=LegislativeDocument)
-def notify_new_document(sender, instance, created, **kwargs):
-    if created:  # Only trigger on new uploads, not edits
-        try:
-            channel_layer = get_channel_layer()
+def notify_document_saved(sender, instance, created, **kwargs):
+    try:
+        channel_layer = get_channel_layer()
+        if created:  # Document uploaded
             async_to_sync(channel_layer.group_send)(
                 'documents_group',
                 {
-                    'type': 'document_uploaded',  # Maps to the function in consumers.py
+                    'type': 'document_uploaded',
                     'message': {
                         'id': instance.id,
                         'document_number': instance.document_number,
@@ -336,9 +336,42 @@ def notify_new_document(sender, instance, created, **kwargs):
                     }
                 }
             )
-            print(f"✅ SUCCESS: WebSocket broadcast sent for {instance.document_number}!")
-        except Exception as e:
-            print(f"❌ WEBSOCKET ERROR: Failed to broadcast document: {e}")
+            print(f"✅ SUCCESS: WebSocket broadcast sent for upload: {instance.document_number}!")
+        else:  # Document edited/updated
+            async_to_sync(channel_layer.group_send)(
+                'documents_group',
+                {
+                    'type': 'document_updated',
+                    'message': {
+                        'id': instance.id,
+                        'document_number': instance.document_number,
+                        'title': instance.title,
+                        'status': instance.status
+                    }
+                }
+            )
+            print(f"✅ SUCCESS: WebSocket broadcast sent for update: {instance.document_number}!")
+    except Exception as e:
+        print(f"❌ WEBSOCKET ERROR: Failed to broadcast document save: {e}")
+
+@receiver(post_delete, sender=LegislativeDocument)
+def notify_document_deleted(sender, instance, **kwargs):
+    try:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            'documents_group',
+            {
+                'type': 'document_deleted',
+                'message': {
+                    'id': instance.id,
+                    'document_number': instance.document_number,
+                    'title': instance.title
+                }
+            }
+        )
+        print(f"✅ SUCCESS: WebSocket broadcast sent for delete: {instance.document_number}!")
+    except Exception as e:
+        print(f"❌ WEBSOCKET ERROR: Failed to broadcast document delete: {e}")
 
 @receiver(post_save, sender=AuditLog)
 def notify_system_update(sender, instance, created, **kwargs):
@@ -359,3 +392,24 @@ def notify_system_update(sender, instance, created, **kwargs):
             print(f"✅ SUCCESS: WebSocket broadcast sent for system update: {instance.action}!")
         except Exception as e:
             print(f"❌ WEBSOCKET ERROR: Failed to broadcast system update: {e}")
+
+@receiver(post_save, sender=BackupLog)
+def notify_backup_update(sender, instance, created, **kwargs):
+    # Broadcast when a cloud sync completes (success or failed)
+    if instance.status in ['success', 'failed']:
+        try:
+            channel_layer = get_channel_layer()
+            async_to_sync(channel_layer.group_send)(
+                'documents_group',
+                {
+                    'type': 'system_update',
+                    'message': {
+                        'action': 'Backup',
+                        'details': f"Cloud sync ({instance.get_backup_type_display()}) completed with status: {instance.get_status_display()}.",
+                        'user': instance.triggered_by.username if instance.triggered_by else 'System'
+                    }
+                }
+            )
+            print(f"✅ SUCCESS: WebSocket broadcast sent for BackupLog update: {instance.id}!")
+        except Exception as e:
+            print(f"❌ WEBSOCKET ERROR: Failed to broadcast BackupLog update: {e}")
