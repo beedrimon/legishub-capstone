@@ -626,7 +626,8 @@ def audit_logs_view(request):
         logs = logs.filter(
             Q(user__username__icontains=query) | 
             Q(document__document_number__icontains=query) |
-            Q(action__icontains=query)
+            Q(action__icontains=query) |
+            Q(details__icontains=query)
         )
 
     # 3. Apply Dropdown & Date Filters
@@ -2414,3 +2415,134 @@ def generate_report_view(request):
     )
     
     return response
+
+
+# ==========================================
+# SHARE DOCUMENT VIA EMAIL API & BACKGROUND TASK
+# ==========================================
+from django.views.decorators.http import require_POST
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError
+
+@login_required(login_url='login')
+@require_POST
+def share_document_by_email(request):
+    import json
+    try:
+        # Load JSON payload
+        data = json.loads(request.body)
+    except Exception:
+        # Fallback to standard POST parameters
+        data = request.POST
+
+    email = data.get('email', '').strip()
+    doc_id = data.get('doc_id')
+    doc_number = data.get('doc_number')
+
+    if not email or not doc_id:
+        return JsonResponse({'status': 'error', 'message': 'Missing email or document ID.'}, status=400)
+
+    try:
+        validate_email(email)
+    except ValidationError:
+        return JsonResponse({'status': 'error', 'message': 'Invalid email address.'}, status=400)
+
+    from core.models import LegislativeDocument, ArchivedDocument, VetoedDocument
+    doc = None
+    model_name = 'LegislativeDocument'
+
+    # Determine model by document number prefix
+    if doc_number and doc_number.startswith('ARC-'):
+        doc = ArchivedDocument.objects.filter(id=doc_id).first()
+        # Fallback to search by archive_id directly if ID lookup mismatch
+        if doc and doc.archive_id != doc_number:
+            doc = ArchivedDocument.objects.filter(archive_id=doc_number).first()
+        model_name = 'ArchivedDocument'
+    else:
+        # Search LegislativeDocument first
+        doc = LegislativeDocument.objects.filter(id=doc_id).first()
+        if doc and doc.document_number == doc_number:
+            model_name = 'LegislativeDocument'
+        else:
+            # Try by document_number directly on LegislativeDocument
+            doc = LegislativeDocument.objects.filter(document_number=doc_number).first()
+            if doc:
+                model_name = 'LegislativeDocument'
+            else:
+                # Check VetoedDocument
+                doc = VetoedDocument.objects.filter(id=doc_id).first()
+                if doc and doc.document_number == doc_number:
+                    model_name = 'VetoedDocument'
+                else:
+                    doc = VetoedDocument.objects.filter(document_number=doc_number).first()
+                    if doc:
+                        model_name = 'VetoedDocument'
+
+    if not doc:
+        return JsonResponse({'status': 'error', 'message': 'Document not found.'}, status=404)
+
+    if not doc.file_attachment or not doc.file_attachment.name:
+        return JsonResponse({'status': 'error', 'message': 'This document does not have a PDF file attached to it.'}, status=400)
+
+    # Queue the email sending background task
+    from django_q.tasks import async_task
+    try:
+        async_task('core.views.send_shared_document_email', email, doc.id, model_name)
+        # Log the sharing event in AuditLog
+        AuditLog.objects.create(
+            user=request.user,
+            action='Share',
+            document=doc if model_name == 'LegislativeDocument' else None,
+            details=f"Shared document '{doc_number or doc.title}' via email to: {email}."
+        )
+        return JsonResponse({'status': 'success', 'message': 'Email has been queued and will be sent shortly.'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Failed to queue email: {str(e)}'}, status=500)
+
+
+def send_shared_document_email(recipient_email, doc_id, doc_model_name):
+    """Asynchronous background task to send shared documents with attachments."""
+    from django.core.mail import EmailMessage
+    from django.conf import settings
+    from core.models import LegislativeDocument, ArchivedDocument, VetoedDocument
+
+    if doc_model_name == 'ArchivedDocument':
+        doc = ArchivedDocument.objects.get(id=doc_id)
+        doc_number = doc.archive_id
+    elif doc_model_name == 'VetoedDocument':
+        doc = VetoedDocument.objects.get(id=doc_id)
+        doc_number = doc.document_number
+    else:
+        doc = LegislativeDocument.objects.get(id=doc_id)
+        doc_number = doc.document_number
+
+    subject = f"Shared Document: {doc.title} ({doc_number}) - Marikina LegisHub"
+    body = (
+        f"Hello,\n\n"
+        f"A legislative document has been shared with you from Marikina LegisHub.\n\n"
+        f"Document Details:\n"
+        f"- Reference No.: {doc_number}\n"
+        f"- Title: {doc.title}\n"
+        f"- Sponsor: {doc.sponsor or 'Not specified'}\n"
+        f"- Category: {doc.doc_type}\n"
+        f"- Year: {doc.year}\n\n"
+        f"Please find the document file attached to this email."
+    )
+
+    email = EmailMessage(
+        subject=subject,
+        body=body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[recipient_email]
+    )
+
+    if doc.file_attachment and doc.file_attachment.name:
+        try:
+            # S3 storage backends (boto3) and Local storage can be read using .read()
+            file_name = doc.file_attachment.name.split('/')[-1]
+            email.attach(file_name, doc.file_attachment.read(), 'application/pdf')
+        except Exception as e:
+            print(f"Error reading and attaching PDF file: {e}")
+            raise e
+
+    email.send(fail_silently=False)

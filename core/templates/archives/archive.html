@@ -151,6 +151,7 @@
                             <td class="action-icons">
                                 <i class="fa-regular fa-eye trigger-view" title="View Document"
                                     style="cursor: pointer; color: #888;" 
+                                    data-id="{{ doc.id }}"
                                     data-number="{{ doc.archive_id }}"
                                     data-title="{{ doc.title }}" 
                                     data-type="{{ doc.doc_type }}"
@@ -164,7 +165,7 @@
                                     data-visibility="{{ doc.visibility }}"
                                     data-storage="{{ doc.physical_storage|default:'Not specified' }}"
                                     {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}" {% endif %}></i>
-                           </td>
+                            </td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -466,6 +467,20 @@
                         if (pdfMissing) pdfMissing.style.display = 'block';
                         if (downloadBtn) downloadBtn.style.display = 'none';
                     }
+                    
+                    // Store current details for sharing
+                    if (modal) {
+                        modal.setAttribute('data-current-doc-id', this.getAttribute('data-id') || '');
+                        modal.setAttribute('data-current-doc-number', docNumber || '');
+                        modal.setAttribute('data-current-doc-title', docTitle || '');
+                        modal.setAttribute('data-current-file-url', fileUrl || '');
+                    }
+                    
+                    // Clear any previous share status messages
+                    const statusMsg = document.getElementById('share-email-status');
+                    const emailInput = document.getElementById('share-recipient-email');
+                    if (statusMsg) statusMsg.innerText = '';
+                    if (emailInput) emailInput.value = '';
                     
                     // Show the modal
                     modal.style.display = 'flex';

@@ -70,6 +70,7 @@
                             <td class="action-icons">
                                 <i class="fa-regular fa-eye trigger-view" title="View Document"
                                     style="cursor: pointer; color: #888;"
+                                    data-id="{{ doc.id }}"
                                     data-vetoreason="{{ doc.veto_reason|default:'No reason provided.' }}" 
                                     data-number="{{ doc.document_number }}"
                                     data-title="{{ doc.title }}" 

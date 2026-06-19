@@ -71,6 +71,7 @@ urlpatterns = [
     # DOCUMENT MANAGEMENT 
     path('upload/', views.upload_document, name='upload_document'),
     path('edit-doc/', views.edit_document, name='edit_document'),
+    path('api/share-document/', views.share_document_by_email, name='share_document'),
 ]
 
 if settings.DEBUG:

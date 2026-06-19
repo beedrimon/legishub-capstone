@@ -108,6 +108,7 @@
                         <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
                         <td class="action-icons">
                             <i class="fa-regular fa-eye trigger-view" 
+                            data-id="{{ doc.id }}"
                             data-number="{{ doc.archive_id }}"
                             data-title="{{ doc.title }}"
                             data-type="{{ doc.doc_type }}"
@@ -324,6 +325,20 @@
                     pdfMissing.style.display = 'block';
                     downloadBtn.style.display = 'none';
                 }
+                
+                // Store current details for sharing
+                if (modal) {
+                    modal.setAttribute('data-current-doc-id', this.getAttribute('data-id') || '');
+                    modal.setAttribute('data-current-doc-number', docNumber || '');
+                    modal.setAttribute('data-current-doc-title', docTitle || '');
+                    modal.setAttribute('data-current-file-url', fileUrl || '');
+                }
+                
+                // Clear any previous share status messages
+                const statusMsg = document.getElementById('share-email-status');
+                const emailInput = document.getElementById('share-recipient-email');
+                if (statusMsg) statusMsg.innerText = '';
+                if (emailInput) emailInput.value = '';
                 
                 // Show modal
                 modal.style.display = 'flex';

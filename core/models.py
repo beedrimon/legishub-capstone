@@ -136,6 +136,7 @@ class AuditLog(models.Model):
         ('Edit', 'Edit'),
         ('Delete', 'Delete'),
         ('Generate Report', 'Generate Report'),
+        ('Share', 'Share'),
     ]
 
     timestamp = models.DateTimeField(auto_now_add=True)
@@ -150,6 +151,19 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.action} - {self.document}"
+
+    @property
+    def target_resource(self):
+        if self.document:
+            return self.document.document_number
+        
+        # Try to extract the document number from details if the document link is null (due to deletion or archiving)
+        import re
+        if self.details:
+            match = re.search(r"'(.*?)'", self.details)
+            if match:
+                return match.group(1)
+        return "N/A"
     
 # ==========================================
 # ENFORCE UNIQUE EMAILS AND USERNAMES

@@ -704,6 +704,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 pdfIframe.style.display = 'none';
                 pdfMissing.style.display = 'block';
             }
+
+            // Store current details for sharing
+            const viewModal = document.getElementById('viewModal');
+            if (viewModal) {
+                viewModal.setAttribute('data-current-doc-id', btn.getAttribute('data-id') || '');
+                viewModal.setAttribute('data-current-doc-number', docNumber || '');
+                viewModal.setAttribute('data-current-doc-title', docTitle || '');
+                viewModal.setAttribute('data-current-file-url', fileUrl || '');
+            }
+            
+            // Clear any previous share status messages
+            const statusMsg = document.getElementById('share-email-status');
+            const emailInput = document.getElementById('share-recipient-email');
+            if (statusMsg) statusMsg.innerText = '';
+            if (emailInput) emailInput.value = '';
         }
     });
 
@@ -1232,6 +1247,125 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error('❌ WebSocket closed unexpectedly. Retrying in 3 seconds...');
             setTimeout(connectWebSocket, 3000); // Auto-reconnect if it fails
         };
+    }
+
+    // ==========================================
+    // INJECT SHARE VIA EMAIL SECTION (MODAL FOOTER)
+    // ==========================================
+    const modalFooter = document.querySelector('#viewModal .modal-footer');
+    if (modalFooter) {
+        const shareHtml = `
+        <div class="share-email-footer-group" style="margin-right: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.75rem; color: #64748b; letter-spacing: 0.05em; text-transform: uppercase;">
+                <i class="fa-regular fa-paper-plane" style="color: #8B7355;"></i> Share via Email:
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <input type="email" id="share-recipient-email" placeholder="Enter recipient email..." 
+                    style="width: 220px; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; outline: none; transition: border-color 0.2s; background: #fff;"
+                    onfocus="this.style.borderColor='#8B7355'" onblur="this.style.borderColor='#cbd5e1'">
+                <button type="button" class="btn-add" id="view-share-email-btn" 
+                    style="padding: 6px 14px; font-size: 0.85rem; height: 34px; margin: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 6px; cursor: pointer; font-weight: 600; background-color: #8B7355; color: white; border: none; transition: opacity 0.2s;">
+                    Send
+                </button>
+            </div>
+            <span id="share-email-status" style="font-size: 0.75rem; font-weight: 600; white-space: nowrap;"></span>
+        </div>
+        `;
+        modalFooter.insertAdjacentHTML('afterbegin', shareHtml);
+        
+        // Add click handler for the Share button
+        const shareBtn = document.getElementById('view-share-email-btn');
+        if (shareBtn) {
+            shareBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const emailInput = document.getElementById('share-recipient-email');
+                const statusMsg = document.getElementById('share-email-status');
+                const viewModal = document.getElementById('viewModal');
+                
+                if (!emailInput || !statusMsg || !viewModal) return;
+                
+                const email = emailInput.value.trim();
+                const docId = viewModal.getAttribute('data-current-doc-id');
+                const docNumber = viewModal.getAttribute('data-current-doc-number');
+                const fileUrl = viewModal.getAttribute('data-current-file-url');
+                
+                // Reset status
+                statusMsg.innerText = '';
+                statusMsg.style.color = 'inherit';
+                
+                if (!email) {
+                    statusMsg.innerText = 'Please enter an email address.';
+                    statusMsg.style.color = '#dc3545';
+                    return;
+                }
+                
+                // Simple email validation regex
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    statusMsg.innerText = 'Please enter a valid email address.';
+                    statusMsg.style.color = '#dc3545';
+                    return;
+                }
+                
+                if (!fileUrl || fileUrl === 'None' || fileUrl === 'null' || fileUrl.trim() === '') {
+                    statusMsg.innerText = 'This document does not have a PDF file attached to share.';
+                    statusMsg.style.color = '#dc3545';
+                    return;
+                }
+                
+                // Disable button and input during send
+                const originalBtnText = shareBtn.innerHTML;
+                shareBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
+                shareBtn.disabled = true;
+                emailInput.disabled = true;
+                statusMsg.innerText = 'Sending email...';
+                statusMsg.style.color = '#64748b';
+                
+                // Get CSRF Token from DOM
+                let csrfToken = '';
+                const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfInput) {
+                    csrfToken = csrfInput.value;
+                }
+                
+                fetch('/api/share-document/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({
+                        email: email,
+                        doc_id: docId,
+                        doc_number: docNumber
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        statusMsg.innerText = '✅ Document shared successfully!';
+                        statusMsg.style.color = '#15803d'; // green
+                        emailInput.value = ''; // clear input
+                    } else {
+                        statusMsg.innerText = '❌ ' + (data.message || 'Failed to share document.');
+                        statusMsg.style.color = '#b91c1c'; // red
+                    }
+                })
+                .catch(err => {
+                    console.error('Error sharing document:', err);
+                    statusMsg.innerText = '❌ Network error. Please try again.';
+                    statusMsg.style.color = '#b91c1c';
+                })
+                .finally(() => {
+                    // Re-enable elements
+                    shareBtn.innerHTML = originalBtnText;
+                    shareBtn.disabled = false;
+                    emailInput.disabled = false;
+                });
+            });
+        }
     }
 
     // Initialize the connection
