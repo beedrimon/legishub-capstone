@@ -29,7 +29,14 @@ if not DEBUG and not SECRET_KEY:
 
 # Safely parse Allowed Hosts
 allowed_hosts_env = os.getenv('ALLOWED_HOSTS', '*')
-ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',') if host.strip()]
+if allowed_hosts_env.startswith('[') and allowed_hosts_env.endswith(']'):
+    import json
+    try:
+        ALLOWED_HOSTS = json.loads(allowed_hosts_env.replace("'", '"'))
+    except Exception:
+        ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',') if host.strip()]
+else:
+    ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_env.split(',') if host.strip()]
 
 # Automatically allow local IPs during development
 if DEBUG:
@@ -116,6 +123,9 @@ if DB_NAME:
             'PASSWORD': os.getenv('DB_PASSWORD') or os.getenv('PGPASSWORD'),
             'HOST': os.getenv('DB_HOST') or os.getenv('PGHOST'),
             'PORT': os.getenv('DB_PORT') or os.getenv('PGPORT', '5432'),
+            'OPTIONS': {
+                'sslmode': os.getenv('DB_SSL_MODE') or os.getenv('SUPABASE_DB_SSL_MODE') or ('require' if not DEBUG else 'prefer'),
+            }
         }
     }
 else:
@@ -216,12 +226,21 @@ else:
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # ==========================================
-# EMAIL CONFIGURATION (SENDINBLUE API)
+# EMAIL CONFIGURATION (BREVO / SENDINBLUE API)
 # ==========================================
-EMAIL_BACKEND = 'anymail.backends.sendinblue.EmailBackend'
-ANYMAIL = {
-    'SENDINBLUE_API_KEY': os.getenv('SENDINBLUE_API_KEY'),
-}
+# Dynamic backend configuration to support both older and newer django-anymail versions
+try:
+    from anymail.backends.brevo import EmailBackend
+    EMAIL_BACKEND = 'anymail.backends.brevo.EmailBackend'
+    ANYMAIL = {
+        'BREVO_API_KEY': os.getenv('BREVO_API_KEY') or os.getenv('SENDINBLUE_API_KEY'),
+    }
+except ImportError:
+    EMAIL_BACKEND = 'anymail.backends.sendinblue.EmailBackend'
+    ANYMAIL = {
+        'SENDINBLUE_API_KEY': os.getenv('SENDINBLUE_API_KEY') or os.getenv('BREVO_API_KEY'),
+    }
+
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Marikina LegisHub <noreply@legishub-marikina.me>')
 
 # ==========================================
