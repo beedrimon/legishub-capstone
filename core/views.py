@@ -2652,12 +2652,16 @@ def get_document_progress(request):
     
     data = []
     for p in progress:
+        file_url = p.file_attachment.url if p.file_attachment else None
+        if file_url and not file_url.startswith('http'):
+            file_url = request.build_absolute_uri(file_url)
+
         data.append({
             'id': p.id,
             'status': p.status,
             'update_date': p.update_date.strftime('%Y-%m-%d'),
             'note': p.note,
-            'file_attachment': p.file_attachment.url if p.file_attachment else None,
+            'file_attachment': file_url,
             'created_by': p.created_by.username if p.created_by else 'Unknown'
         })
     
@@ -2677,12 +2681,16 @@ def get_progress_detail(request):
     except DocumentProgress.DoesNotExist:
         return JsonResponse({'error': 'Progress not found'}, status=404)
     
+    file_url = progress.file_attachment.url if progress.file_attachment else None
+    if file_url and not file_url.startswith('http'):
+        file_url = request.build_absolute_uri(file_url)
+    
     data = {
         'id': progress.id,
         'status': progress.status,
         'update_date': progress.update_date.strftime('%B %d, %Y'),
         'note': progress.note,
-        'file_attachment': progress.file_attachment.url if progress.file_attachment else None,
+        'file_attachment': file_url,
         'created_by': progress.created_by.username if progress.created_by else 'Unknown',
         'created_at': progress.created_at.strftime('%Y-%m-%d %H:%M')
     }

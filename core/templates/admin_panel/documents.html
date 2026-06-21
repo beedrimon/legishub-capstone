@@ -565,145 +565,7 @@
             document.getElementById(modalId).style.display = 'none';
         }
 
-        // ==========================================
-        // LOAD PROGRESS TIMELINE (Bookmark Style)
-        // ==========================================
-        function loadProgressTimeline(docId) {
-            const timeline = document.getElementById('progressTimeline');
-            const detailDisplay = document.getElementById('progressDetailDisplay');
-            
-            if (detailDisplay) detailDisplay.style.display = 'none';
-            if (!timeline) return;
-            
-            fetch(`/api/document-progress/?doc_id=${docId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.progress && data.progress.length > 0) {
-                        let html = '';
-                        
-                        const sorted = [...data.progress].sort((a, b) => new Date(a.update_date) - new Date(b.update_date));
-                        const latest = sorted[sorted.length - 1];
-                        const currentStatus = latest ? latest.status : null;
-                        
-                        const darkBrown = '#7c5c35';
-                        const lightBrown = '#d9c8ac';
-                        const textLight = '#6b5a4a';
-                        
-                        sorted.forEach((item) => {
-                            const isCurrent = item.status === currentStatus;
-                            const bgColor = isCurrent ? darkBrown : lightBrown;
-                            const textColor = isCurrent ? 'white' : textLight;
-                            const statusDisplay = item.status.toUpperCase();
-                            
-                            html += `
-                                <div class="bookmark-item" style="display: flex; align-items: stretch; margin-bottom: 0; position: relative;">
-                                    <button class="progress-bookmark" 
-                                        style="display: flex; 
-                                               flex-direction: column;
-                                               align-items: flex-start;
-                                               justify-content: center;
-                                               background: ${bgColor}; 
-                                               color: ${textColor};
-                                               border: none; 
-                                               border-radius: 4px 0 0 4px;
-                                               padding: 6px 12px 6px 14px; 
-                                               font-size: 0.7rem; 
-                                               font-weight: ${isCurrent ? '700' : '600'}; 
-                                               cursor: pointer; 
-                                               transition: all 0.2s;
-                                               width: 100%;
-                                               text-align: left;
-                                               box-shadow: ${isCurrent ? '0 2px 6px rgba(124,92,53,0.2)' : 'none'};
-                                               position: relative;
-                                               min-height: 44px;
-                                               flex: 1;
-                                               border-right: 3px solid ${isCurrent ? darkBrown : 'transparent'};"
-                                        onclick="showProgressDetail(${item.id})"
-                                        onmouseover="if(!${isCurrent}){this.style.transform='translateX(-3px)'; this.style.boxShadow='0 2px 6px rgba(0,0,0,0.08)';}"
-                                        onmouseout="if(!${isCurrent}){this.style.transform='translateX(0)'; this.style.boxShadow='none';}">
-                                        <span style="font-size: 0.75rem; font-weight: ${isCurrent ? '700' : '600'}; margin-bottom: 1px;">
-                                            ${isCurrent ? ' ' : ''}${statusDisplay}
-                                        </span>
-                                        <span style="font-size: 0.55rem; opacity: 0.8; font-weight: 400;">
-                                            ${item.update_date}
-                                        </span>
-                                    </button>
-                                    ${isCurrent ? `
-                                    <div style="width: 6px; background: ${darkBrown}; border-radius: 0 4px 4px 0; flex-shrink: 0;"></div>
-                                    ` : `
-                                    <div style="width: 4px; background: ${lightBrown}; border-radius: 0 3px 3px 0; flex-shrink: 0;"></div>
-                                    `}
-                                </div>
-                            `;
-                        });
-                        
-                        timeline.innerHTML = html;
-                        
-                        const currentBookmark = timeline.querySelector('.bookmark-item:last-child');
-                        if (currentBookmark) {
-                            setTimeout(() => {
-                                currentBookmark.scrollIntoView({ block: 'end', behavior: 'smooth' });
-                            }, 100);
-                        }
-                    } else {
-                        timeline.innerHTML = `
-                            <div style="color: var(--text-light); font-size: 0.75rem; padding: 20px 10px; text-align: center;">
-                                <i class="fa-regular fa-clock"></i> No progress yet.
-                            </div>
-                        `;
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading progress:', error);
-                    timeline.innerHTML = `
-                        <div style="color: #dc3545; font-size: 0.75rem; padding: 10px; text-align: center;">
-                            <i class="fa-solid fa-exclamation-triangle"></i> Failed to load.
-                        </div>
-                    `;
-                });
-        }
-
-        // ==========================================
-        // SHOW PROGRESS DETAIL
-        // ==========================================
-        function showProgressDetail(progressId) {
-            const detailDisplay = document.getElementById('progressDetailDisplay');
-            if (!detailDisplay) return;
-            
-            document.querySelectorAll('.progress-bookmark').forEach(btn => {
-                btn.style.transform = 'translateX(0)';
-            });
-            
-            fetch(`/api/progress-detail/?id=${progressId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        detailDisplay.style.display = 'block';
-                        document.getElementById('pd-date').textContent = data.progress.update_date;
-                        document.getElementById('pd-status').textContent = data.progress.status.toUpperCase();
-                        document.getElementById('pd-note').textContent = data.progress.note || 'No note provided.';
-                        
-                        const fileContainer = document.getElementById('pd-file');
-                        if (fileContainer) {
-                            if (data.progress.file_attachment) {
-                                fileContainer.innerHTML = `
-                                    <a href="${data.progress.file_attachment}" target="_blank" style="color: var(--sidebar-bg); text-decoration: none; font-weight: 600;">
-                                        <i class="fa-regular fa-file-pdf"></i> View Attached File
-                                    </a>
-                                `;
-                            } else {
-                                fileContainer.innerHTML = `
-                                    <span style="color: var(--text-light); font-style: italic;">No file attached.</span>
-                                `;
-                            }
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading progress detail:', error);
-                });
-        }
-
+       
         // ==========================================
         // GHOST CLICK LOGIC
         // ==========================================
@@ -795,8 +657,8 @@
     </script>
 
     <style>
-        .progress-bookmark:hover {
-            transform: translateX(-3px) !important;
+        .progress-bookmark.active {
+            transform: translateX(-2px);
         }
         
         @media screen and (max-width: 576px) {

@@ -1229,6 +1229,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 // LOAD PROGRESS TIMELINE (Bookmark Style)
 // ==========================================
+function escapeHtmlAttribute(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
+
 function loadProgressTimeline(docId) {
     const timeline = document.getElementById('progressTimeline');
     const detailDisplay = document.getElementById('progressDetailDisplay');
@@ -1245,78 +1254,88 @@ function loadProgressTimeline(docId) {
     fetch(`/api/document-progress/?doc_id=${docId}`)
         .then(response => response.json())
         .then(data => {
-            console.log('Progress data:', data);
+            console.log('Progress list API response:', data);
             
             if (data.progress && data.progress.length > 0) {
-                let html = '';
+                timeline.innerHTML = '';
+
                 const sorted = [...data.progress].sort((a, b) => new Date(a.update_date) - new Date(b.update_date));
                 const latest = sorted[sorted.length - 1];
                 const currentStatus = latest ? latest.status : null;
                 
+                console.log('Sorted progress items:', sorted);
+                console.log('Latest/current status:', currentStatus);
+                
                 const darkBrown = '#7c5c35';
                 const lightBrown = '#d9c8ac';
                 const textLight = '#6b5a4a';
-                
+
                 sorted.forEach((item) => {
                     const isCurrent = item.status === currentStatus;
-                    const bgColor = isCurrent ? darkBrown : lightBrown;
-                    const textColor = isCurrent ? 'white' : textLight;
-                    const statusDisplay = item.status.toUpperCase();
-                    const fileUrl = item.file_attachment || '';
-                    const note = item.note || 'No note provided.';
-                    const updateDate = item.update_date;
-                    const status = item.status;
-                    const progressId = item.id;
+                    console.log(`Creating button for progress ID ${item.id}: status=${item.status}, hasFile=${!!item.file_attachment}`);
                     
-                    const escapedNote = note.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-                    
-                    html += `
-                        <div class="bookmark-item" style="display: flex; align-items: stretch; margin-bottom: 0; position: relative;">
-                            <button class="progress-bookmark" 
-                                data-progress-id="${progressId}"
-                                data-file-url="${fileUrl || ''}"
-                                data-status="${status}"
-                                data-update-date="${updateDate}"
-                                data-note="${escapedNote}"
-                                style="display: flex; 
-                                       flex-direction: column;
-                                       align-items: flex-start;
-                                       justify-content: center;
-                                       background: ${bgColor}; 
-                                       color: ${textColor};
-                                       border: none; 
-                                       border-radius: 4px 0 0 4px;
-                                       padding: 8px 14px 8px 16px; 
-                                       font-size: 0.75rem; 
-                                       font-weight: ${isCurrent ? '700' : '600'}; 
-                                       cursor: pointer; 
-                                       transition: all 0.2s;
-                                       width: 100%;
-                                       text-align: left;
-                                       box-shadow: ${isCurrent ? '0 2px 8px rgba(124,92,53,0.25)' : 'none'};
-                                       position: relative;
-                                       min-height: 48px;
-                                       flex: 1;
-                                       border-right: 3px solid ${isCurrent ? darkBrown : 'transparent'};"
-                                onclick="showProgressDetail(this)">
-                                <span style="font-size: 0.8rem; font-weight: ${isCurrent ? '700' : '600'}; margin-bottom: 2px;">
-                                    ${isCurrent ? 'CURRENT - ' : ''}${statusDisplay}
-                                </span>
-                                <span style="font-size: 0.55rem; opacity: 0.8; font-weight: 400;">
-                                    ${item.update_date}
-                                </span>
-                            </button>
-                            ${isCurrent ? `
-                            <div style="width: 6px; background: ${darkBrown}; border-radius: 0 4px 4px 0; flex-shrink: 0;"></div>
-                            ` : `
-                            <div style="width: 4px; background: ${lightBrown}; border-radius: 0 3px 3px 0; flex-shrink: 0;"></div>
-                            `}
-                        </div>
-                    `;
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'bookmark-item';
+                    wrapper.style.display = 'flex';
+                    wrapper.style.alignItems = 'stretch';
+                    wrapper.style.marginBottom = '0';
+                    wrapper.style.position = 'relative';
+
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'progress-bookmark';
+                    button.dataset.progressId = item.id;
+                    button.dataset.status = item.status || '';
+                    button.dataset.updateDate = item.update_date || '';
+                    button.dataset.note = item.note || 'No note provided.';
+                    button.style.display = 'flex';
+                    button.style.flexDirection = 'column';
+                    button.style.alignItems = 'flex-start';
+                    button.style.justifyContent = 'center';
+                    button.style.background = isCurrent ? darkBrown : lightBrown;
+                    button.style.color = isCurrent ? 'white' : textLight;
+                    button.style.border = 'none';
+                    button.style.borderRadius = '4px 0 0 4px';
+                    button.style.padding = '8px 14px 8px 16px';
+                    button.style.fontSize = '0.75rem';
+                    button.style.fontWeight = isCurrent ? '700' : '600';
+                    button.style.cursor = 'pointer';
+                    button.style.transition = 'all 0.2s';
+                    button.style.width = '100%';
+                    button.style.textAlign = 'left';
+                    button.style.boxShadow = isCurrent ? '0 2px 8px rgba(124,92,53,0.25)' : 'none';
+                    button.style.position = 'relative';
+                    button.style.minHeight = '48px';
+                    button.style.flex = '1';
+                    button.style.borderRight = `3px solid ${isCurrent ? darkBrown : 'transparent'}`;
+
+                    const statusText = document.createElement('span');
+                    statusText.style.fontSize = '0.8rem';
+                    statusText.style.fontWeight = isCurrent ? '700' : '600';
+                    statusText.style.marginBottom = '2px';
+                    statusText.textContent = `${isCurrent ? 'CURRENT - ' : ''}${item.status.toUpperCase()}`;
+                    button.appendChild(statusText);
+
+                    const dateText = document.createElement('span');
+                    dateText.style.fontSize = '0.55rem';
+                    dateText.style.opacity = '0.8';
+                    dateText.style.fontWeight = '400';
+                    dateText.textContent = item.update_date;
+                    button.appendChild(dateText);
+
+                    button.addEventListener('click', () => showProgressDetail(button));
+                    wrapper.appendChild(button);
+
+                    const marker = document.createElement('div');
+                    marker.style.width = isCurrent ? '6px' : '4px';
+                    marker.style.background = isCurrent ? darkBrown : lightBrown;
+                    marker.style.borderRadius = isCurrent ? '0 4px 4px 0' : '0 3px 3px 0';
+                    marker.style.flexShrink = '0';
+                    wrapper.appendChild(marker);
+
+                    timeline.appendChild(wrapper);
                 });
-                
-                timeline.innerHTML = html;
-                
+
                 const currentBookmark = timeline.querySelector('.bookmark-item:last-child');
                 if (currentBookmark) {
                     setTimeout(() => {
@@ -1388,13 +1407,11 @@ function showProgressDetail(btn) {
     }
     
     // Get data from button
-    const fileUrl = btn.getAttribute('data-file-url');
-    const status = btn.getAttribute('data-status');
-    const updateDate = btn.getAttribute('data-update-date');
-    const note = btn.getAttribute('data-note');
-    const progressId = btn.getAttribute('data-progress-id');
+    const status = btn.dataset.status || btn.getAttribute('data-status');
+    const updateDate = btn.dataset.updateDate || btn.getAttribute('data-update-date');
+    const note = btn.dataset.note || btn.getAttribute('data-note');
+    const progressId = btn.dataset.progressId || btn.getAttribute('data-progress-id');
     
-    console.log('File URL from button:', fileUrl);
     console.log('Status:', status);
     console.log('Date:', updateDate);
     
@@ -1407,42 +1424,71 @@ function showProgressDetail(btn) {
         document.getElementById('pd-note').textContent = note || 'No note provided.';
     }
     
-    // Update file link
+    // Show loading placeholder while the API resolves the progress file URL
     const fileContainer = document.getElementById('pd-file');
     if (fileContainer) {
-        if (fileUrl && fileUrl !== 'null' && fileUrl !== '' && fileUrl !== 'undefined') {
-            fileContainer.innerHTML = `
-                <a href="${fileUrl}" target="_blank" style="color: var(--sidebar-bg); text-decoration: none; font-weight: 600;">
-                    <i class="fa-regular fa-file-pdf"></i> View Attached File
-                </a>
-            `;
-        } else {
-            fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">No file attached.</span>`;
-        }
+        fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">Loading file preview...</span>`;
     }
     
-    // UPDATE PDF PREVIEW
     const pdfIframe = document.getElementById('view-pdf-iframe');
     const pdfMissing = document.getElementById('view-pdf-missing');
-    
-    console.log('File URL for iframe:', fileUrl);
-    
     if (pdfIframe && pdfMissing) {
-        const hasFile = fileUrl && fileUrl.trim() !== '' && fileUrl !== 'null' && fileUrl !== 'undefined' && fileUrl !== 'None';
-        
-        if (hasFile) {
-            const urlWithTimestamp = fileUrl + (fileUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
-            pdfIframe.src = urlWithTimestamp + '#view=FitH';
-            pdfIframe.style.display = 'block';
-            pdfMissing.style.display = 'none';
-            console.log('PDF loaded from progress:', urlWithTimestamp);
-        } else {
-            pdfIframe.src = '';
-            pdfIframe.style.display = 'none';
-            pdfMissing.style.display = 'block';
-            console.log('No PDF attached to this progress');
-        }
+        pdfIframe.src = '';
+        pdfIframe.style.display = 'none';
+        pdfMissing.style.display = 'block';
     }
+
+    console.log('Fetching progress detail for ID:', progressId);
+    fetch(`/api/progress-detail/?id=${progressId}`)
+        .then(response => {
+            console.log('Progress detail response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Progress detail API response:', data);
+            if (data.success) {
+                const fileUrl = data.progress.file_attachment;
+                console.log('File URL from API:', fileUrl);
+                const fileContainer = document.getElementById('pd-file');
+                const pdfIframe = document.getElementById('view-pdf-iframe');
+                const pdfMissing = document.getElementById('view-pdf-missing');
+
+                if (fileContainer) {
+                    if (fileUrl) {
+                        const safeFileUrl = escapeHtmlAttribute(fileUrl);
+                        fileContainer.innerHTML = `
+                            <a href="${safeFileUrl}" target="_blank" style="color: var(--sidebar-bg); text-decoration: none; font-weight: 600;">
+                                <i class="fa-regular fa-file-pdf"></i> View Attached File
+                            </a>
+                        `;
+                    } else {
+                        fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">No file attached.</span>`;
+                    }
+                }
+
+                if (pdfIframe && pdfMissing) {
+                    if (fileUrl) {
+                        pdfIframe.src = fileUrl + '#view=FitH';
+                        pdfIframe.style.display = 'block';
+                        pdfMissing.style.display = 'none';
+                        console.log('PDF loaded successfully from:', fileUrl);
+                    } else {
+                        pdfIframe.src = '';
+                        pdfIframe.style.display = 'none';
+                        pdfMissing.style.display = 'block';
+                        console.log('No file attached to this progress');
+                    }
+                }
+            } else {
+                console.error('API returned error:', data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error loading progress detail:', error);
+            if (fileContainer) {
+                fileContainer.innerHTML = `<span style="color: #dc3545; font-style: italic;">Error loading file.</span>`;
+            }
+        });
 }
 
 // Expose functions to global scope explicitly
