@@ -427,3 +427,26 @@ def notify_backup_update(sender, instance, created, **kwargs):
             print(f"✅ SUCCESS: WebSocket broadcast sent for BackupLog update: {instance.id}!")
         except Exception as e:
             print(f"❌ WEBSOCKET ERROR: Failed to broadcast BackupLog update: {e}")
+
+
+# ==========================================
+# DOCUMENT PROGRESS/STATUS HISTORY MODEL
+# ==========================================
+
+class DocumentProgress(models.Model):
+    """Track document progress/status updates"""
+    
+    document = models.ForeignKey(LegislativeDocument, on_delete=models.CASCADE, related_name='progress_updates')
+    status = models.CharField(max_length=50, choices=LegislativeDocument.STATUS_CHOICES)
+    update_date = models.DateField()
+    note = models.TextField(blank=True, null=True)
+    file_attachment = models.FileField(upload_to='progress_files/', null=True, blank=True)  # Already exists
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='progress_updates')
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'document_progress'
+        ordering = ['-update_date']
+    
+    def __str__(self):
+        return f"{self.document.document_number} - {self.status} - {self.update_date}"

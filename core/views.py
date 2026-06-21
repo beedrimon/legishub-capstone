@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument, SystemSetting, BackupLog
+from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument, SystemSetting, BackupLog, DocumentProgress
 from django.core.paginator import Paginator
 from django.db.models import Q, Case, IntegerField, Value, When
 from django.db import transaction, IntegrityError
@@ -1851,7 +1851,7 @@ def upload_document(request):
         
         try:
             if status == 'Archived':
-                ArchivedDocument.objects.create(
+                archive_record = ArchivedDocument.objects.create(
                     archive_id=f"ARC-{document_number}",
                     original_document_number=document_number,
                     title=title,
@@ -1867,6 +1867,17 @@ def upload_document(request):
                     original_date_filed=timezone.now().date(), 
                     archived_by=request.user
                 )
+                
+                # Create initial progress entry for archived document
+                DocumentProgress.objects.create(
+                    document=None,  # Archived documents don't have a LegislativeDocument reference
+                    status='Archived',
+                    update_date=timezone.now().date(),
+                    note=f"Document archived on upload",
+                    file_attachment=file_attachment,
+                    created_by=request.user
+                )
+                
                 AuditLog.objects.create(
                     user=request.user,
                     action='Upload',
@@ -1876,6 +1887,7 @@ def upload_document(request):
                 return redirect('archive')
 
             # 3. Save the document to the database
+            # Inside upload_document, after creating new_doc
             else:
                 new_doc = LegislativeDocument.objects.create(
                     title=title,
@@ -1893,12 +1905,24 @@ def upload_document(request):
                     status=status
                 )
 
-                # 4. Save an Audit Log entry
+                # ==========================================
+                # CREATE INITIAL BOOKMARK FOR THE DOCUMENT
+                # ==========================================
+                DocumentProgress.objects.create(
+                    document=new_doc,
+                    status=status,
+                    update_date=new_doc.date_filed,
+                    note=f"Initial document upload with status: {status}",
+                    file_attachment=file_attachment,  # This is the PDF file
+                    created_by=request.user
+                )
+
+                # Save an Audit Log entry
                 AuditLog.objects.create(
                     user=request.user,
                     action='Upload',
                     document=new_doc,
-                    details=f"Uploaded new document '{document_number}'"
+                    details=f"Uploaded new document '{document_number}' with status '{status}'"
                 )
 
                 messages.success(request, 'Document successfully uploaded!')
@@ -2014,12 +2038,13 @@ def edit_document(request):
             messages.error(request, 'Document not found.')
             return redirect('documents')
         
- # --- SMART UPDATE & TRACKING LOGIC ---
+        # --- SMART UPDATE & TRACKING LOGIC ---
         changes = []
+        status_changed = False
+        old_status = doc.status
         
         def update_field(attr_name, form_val, display_name):
             old_val = getattr(doc, attr_name)
-            # Only update and log if the form provided a value AND it's different
             if form_val and str(old_val) != str(form_val):
                 changes.append(f"{display_name} to '{form_val}'")
                 setattr(doc, attr_name, form_val)
@@ -2035,11 +2060,11 @@ def edit_document(request):
         update_field('visibility', request.POST.get('visibility'), 'Visibility')
         update_field('physical_storage', request.POST.get('physical_storage'), 'Storage')
         
-        old_status = doc.status
         new_status = request.POST.get('status')
         if new_status and new_status != old_status:
             changes.append(f"Status to '{new_status}'")
             doc.status = new_status
+            status_changed = True
 
         # --- SAVE VETO REASON ---
         if doc.status == 'Vetoed':
@@ -2072,7 +2097,6 @@ def edit_document(request):
                         archived_by=request.user
                     )
 
-                    # Safely attempt to copy the file. If missing locally, it fails gracefully.
                     if doc.file_attachment and doc.file_attachment.name:
                         try:
                             archive_record.file_attachment.save(
@@ -2081,13 +2105,11 @@ def edit_document(request):
                                 save=True
                             )
                         except FileNotFoundError:
-                            pass # Missing local file, continue archiving without it
+                            pass
                     
-                    # Store the doc number before deleting it so we can log it!
                     deleted_doc_number = doc.document_number 
-                    doc.delete() # Remove original document after successful archive
+                    doc.delete()
 
-                    # --- NEW: LOG THE ARCHIVE ACTION ---
                     AuditLog.objects.create(
                         user=request.user,
                         action='Edit',
@@ -2104,7 +2126,7 @@ def edit_document(request):
                 messages.error(request, f'Failed to archive: {str(e)}')
                 return redirect(request.META.get('HTTP_REFERER', 'documents'))
         
-        # --- NEW: VETO TRANSFER LOGIC ---
+        # --- VETO TRANSFER LOGIC ---
         elif doc.status == 'Vetoed':
             try:
                 with transaction.atomic():
@@ -2124,7 +2146,6 @@ def edit_document(request):
                         vetoed_by=request.user
                     )
 
-                    # Safely move the PDF file
                     if doc.file_attachment and doc.file_attachment.name:
                         try:
                             vetoed_record.file_attachment.save(
@@ -2135,13 +2156,9 @@ def edit_document(request):
                         except FileNotFoundError:
                             pass 
 
-                    # 1. STORE THE NUMBER BEFORE DELETING!
                     deleted_doc_number = doc.document_number 
-                    
-                    # 2. DELETE FROM MAIN TABLE
                     doc.delete() 
 
-                    # 3. CREATE THE AUDIT LOG!
                     AuditLog.objects.create(
                         user=request.user,
                         action='Edit',
@@ -2164,14 +2181,26 @@ def edit_document(request):
             # Combine all changes into one string
             change_summary = "Changed " + ", ".join(changes) if changes else "No fields were changed"
 
-            # --- NEW: CREATE AUDIT LOG FOR EDITS & STATUS CHANGES ---
+            # ==========================================
+            # NEW: CREATE PROGRESS ENTRY FOR STATUS CHANGE
+            # ==========================================
+            if status_changed:
+                DocumentProgress.objects.create(
+                    document=doc,
+                    status=doc.status,
+                    update_date=timezone.now().date(),
+                    note=f"Document status updated from '{old_status}' to '{doc.status}'",
+                    file_attachment=doc.file_attachment,
+                    created_by=request.user
+                )
+
+            # Create Audit Log
             AuditLog.objects.create(
                 user=request.user,
                 action='Edit',
                 document=doc,
-                details=change_summary  # <-- Saves exactly what happened!
+                details=change_summary
             )
-            # --------------------------------------------------------
 
             messages.success(request, 'Document successfully updated.')
             return redirect(request.META.get('HTTP_REFERER', 'documents'))
@@ -2546,3 +2575,116 @@ def send_shared_document_email(recipient_email, doc_id, doc_model_name):
             raise e
 
     email.send(fail_silently=False)
+
+# ==========================================
+# ADD DOCUMENT PROGRESS VIEW
+# ==========================================
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def add_document_progress(request):
+    if is_legislator(request.user):
+        messages.error(request, 'Action Denied: Legislators have read-only access.')
+        return redirect('documents')
+    
+    doc_id = request.POST.get('document_id')
+    update_date = request.POST.get('update_date')
+    status = request.POST.get('status')
+    note = request.POST.get('note', '').strip()
+    file_attachment = request.FILES.get('file_attachment')
+    
+    if not doc_id or not update_date or not status:
+        messages.error(request, 'Please fill in all required fields.')
+        return redirect('documents')
+    
+    try:
+        doc = LegislativeDocument.objects.get(id=doc_id)
+    except LegislativeDocument.DoesNotExist:
+        messages.error(request, 'Document not found.')
+        return redirect('documents')
+    
+    # Validate status
+    valid_statuses = [choice[0] for choice in LegislativeDocument.STATUS_CHOICES]
+    if status not in valid_statuses:
+        messages.error(request, 'Invalid status selected.')
+        return redirect('documents')
+    
+    # Create progress entry with file
+    progress = DocumentProgress.objects.create(
+        document=doc,
+        status=status,
+        update_date=update_date,
+        note=note,
+        file_attachment=file_attachment,  # This saves the PDF
+        created_by=request.user
+    )
+    
+    # Update the document's current status
+    doc.status = status
+    doc.save()
+    
+    # Log the action
+    AuditLog.objects.create(
+        user=request.user,
+        action='Edit',
+        document=doc,
+        details=f"Added progress update for '{doc.document_number}': Status changed to '{status}'"
+    )
+    
+    messages.success(request, f'Progress status updated to "{status}" successfully!')
+    return redirect('documents')
+
+
+# ==========================================
+# API: GET DOCUMENT PROGRESS
+# ==========================================
+@login_required(login_url='login')
+def get_document_progress(request):
+    doc_id = request.GET.get('doc_id')
+    if not doc_id:
+        return JsonResponse({'error': 'Document ID required'}, status=400)
+    
+    try:
+        doc = LegislativeDocument.objects.get(id=doc_id)
+    except LegislativeDocument.DoesNotExist:
+        return JsonResponse({'error': 'Document not found'}, status=404)
+    
+    progress = DocumentProgress.objects.filter(document=doc).order_by('update_date')
+    
+    data = []
+    for p in progress:
+        data.append({
+            'id': p.id,
+            'status': p.status,
+            'update_date': p.update_date.strftime('%Y-%m-%d'),
+            'note': p.note,
+            'file_attachment': p.file_attachment.url if p.file_attachment else None,
+            'created_by': p.created_by.username if p.created_by else 'Unknown'
+        })
+    
+    return JsonResponse({'success': True, 'progress': data})
+
+# ==========================================
+# API: GET PROGRESS DETAIL
+# ==========================================
+@login_required(login_url='login')
+def get_progress_detail(request):
+    progress_id = request.GET.get('id')
+    if not progress_id:
+        return JsonResponse({'error': 'Progress ID required'}, status=400)
+    
+    try:
+        progress = DocumentProgress.objects.get(id=progress_id)
+    except DocumentProgress.DoesNotExist:
+        return JsonResponse({'error': 'Progress not found'}, status=404)
+    
+    data = {
+        'id': progress.id,
+        'status': progress.status,
+        'update_date': progress.update_date.strftime('%B %d, %Y'),
+        'note': progress.note,
+        'file_attachment': progress.file_attachment.url if progress.file_attachment else None,
+        'created_by': progress.created_by.username if progress.created_by else 'Unknown',
+        'created_at': progress.created_at.strftime('%Y-%m-%d %H:%M')
+    }
+    
+    return JsonResponse({'success': True, 'progress': data})

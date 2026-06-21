@@ -17,7 +17,9 @@ document.addEventListener('DOMContentLoaded', () => {
         edit: document.getElementById('editModal'),
         user: document.getElementById('userModal'),
         editUser: document.getElementById('editUserModal'),
-        reviewUpload: document.getElementById('reviewUploadModal')
+        reviewUpload: document.getElementById('reviewUploadModal'),
+        progress: document.getElementById('progressModal'),
+        progressDetail: document.getElementById('progressDetailModal') 
     };
 
     // 2. Helper to close all UI overlays
@@ -46,7 +48,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // 3. Generic Modal Trigger Logic
-    // This looks for specific classes and opens the matching modal ID
     const setupTrigger = (selector, modalKey, formId = null) => {
         document.addEventListener('click', (e) => {
             const btn = e.target.closest(selector);
@@ -176,6 +177,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTrigger('.trigger-edit', 'edit');
     setupTrigger('.trigger-user', 'user');
     setupTrigger('.trigger-edit-user', 'editUser');
+    setupTrigger('.trigger-progress', 'progress');
 
     // ==========================================
     // REVIEW UPLOAD MODAL LOGIC
@@ -267,9 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (backToEditBtn) {
         backToEditBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            e.stopPropagation(); // Prevents the global discard script from clearing the files
+            e.stopPropagation();
             if (modals.reviewUpload) modals.reviewUpload.style.display = 'none';
-            // Re-open the form that was being edited
             if (activeUploadForm) {
                 const parentOverlay = activeUploadForm.closest('.modal-overlay');
                 if (parentOverlay) parentOverlay.style.display = 'flex';
@@ -282,10 +283,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const closeBtn = e.target.closest('.close-modal, .btn-discard, #discardBtn, #closeModal');
         
         if (closeBtn) {
-            // Prevent "Back to Edit" or "Clear Data" from triggering a full close
             if (closeBtn.id === 'backToEditBtn' || closeBtn.innerText.includes('Clear Data')) return;
 
-            // SMART CONFIRMATION LOGIC FOR UPLOADS
             const parentModal = closeBtn.closest('.modal-overlay');
             if (parentModal && (parentModal.id === 'uploadNewModal' || parentModal.id === 'uploadExistingModal')) {
                 
@@ -304,18 +303,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
                 }
 
-                // If they have data, ask for confirmation!
                 if (isDirty) {
-                    // FIXED: Updated the warning message since data is no longer erased!
                     if (!confirm("Are you sure you want to close? Your inputs will be kept here in the background.")) {
-                        return; // Cancel the close action
+                        return;
                     }
                 }
-                
-                // FIXED: Completely removed form.reset() and clearDraft() so the data stays!
-                
-            } else if (parentModal && parentModal.id === 'editModal') {
-                // FIXED: Removed form.reset() and clearDraft() here too!
             }
 
             closeAllOverlays();
@@ -330,21 +322,18 @@ document.addEventListener('DOMContentLoaded', () => {
             const isShowing = notifDropdown.style.display === 'block';
             closeAllOverlays();
             notifDropdown.style.display = isShowing ? 'none' : 'block';
-
-            // The red badge count will now persist until notifications are individually marked as read
         });
     }
 
     // ==========================================
     // UNIFIED AJAX FETCH LOGIC & INFINITE SCROLL
     // ==========================================
-    let currentNotifLimit = 10; // Start by loading 10 items
-    let isInitialNotifLoad = true; // Track first load for skeleton
+    let currentNotifLimit = 10;
+    let isInitialNotifLoad = true;
 
     function fetchNotifications() {
         const notifBody = document.getElementById('notifModalBody');
 
-        // Inject animated skeleton loader on the first fetch
         if (isInitialNotifLoad && notifBody) {
             let skeletonHtml = `
             <style>
@@ -375,16 +364,14 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 const notifBadge = document.querySelector('.notif-badge');
 
-                isInitialNotifLoad = false; // Mark initial load as complete
+                isInitialNotifLoad = false;
 
                 if (notifBody && data.notifications) {
                     let htmlContent = '';
 
-                    // Grab the last read ID from browser memory (default to 0 if never clicked)
                     const lastReadId = parseInt(localStorage.getItem('lastReadNotifId')) || 0;
                     const individuallyReadIds = JSON.parse(localStorage.getItem('individuallyReadIds')) || [];
 
-                    // Track the highest ID in this current batch so we can save it later
                     window.highestNotifId = data.notifications.length > 0 ? Math.max(...data.notifications.map(n => n.id)) : 0;
 
                     if (data.notifications.length > 0) {
@@ -395,7 +382,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (notif.message.includes('Upload')) iconClass = 'fa-file-invoice';
                             else if (notif.message.includes('Updated') || notif.message.includes('modified')) iconClass = 'fa-file-signature';
 
-                            // Determine if THIS specific notification is unread
                             const isUnread = notif.id > lastReadId && !individuallyReadIds.includes(notif.id);
                             const unreadClass = isUnread ? 'unread' : 'read';
                             const redDotHtml = isUnread ? '<span class="red-dot"></span>' : '';
@@ -415,7 +401,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>`;
                         });
 
-                        // Calculate the exact number of unread items and display in the badge
                         const unreadItemsCount = data.notifications.filter(n => n.id > lastReadId && !individuallyReadIds.includes(n.id)).length;
                         if (notifBadge) {
                             if (unreadItemsCount > 0) {
@@ -435,7 +420,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     notifBody.innerHTML = htmlContent;
 
-                    // ... (keep the rest of the button toggle logic here)
                     const loadMoreBtn = document.getElementById('loadMoreNotifsBtn');
                     const goToAuditLogsBtn = document.getElementById('goToAuditLogsBtn');
 
@@ -456,7 +440,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(error => console.error('Error fetching notifications:', error));
     }
 
-    // Only fetch notifications if the notifications modal exists on the current page
     if (document.getElementById('notifModalBody')) {
         fetchNotifications();
         setInterval(fetchNotifications, 30000);
@@ -473,14 +456,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (notifItem && notifItem.classList.contains('unread')) {
                 const notifId = parseInt(notifItem.dataset.id);
                 if (notifId) {
-                    // 1. Update localStorage
                     let individuallyReadIds = JSON.parse(localStorage.getItem('individuallyReadIds')) || [];
                     if (!individuallyReadIds.includes(notifId)) {
                         individuallyReadIds.push(notifId);
                         localStorage.setItem('individuallyReadIds', JSON.stringify(individuallyReadIds));
                     }
 
-                    // 2. Update UI instantly
                     notifItem.classList.remove('unread');
                     notifItem.classList.add('read');
                     const blueDot = notifItem.querySelector('.unread-dot');
@@ -488,7 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     const redDot = notifItem.querySelector('.red-dot');
                     if (redDot) redDot.style.display = 'none';
 
-                    // 3. Update main bell badge
                     const remainingUnread = notifModalBody.querySelectorAll('.notif-list-item.unread').length;
                     const notifBadge = document.querySelector('.notif-badge');
                     if (notifBadge) {
@@ -499,7 +479,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
 
-                    // 4. Hide from unread tab if active
                     const activeTab = document.querySelector('.notif-tab.active');
                     if (activeTab && activeTab.getAttribute('data-tab') === 'unread') {
                         notifItem.style.display = 'none';
@@ -528,7 +507,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (profileBtn && profileDropdownContent) {
         profileBtn.addEventListener('click', (e) => {
-            // Only toggle if we didn't click a link inside the dropdown
             if (e.target.closest('a')) {
                 return;
             }
@@ -538,12 +516,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 6. Global Click Listener (Close when clicking outside)
+    // 6. Global Click Listener
     window.addEventListener('click', (event) => {
-        // Close modal if clicking the dark background overlay
         if (event.target.classList.contains('modal-overlay')) {
-            
-            // SMART CONFIRMATION LOGIC FOR BACKGROUND CLICKS
             if (event.target.id === 'uploadNewModal' || event.target.id === 'uploadExistingModal') {
                 const form = event.target.querySelector('form');
                 let isDirty = false;
@@ -561,48 +536,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (isDirty) {
-                    // FIXED: Updated the warning message since data is no longer erased!
                     if (!confirm("Are you sure you want to close? Your inputs will be kept here in the background.")) {
-                        return; // Cancel the close action
+                        return;
                     }
                 }
-                
-                // FIXED: Completely removed form.reset() and clearDraft() so the data stays!
-                
-            } else if (event.target.id === 'editModal') {
-                // FIXED: Removed form.reset() and clearDraft() here too!
             }
-            
             closeAllOverlays();
         }
 
-        // Close upload dropdown if clicking outside
         if (uploadDropdownWrapper && !uploadDropdownWrapper.contains(event.target)) {
             uploadDropdownWrapper.classList.remove('show');
         }
 
-        // Close notification if clicking outside
         if (notifDropdown &&
             !notifDropdown.contains(event.target) &&
             bell && !bell.contains(event.target)) {
             notifDropdown.style.display = 'none';
         }
         
-        // Close profile dropdown if clicking outside
         if (profileBtn && !profileBtn.contains(event.target)) {
             profileBtn.classList.remove('show');
         }
     });
 
     // ==========================================
-    // FILE UPLOAD UI FEEDBACK (Upload Modal)
+    // FILE UPLOAD UI FEEDBACK
     // ==========================================
-    // Use event delegation to catch ALL file inputs across the entire application.
-    // This completely ignores IDs and safely finds the input no matter what it's named.
     document.addEventListener('change', function (e) {
         if (e.target && e.target.type === 'file') {
             const fileInput = e.target;
-            // Pinpoint the exact visual box directly surrounding this specific input
             const uploadArea = fileInput.closest('.upload-area');
 
             if (uploadArea) {
@@ -611,7 +573,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (uploadText) {
                     if (fileInput.files && fileInput.files.length > 0) {
-                        // Use innerHTML to preserve <strong> tags utilized by Edit Modals
                         if (!uploadArea.hasAttribute('data-default-html')) {
                             uploadArea.setAttribute('data-default-html', uploadText.innerHTML);
                             if (uploadSpan) uploadArea.setAttribute('data-default-span', uploadSpan.innerText);
@@ -620,7 +581,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         uploadText.innerHTML = `File attached: <strong style="color: #22C55E;">${fileInput.files[0].name}</strong>`;
                         if (uploadSpan) uploadSpan.innerText = 'Ready to upload';
                     } else {
-                        // Revert to original text/formatting if user clicks "Cancel"
                         if (uploadArea.hasAttribute('data-default-html')) {
                             uploadText.innerHTML = uploadArea.getAttribute('data-default-html');
                             if (uploadSpan) uploadSpan.innerText = uploadArea.getAttribute('data-default-span');
@@ -637,7 +597,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('.trigger-view');
         if (btn) {
-            // 1. Read the data from the icon we clicked
             const docNumber = btn.getAttribute('data-number');
             const docTitle = btn.getAttribute('data-title');
             const docType = btn.getAttribute('data-type');
@@ -653,82 +612,118 @@ document.addEventListener('DOMContentLoaded', () => {
             const fileUrl = btn.getAttribute('data-file');
             const vetoReason = btn.getAttribute('data-vetoreason');
 
-            // 2. Inject the data into the modal's HTML
-            document.getElementById('view-number').innerText = docNumber;
-            document.getElementById('view-title').innerHTML = `<strong>${docTitle}</strong>`;
-            document.getElementById('view-type').innerText = docType;
-            document.getElementById('view-year').innerText = docYear;
-            document.getElementById('view-date').innerText = docDate;
-            document.getElementById('view-sponsor').innerText = docSponsor;
-            document.getElementById('view-keywords').innerText = docKeywords;
-            if (document.getElementById('view-enacted')) document.getElementById('view-enacted').innerText = docEnacted;
-            if (document.getElementById('view-cosponsors')) document.getElementById('view-cosponsors').innerText = docCosponsors;
-            if (document.getElementById('view-status')) document.getElementById('view-status').innerHTML = `<span class="badge ${docStatus ? docStatus.toLowerCase() : ''}">${docStatus}</span>`;
-            if (document.getElementById('view-visibility')) document.getElementById('view-visibility').innerText = docVisibility;
-            if (document.getElementById('view-storage')) document.getElementById('view-storage').innerText = docStorage;
-
-            const docVetoReason = btn.getAttribute('data-vetoreason');
+            // Populate metadata - with null checks for all elements
+            const viewNumber = document.getElementById('view-number');
+            if (viewNumber) viewNumber.innerText = docNumber;
             
-            if (document.getElementById('view-veto-reason')) {
-                document.getElementById('view-veto-reason').innerText = docVetoReason;
-            }
+            const viewTitle = document.getElementById('view-title');
+            if (viewTitle) viewTitle.innerHTML = `<strong>${docTitle}</strong>`;
+            
+            const viewType = document.getElementById('view-type');
+            if (viewType) viewType.innerText = docType;
+            
+            const viewYear = document.getElementById('view-year');
+            if (viewYear) viewYear.innerText = docYear;
+            
+            const viewDate = document.getElementById('view-date');
+            if (viewDate) viewDate.innerText = docDate;
+            
+            const viewSponsor = document.getElementById('view-sponsor');
+            if (viewSponsor) viewSponsor.innerText = docSponsor;
+            
+            const viewKeywords = document.getElementById('view-keywords');
+            if (viewKeywords) viewKeywords.innerText = docKeywords;
+            
+            const viewEnacted = document.getElementById('view-enacted');
+            if (viewEnacted) viewEnacted.innerText = docEnacted;
+            
+            const viewCosponsors = document.getElementById('view-cosponsors');
+            if (viewCosponsors) viewCosponsors.innerText = docCosponsors;
+            
+            const viewStatus = document.getElementById('view-status');
+            if (viewStatus) viewStatus.innerHTML = `<span class="badge ${docStatus ? docStatus.toLowerCase() : ''}">${docStatus}</span>`;
+            
+            const viewVisibility = document.getElementById('view-visibility');
+            if (viewVisibility) viewVisibility.innerText = docVisibility;
+            
+            const viewStorage = document.getElementById('view-storage');
+            if (viewStorage) viewStorage.innerText = docStorage;
+            
+            const viewVetoReason = document.getElementById('view-veto-reason');
+            if (viewVetoReason) viewVetoReason.innerText = vetoReason;
 
-            // 3. Update the Download Button
+            // ==========================================
+            // NEW ELEMENTS - Add these to your view modal HTML
+            // ==========================================
+            const viewRefNo = document.getElementById('view-ref-no');
+            if (viewRefNo) viewRefNo.innerText = docNumber;
+            
+            const viewCommittee = document.getElementById('view-committee');
+            if (viewCommittee) viewCommittee.innerText = docSponsor || 'N/A';
+            
+            const viewAbstract = document.getElementById('view-abstract');
+            if (viewAbstract) viewAbstract.innerText = docTitle || 'No abstract available.';
+
+            // Download button
             const downloadBtn = document.getElementById('view-download-btn');
-            if (fileUrl) {
-                downloadBtn.style.display = 'inline-block';
-                // If they click it, open the PDF in a new tab!
-                downloadBtn.onclick = function () { window.open(fileUrl, '_blank'); };
-            } else {
-                // Hide the button if there is no PDF uploaded
-                downloadBtn.style.display = 'none';
+            if (downloadBtn) {
+                if (fileUrl) {
+                    downloadBtn.style.display = 'inline-block';
+                    downloadBtn.onclick = function () { window.open(fileUrl, '_blank'); };
+                } else {
+                    downloadBtn.style.display = 'none';
+                }
             }
 
-            // ==========================================
-            // 4. Update the PDF Preview Iframe
-            // ==========================================
+            // PDF Preview
             const pdfIframe = document.getElementById('view-pdf-iframe');
             const pdfMissing = document.getElementById('view-pdf-missing');
-
-            // Safe check for valid URL
             const hasFile = fileUrl && fileUrl.trim() !== '' && fileUrl !== 'None' && fileUrl !== 'null';
 
-            if (hasFile) {
-                // Set iframe source and force PDF to fit horizontal width smoothly
-                pdfIframe.src = fileUrl + '#view=FitH';
-                pdfIframe.style.display = 'block';
-                pdfMissing.style.display = 'none';
-            } else {
-                // If there is no file, hide the iframe and show the "missing" message
-                pdfIframe.src = '';
-                pdfIframe.style.display = 'none';
-                pdfMissing.style.display = 'block';
+            if (pdfIframe && pdfMissing) {
+                if (hasFile) {
+                    pdfIframe.src = fileUrl + '#view=FitH';
+                    pdfIframe.style.display = 'block';
+                    pdfMissing.style.display = 'none';
+                    console.log('PDF loaded:', fileUrl);
+                } else {
+                    pdfIframe.src = '';
+                    pdfIframe.style.display = 'none';
+                    pdfMissing.style.display = 'block';
+                    console.log('No PDF attached');
+                }
+            }
+
+            // ==========================================
+            // LOAD PROGRESS TIMELINE (Bookmark Style)
+            // ==========================================
+            const docId = btn.getAttribute('data-id');
+            if (docId) {
+                loadProgressTimeline(docId);
             }
 
             // Store current details for sharing
             const viewModal = document.getElementById('viewModal');
             if (viewModal) {
-                viewModal.setAttribute('data-current-doc-id', btn.getAttribute('data-id') || '');
+                viewModal.setAttribute('data-current-doc-id', docId || '');
                 viewModal.setAttribute('data-current-doc-number', docNumber || '');
                 viewModal.setAttribute('data-current-doc-title', docTitle || '');
                 viewModal.setAttribute('data-current-file-url', fileUrl || '');
             }
             
-            // Clear any previous share status messages
             const statusMsg = document.getElementById('share-email-status');
             const emailInput = document.getElementById('share-recipient-email');
             if (statusMsg) statusMsg.innerText = '';
             if (emailInput) emailInput.value = '';
         }
     });
-
+    
     // ==========================================
     // POPULATE EDIT MODAL
     // ==========================================
     document.addEventListener('click', function (e) {
         const btn = e.target.closest('.trigger-edit');
         if (btn) {
-            // 1. Read data from the pencil icon
             const docId = btn.getAttribute('data-id');
             const docNumber = btn.getAttribute('data-number');
             const docTitle = btn.getAttribute('data-title');
@@ -744,7 +739,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const fileName = btn.getAttribute('data-file');
             const vetoReason = btn.getAttribute('data-vetoreason');
 
-            // 2. Inject data into the Edit form inputs
             document.getElementById('edit-doc-id').value = docId;
             document.getElementById('edit-number').value = docNumber;
             document.getElementById('edit-title').value = docTitle;
@@ -758,19 +752,15 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('edit-visibility').value = docVisibility || 'Public Access';
             document.getElementById('edit-physical-storage').value = docStorage || '';
 
-            // --- ADDED THIS BLOCK ---
             if (document.getElementById('edit-veto-reason')) {
                 document.getElementById('edit-veto-reason').value = vetoReason || '';
             }
-            // ------------------------
 
-            // 3. Update the File Text UI
             const fileText = document.getElementById('edit-file-text');
             const uploadArea = fileText ? fileText.closest('.upload-area') : null;
             const uploadSpan = uploadArea ? uploadArea.querySelector('span') : null;
 
             if (fileName && fileName !== 'None' && fileName !== 'null' && fileName.trim() !== '') {
-                // Extract just the filename from the folder path
                 const cleanName = fileName.split('/').pop();
                 fileText.innerHTML = `Current File: <strong>${cleanName}</strong>`;
                 if (uploadSpan) uploadSpan.innerText = 'Click to browse or replace file';
@@ -810,13 +800,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // 5. PASSWORD VISIBILITY TOGGLE
+    // PASSWORD VISIBILITY TOGGLE
     // ==========================================
     const togglePassword = document.querySelector('#togglePassword');
-    // Renamed to passwordInput to avoid conflicts with other variables
     const passwordInput = document.querySelector('#password');
 
-    // Safety check: Only run this code if we are actually on the Login page!
     if (togglePassword && passwordInput) {
         togglePassword.addEventListener('click', function () {
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -827,14 +815,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // UNIFIED DROPDOWN UI LOGIC (Tabs, Ellipsis)
+    // UNIFIED DROPDOWN UI LOGIC
     // ==========================================
     const notifTabs = document.querySelectorAll('.notif-tab');
     const emptyState = document.getElementById('emptyNotifState');
     const sectionTitles = document.querySelectorAll('.notif-section-title');
     const loadMoreBtn = document.getElementById('loadMoreNotifsBtn');
 
-    // Tabs
     notifTabs.forEach(tab => {
         tab.addEventListener('click', function () {
             notifTabs.forEach(t => t.classList.remove('active'));
@@ -865,7 +852,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Ellipsis Menu
     const notifEllipsis = document.getElementById('notifEllipsis');
     const notifOptionsMenu = document.getElementById('notifOptionsMenu');
     if (notifEllipsis && notifOptionsMenu) {
@@ -873,26 +859,21 @@ document.addEventListener('DOMContentLoaded', () => {
             e.stopPropagation();
             notifOptionsMenu.style.display = notifOptionsMenu.style.display === 'block' ? 'none' : 'block';
         });
-        // Added to the global click listener
     }
 
-    // Mark All Read
     const markAllReadBtn = document.querySelector('.mark-all-read-btn');
     if (markAllReadBtn) {
         markAllReadBtn.addEventListener('click', function (e) {
             e.stopPropagation();
 
-            // 1. SAVE TO MEMORY: Remember that we have read everything up to the current highest ID!
             if (window.highestNotifId) {
                 localStorage.setItem('lastReadNotifId', window.highestNotifId);
                 localStorage.removeItem('individuallyReadIds');
             }
 
-            // 2. Hide the red bell badge instantly
             const notifBadge = document.querySelector('.notif-badge');
             if (notifBadge) notifBadge.style.display = 'none';
 
-            // 3. Clear the visual dots from the current list
             const dynamicNotifItems = document.querySelectorAll('.notif-list-item');
             dynamicNotifItems.forEach(item => {
                 item.classList.remove('unread');
@@ -908,9 +889,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
-    // LOAD MORE BUTTON (SYNCHRONIZED SCROLL)
-    // ==========================================
     if (loadMoreBtn) {
         loadMoreBtn.addEventListener('click', function (e) {
             e.preventDefault();
@@ -923,7 +901,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             currentNotifLimit += 10;
 
-            // Append skeleton loader to the bottom before fetching the next page
             const notifBody = document.getElementById('notifModalBody');
             if (notifBody) {
                 const moreSkeleton = `
@@ -938,7 +915,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 notifBody.scrollTo({ top: notifBody.scrollHeight, behavior: 'smooth' });
             }
 
-            // Use .then() to wait exactly until the fetch is 100% finished!
             fetchNotifications().then(() => {
                 this.innerHTML = originalText;
                 this.style.pointerEvents = 'auto';
@@ -956,23 +932,21 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // TOAST NOTIFICATION LOGIC (Auto-dismiss)
+    // TOAST NOTIFICATION LOGIC
     // ==========================================
     const toasts = document.querySelectorAll('.toast');
     toasts.forEach(toast => {
-        // Auto dismiss after 5 seconds
         const autoDismissTimer = setTimeout(() => {
             if (toast && !toast.classList.contains('hiding')) {
                 toast.classList.add('hiding');
-                setTimeout(() => toast.remove(), 300); // Wait for transition
+                setTimeout(() => toast.remove(), 300);
             }
         }, 5000);
 
-        // Manual dismiss
         const closeBtn = toast.querySelector('.close-toast');
         if (closeBtn) {
             closeBtn.addEventListener('click', () => {
-                clearTimeout(autoDismissTimer); // Stop the auto-dismiss if closed manually
+                clearTimeout(autoDismissTimer);
                 toast.classList.add('hiding');
                 setTimeout(() => toast.remove(), 300);
             });
@@ -1060,7 +1034,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     const navLinks = document.querySelectorAll('.nav-links a:not(.logout-link a)');
     
-    // Create the overlay once and append to body
     const skeletonOverlay = document.createElement('div');
     skeletonOverlay.className = 'page-skeleton-overlay';
     skeletonOverlay.innerHTML = `
@@ -1133,7 +1106,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let refreshTimeout = null;
     function triggerSmoothRefresh(onCompleteCallback) {
         return new Promise((resolve) => {
-            // Debounce allows multiple rapid real-time updates to batch into a single smooth refresh
             clearTimeout(refreshTimeout);
             refreshTimeout = setTimeout(() => {
                 fetch(window.location.href)
@@ -1173,7 +1145,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const documentSocket = new WebSocket(wsProtocol + window.location.host + '/ws/documents/');
 
         documentSocket.onopen = function() {
-            console.log('✅ Real-time WebSocket connected successfully!');
+            console.log('Real-time WebSocket connected successfully!');
         };
 
         documentSocket.onmessage = function(e) {
@@ -1189,7 +1161,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     createToast(msg, toastType);
                     
                     triggerSmoothRefresh(() => {
-                        // Flash new row in green
                         const newRow = document.querySelector(`tr[data-doc-number="${response.data.document_number}"], tr[data-doc-id="${response.data.id}"]`);
                         if (newRow) {
                             newRow.classList.add('realtime-flash-success');
@@ -1201,7 +1172,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     createToast(msg, 'info');
                     
                     triggerSmoothRefresh(() => {
-                        // Flash updated row in blue
                         const updatedRow = document.querySelector(`tr[data-doc-number="${response.data.document_number}"], tr[data-doc-id="${response.data.id}"]`);
                         if (updatedRow) {
                             updatedRow.classList.add('realtime-flash-info');
@@ -1212,13 +1182,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     msg = `Document (${response.data.document_number}) was archived/removed.`;
                     createToast(msg, 'error');
                     
-                    // Animate deletion first (fade out)
                     const rowToDelete = document.querySelector(`tr[data-doc-number="${response.data.document_number}"], tr[data-doc-id="${response.data.id}"]`);
                     if (rowToDelete) {
                         rowToDelete.classList.add('realtime-fade-out');
                         setTimeout(() => {
                             triggerSmoothRefresh();
-                        }, 600); // Wait for CSS animation
+                        }, 600);
                     } else {
                         triggerSmoothRefresh();
                     }
@@ -1236,7 +1205,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     triggerSmoothRefresh();
                 }
                 
-                // Optionally, trigger a fetch for notifications so the bell icon updates instantly
                 if (typeof fetchNotifications === 'function') {
                     fetchNotifications();
                 }
@@ -1244,130 +1212,239 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         documentSocket.onclose = function(e) {
-            console.error('❌ WebSocket closed unexpectedly. Retrying in 3 seconds...');
-            setTimeout(connectWebSocket, 3000); // Auto-reconnect if it fails
+            console.error('WebSocket closed unexpectedly. Retrying in 3 seconds...');
+            setTimeout(connectWebSocket, 3000);
         };
     }
 
-    // ==========================================
-    // INJECT SHARE VIA EMAIL SECTION (MODAL FOOTER)
-    // ==========================================
-    const modalFooter = document.querySelector('#viewModal .modal-footer');
-    if (modalFooter) {
-        const shareHtml = `
-        <div class="share-email-footer-group" style="margin-right: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 6px; font-weight: 600; font-size: 0.75rem; color: #64748b; letter-spacing: 0.05em; text-transform: uppercase;">
-                <i class="fa-regular fa-paper-plane" style="color: #8B7355;"></i> Share via Email:
-            </div>
-            <div style="display: flex; align-items: center; gap: 6px;">
-                <input type="email" id="share-recipient-email" placeholder="Enter recipient email..." 
-                    style="width: 220px; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 0.85rem; outline: none; transition: border-color 0.2s; background: #fff;"
-                    onfocus="this.style.borderColor='#8B7355'" onblur="this.style.borderColor='#cbd5e1'">
-                <button type="button" class="btn-add" id="view-share-email-btn" 
-                    style="padding: 6px 14px; font-size: 0.85rem; height: 34px; margin: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 6px; cursor: pointer; font-weight: 600; background-color: #8B7355; color: white; border: none; transition: opacity 0.2s;">
-                    Send
-                </button>
-            </div>
-            <span id="share-email-status" style="font-size: 0.75rem; font-weight: 600; white-space: nowrap;"></span>
+    // Initialize WebSocket
+    connectWebSocket();
+}); // END OF DOMContentLoaded
+
+
+// ==========================================
+// GLOBAL FUNCTIONS OUTSIDE DOMContentLoaded
+// ==========================================
+
+// ==========================================
+// LOAD PROGRESS TIMELINE (Bookmark Style)
+// ==========================================
+function loadProgressTimeline(docId) {
+    const timeline = document.getElementById('progressTimeline');
+    const detailDisplay = document.getElementById('progressDetailDisplay');
+    
+    if (detailDisplay) detailDisplay.style.display = 'none';
+    if (!timeline) return;
+    
+    timeline.innerHTML = `
+        <div style="color: var(--text-light); font-size: 0.75rem; padding: 20px 10px; text-align: center;">
+            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
         </div>
-        `;
-        modalFooter.insertAdjacentHTML('afterbegin', shareHtml);
-        
-        // Add click handler for the Share button
-        const shareBtn = document.getElementById('view-share-email-btn');
-        if (shareBtn) {
-            shareBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
+    `;
+    
+    fetch(`/api/document-progress/?doc_id=${docId}`)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Progress data:', data);
+            
+            if (data.progress && data.progress.length > 0) {
+                let html = '';
+                const sorted = [...data.progress].sort((a, b) => new Date(a.update_date) - new Date(b.update_date));
+                const latest = sorted[sorted.length - 1];
+                const currentStatus = latest ? latest.status : null;
                 
-                const emailInput = document.getElementById('share-recipient-email');
-                const statusMsg = document.getElementById('share-email-status');
-                const viewModal = document.getElementById('viewModal');
+                const darkBrown = '#7c5c35';
+                const lightBrown = '#d9c8ac';
+                const textLight = '#6b5a4a';
                 
-                if (!emailInput || !statusMsg || !viewModal) return;
-                
-                const email = emailInput.value.trim();
-                const docId = viewModal.getAttribute('data-current-doc-id');
-                const docNumber = viewModal.getAttribute('data-current-doc-number');
-                const fileUrl = viewModal.getAttribute('data-current-file-url');
-                
-                // Reset status
-                statusMsg.innerText = '';
-                statusMsg.style.color = 'inherit';
-                
-                if (!email) {
-                    statusMsg.innerText = 'Please enter an email address.';
-                    statusMsg.style.color = '#dc3545';
-                    return;
-                }
-                
-                // Simple email validation regex
-                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-                if (!emailRegex.test(email)) {
-                    statusMsg.innerText = 'Please enter a valid email address.';
-                    statusMsg.style.color = '#dc3545';
-                    return;
-                }
-                
-                if (!fileUrl || fileUrl === 'None' || fileUrl === 'null' || fileUrl.trim() === '') {
-                    statusMsg.innerText = 'This document does not have a PDF file attached to share.';
-                    statusMsg.style.color = '#dc3545';
-                    return;
-                }
-                
-                // Disable button and input during send
-                const originalBtnText = shareBtn.innerHTML;
-                shareBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sending...';
-                shareBtn.disabled = true;
-                emailInput.disabled = true;
-                statusMsg.innerText = 'Sending email...';
-                statusMsg.style.color = '#64748b';
-                
-                // Get CSRF Token from DOM
-                let csrfToken = '';
-                const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
-                if (csrfInput) {
-                    csrfToken = csrfInput.value;
-                }
-                
-                fetch('/api/share-document/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({
-                        email: email,
-                        doc_id: docId,
-                        doc_number: docNumber
-                    })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        statusMsg.innerText = '✅ Document shared successfully!';
-                        statusMsg.style.color = '#15803d'; // green
-                        emailInput.value = ''; // clear input
-                    } else {
-                        statusMsg.innerText = '❌ ' + (data.message || 'Failed to share document.');
-                        statusMsg.style.color = '#b91c1c'; // red
-                    }
-                })
-                .catch(err => {
-                    console.error('Error sharing document:', err);
-                    statusMsg.innerText = '❌ Network error. Please try again.';
-                    statusMsg.style.color = '#b91c1c';
-                })
-                .finally(() => {
-                    // Re-enable elements
-                    shareBtn.innerHTML = originalBtnText;
-                    shareBtn.disabled = false;
-                    emailInput.disabled = false;
+                sorted.forEach((item) => {
+                    const isCurrent = item.status === currentStatus;
+                    const bgColor = isCurrent ? darkBrown : lightBrown;
+                    const textColor = isCurrent ? 'white' : textLight;
+                    const statusDisplay = item.status.toUpperCase();
+                    const fileUrl = item.file_attachment || '';
+                    const note = item.note || 'No note provided.';
+                    const updateDate = item.update_date;
+                    const status = item.status;
+                    const progressId = item.id;
+                    
+                    const escapedNote = note.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    
+                    html += `
+                        <div class="bookmark-item" style="display: flex; align-items: stretch; margin-bottom: 0; position: relative;">
+                            <button class="progress-bookmark" 
+                                data-progress-id="${progressId}"
+                                data-file-url="${fileUrl || ''}"
+                                data-status="${status}"
+                                data-update-date="${updateDate}"
+                                data-note="${escapedNote}"
+                                style="display: flex; 
+                                       flex-direction: column;
+                                       align-items: flex-start;
+                                       justify-content: center;
+                                       background: ${bgColor}; 
+                                       color: ${textColor};
+                                       border: none; 
+                                       border-radius: 4px 0 0 4px;
+                                       padding: 8px 14px 8px 16px; 
+                                       font-size: 0.75rem; 
+                                       font-weight: ${isCurrent ? '700' : '600'}; 
+                                       cursor: pointer; 
+                                       transition: all 0.2s;
+                                       width: 100%;
+                                       text-align: left;
+                                       box-shadow: ${isCurrent ? '0 2px 8px rgba(124,92,53,0.25)' : 'none'};
+                                       position: relative;
+                                       min-height: 48px;
+                                       flex: 1;
+                                       border-right: 3px solid ${isCurrent ? darkBrown : 'transparent'};"
+                                onclick="showProgressDetail(this)">
+                                <span style="font-size: 0.8rem; font-weight: ${isCurrent ? '700' : '600'}; margin-bottom: 2px;">
+                                    ${isCurrent ? 'CURRENT - ' : ''}${statusDisplay}
+                                </span>
+                                <span style="font-size: 0.55rem; opacity: 0.8; font-weight: 400;">
+                                    ${item.update_date}
+                                </span>
+                            </button>
+                            ${isCurrent ? `
+                            <div style="width: 6px; background: ${darkBrown}; border-radius: 0 4px 4px 0; flex-shrink: 0;"></div>
+                            ` : `
+                            <div style="width: 4px; background: ${lightBrown}; border-radius: 0 3px 3px 0; flex-shrink: 0;"></div>
+                            `}
+                        </div>
+                    `;
                 });
-            });
+                
+                timeline.innerHTML = html;
+                
+                const currentBookmark = timeline.querySelector('.bookmark-item:last-child');
+                if (currentBookmark) {
+                    setTimeout(() => {
+                        currentBookmark.scrollIntoView({ block: 'end', behavior: 'smooth' });
+                    }, 100);
+                }
+            } else {
+                timeline.innerHTML = `
+                    <div style="color: var(--text-light); font-size: 0.75rem; padding: 20px 10px; text-align: center;">
+                        <i class="fa-regular fa-clock"></i> No progress yet.
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading progress:', error);
+            timeline.innerHTML = `
+                <div style="color: #dc3545; font-size: 0.75rem; padding: 10px; text-align: center;">
+                    <i class="fa-solid fa-exclamation-triangle"></i> Failed to load.
+                </div>
+            `;
+        });
+}
+
+// ==========================================
+// SHOW PROGRESS DETAIL - GLOBAL FUNCTION
+// ==========================================
+function showProgressDetail(btn) {
+    console.log('Bookmark clicked! Function is working!');
+    
+    const darkBrown = '#7c5c35';
+    const lightBrown = '#d9c8ac';
+    const textLight = '#6b5a4a';
+    
+    // Reset all bookmarks
+    document.querySelectorAll('.progress-bookmark').forEach(b => {
+        b.style.background = lightBrown;
+        b.style.color = textLight;
+        b.style.boxShadow = 'none';
+        b.style.borderRight = '3px solid transparent';
+        b.style.transform = 'translateX(0)';
+        b.style.fontWeight = '600';
+        b.style.borderRadius = '4px 0 0 4px';
+        
+        const span = b.querySelector('span:first-child');
+        if (span) {
+            const currentText = span.textContent;
+            if (currentText.includes('CURRENT - ')) {
+                span.textContent = currentText.replace('CURRENT - ', '');
+            }
+        }
+    });
+    
+    // Highlight clicked bookmark
+    btn.style.background = darkBrown;
+    btn.style.color = 'white';
+    btn.style.boxShadow = '0 2px 8px rgba(124,92,53,0.35)';
+    btn.style.borderRight = '4px solid #5c4330';
+    btn.style.fontWeight = '700';
+    btn.style.transform = 'translateX(-2px)';
+    btn.style.borderRadius = '4px 0 0 4px';
+    
+    const span = btn.querySelector('span:first-child');
+    if (span) {
+        const currentText = span.textContent;
+        if (!currentText.includes('CURRENT - ')) {
+            span.textContent = 'CURRENT - ' + currentText;
         }
     }
+    
+    // Get data from button
+    const fileUrl = btn.getAttribute('data-file-url');
+    const status = btn.getAttribute('data-status');
+    const updateDate = btn.getAttribute('data-update-date');
+    const note = btn.getAttribute('data-note');
+    const progressId = btn.getAttribute('data-progress-id');
+    
+    console.log('File URL from button:', fileUrl);
+    console.log('Status:', status);
+    console.log('Date:', updateDate);
+    
+    // Update detail display
+    const detailDisplay = document.getElementById('progressDetailDisplay');
+    if (detailDisplay) {
+        detailDisplay.style.display = 'block';
+        document.getElementById('pd-date').textContent = updateDate || 'N/A';
+        document.getElementById('pd-status').textContent = status ? status.toUpperCase() : 'N/A';
+        document.getElementById('pd-note').textContent = note || 'No note provided.';
+    }
+    
+    // Update file link
+    const fileContainer = document.getElementById('pd-file');
+    if (fileContainer) {
+        if (fileUrl && fileUrl !== 'null' && fileUrl !== '' && fileUrl !== 'undefined') {
+            fileContainer.innerHTML = `
+                <a href="${fileUrl}" target="_blank" style="color: var(--sidebar-bg); text-decoration: none; font-weight: 600;">
+                    <i class="fa-regular fa-file-pdf"></i> View Attached File
+                </a>
+            `;
+        } else {
+            fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">No file attached.</span>`;
+        }
+    }
+    
+    // UPDATE PDF PREVIEW
+    const pdfIframe = document.getElementById('view-pdf-iframe');
+    const pdfMissing = document.getElementById('view-pdf-missing');
+    
+    console.log('File URL for iframe:', fileUrl);
+    
+    if (pdfIframe && pdfMissing) {
+        const hasFile = fileUrl && fileUrl.trim() !== '' && fileUrl !== 'null' && fileUrl !== 'undefined' && fileUrl !== 'None';
+        
+        if (hasFile) {
+            const urlWithTimestamp = fileUrl + (fileUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+            pdfIframe.src = urlWithTimestamp + '#view=FitH';
+            pdfIframe.style.display = 'block';
+            pdfMissing.style.display = 'none';
+            console.log('PDF loaded from progress:', urlWithTimestamp);
+        } else {
+            pdfIframe.src = '';
+            pdfIframe.style.display = 'none';
+            pdfMissing.style.display = 'block';
+            console.log('No PDF attached to this progress');
+        }
+    }
+}
 
-    // Initialize the connection
-    connectWebSocket();
-});
+// Expose functions to global scope explicitly
+window.showProgressDetail = showProgressDetail;
+window.loadProgressTimeline = loadProgressTimeline;

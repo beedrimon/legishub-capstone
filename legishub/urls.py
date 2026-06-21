@@ -72,6 +72,12 @@ urlpatterns = [
     path('upload/', views.upload_document, name='upload_document'),
     path('edit-doc/', views.edit_document, name='edit_document'),
     path('api/share-document/', views.share_document_by_email, name='share_document'),
+    # Add these to your urlpatterns:
+
+    # Document Progress
+    path('add-progress/', views.add_document_progress, name='add_progress'),
+    path('api/document-progress/', views.get_document_progress, name='get_document_progress'),
+    path('api/progress-detail/', views.get_progress_detail, name='get_progress_detail'),
 ]
 
 if settings.DEBUG:
