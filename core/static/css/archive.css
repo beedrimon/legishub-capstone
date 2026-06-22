@@ -74,10 +74,14 @@
 
 /* Vetoed Document Specific Styling (Red) */
 .folder-card.vetoed-card {
-    border: 1px solid #d9534f;
+    border: 1px solid rgba(217,83,79,0.35); /* lighter default border */
 }
 
-.folder-card.vetoed-card i, 
+.folder-card.vetoed-card:hover {
+    border-color: #b71c1c; /* stronger red on hover */
+}
+
+.folder-card.vetoed-card i,
 .folder-card.vetoed-card span {
     color: #d9534f;
 }
