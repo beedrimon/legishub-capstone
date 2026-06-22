@@ -24,7 +24,6 @@ class LegislativeDocument(models.Model):
     DOCUMENT_TYPES = [
         ('Ordinance', 'Ordinance'),
         ('Resolution', 'Resolution'),
-        ('Document', 'Document'),
     ]
     STATUS_CHOICES = [
         ('Active', 'Active'),

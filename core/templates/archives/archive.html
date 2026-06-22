@@ -79,7 +79,7 @@
 
             <section class="filter-card">
                 <div class="filter-group">
-                    <label>DOCUMENT TYPE</label>
+                    <label>LEGISLATION TYPE</label>
                     <select name="doc_type" onchange="document.getElementById('filterForm').submit();">
                         <option value="">All Types</option>
                         <option value="Ordinance" {% if current_filters.doc_type == 'Ordinance' %}selected{% endif %}>
@@ -323,7 +323,7 @@
                         <input type="text" name="document_number" id="edit-number" required>
                     </div>
                     <div class="form-group">
-                        <label>DOCUMENT TYPE</label>
+                        <label>LEGISLATION TYPE</label>
                         <select name="doc_type" id="edit-type" required>
                             <option value="Ordinance">Ordinance</option>
                             <option value="Resolution">Resolution</option>
