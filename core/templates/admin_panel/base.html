@@ -1019,20 +1019,18 @@
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>PRIMARY SPONSOR / AUTHOR</label>
-                        <input type="text" name="sponsor" placeholder="Hon. Name of Sponsor">
+                    <div class="form-group" id="upload-new-sponsors-container">
+                        <label>PROJECT SPONSOR / AUTHOR(S)</label>
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                            <input type="text" name="sponsor" placeholder="Hon. Name of Sponsor" style="flex: 1;">
+                            <button type="button" class="btn-add-sponsor-row" style="background: var(--sidebar-bg); color: white; border: none; border-radius: 4px; padding: 0 12px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem;" title="Add another sponsor"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div class="additional-sponsors-wrapper"></div>
+                        <input type="hidden" name="co_sponsors" id="upload-new-co-sponsors">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="align-self: flex-start;">
                         <label>KEYWORDS / TAGS</label>
                         <input type="text" name="keywords" placeholder="e.g., Environment, Baha, Business">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group full-width">
-                        <label>PROJECT CO-SPONSOR/S</label>
-                        <input type="text" name="co_sponsors" placeholder="Separate names with commas">
                     </div>
                 </div>
 
@@ -1125,20 +1123,18 @@
                 </div>
 
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>PRIMARY SPONSOR / AUTHOR</label>
-                        <input type="text" name="sponsor" placeholder="Hon. Name of Sponsor">
+                    <div class="form-group" id="upload-existing-sponsors-container">
+                        <label>PROJECT SPONSOR / AUTHOR(S)</label>
+                        <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                            <input type="text" name="sponsor" placeholder="Hon. Name of Sponsor" style="flex: 1;">
+                            <button type="button" class="btn-add-sponsor-row" style="background: var(--sidebar-bg); color: white; border: none; border-radius: 4px; padding: 0 12px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem;" title="Add another sponsor"><i class="fa-solid fa-plus"></i></button>
+                        </div>
+                        <div class="additional-sponsors-wrapper"></div>
+                        <input type="hidden" name="co_sponsors" id="upload-existing-co-sponsors">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" style="align-self: flex-start;">
                         <label>KEYWORDS / TAGS</label>
                         <input type="text" name="keywords" placeholder="e.g., Environment, Baha, Business">
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group full-width">
-                        <label>PROJECT CO-SPONSOR/S</label>
-                        <input type="text" name="co_sponsors" placeholder="Separate names with commas">
                     </div>
                 </div>
 

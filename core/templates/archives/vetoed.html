@@ -225,7 +225,7 @@
             <h2>EDIT VETOED RECORD</h2>
             <button class="close-modal" onclick="closeModal('editModal')">&times;</button>
         </div>
-        <form class="modal-body" method="POST" action="{% url 'edit_vetoed' %}" enctype="multipart/form-data">
+        <form class="modal-body" method="POST" action="{% url 'edit_vetoed' %}" enctype="multipart/form-data" id="editVetoedForm">
             {% csrf_token %}
             <input type="hidden" name="doc_id" id="edit-doc-id">
 
@@ -260,20 +260,18 @@
             </div>
 
             <div class="form-row">
-                <div class="form-group">
-                    <label>PRIMARY SPONSOR / AUTHOR</label>
-                    <input type="text" name="sponsor" id="edit-sponsor" placeholder="Hon. Name of Sponsor">
+                <div class="form-group" id="edit-veto-sponsors-container">
+                    <label>PROJECT SPONSOR / AUTHOR(S)</label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                        <input type="text" name="sponsor" id="edit-sponsor" placeholder="Hon. Name of Sponsor" style="flex: 1;">
+                        <button type="button" class="btn-add-sponsor-row" style="background: var(--sidebar-bg); color: white; border: none; border-radius: 4px; padding: 0 12px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem;" title="Add another sponsor"><i class="fa-solid fa-plus"></i></button>
+                    </div>
+                    <div class="additional-sponsors-wrapper"></div>
+                    <input type="hidden" name="co_sponsors" id="edit-co-sponsors">
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="align-self: flex-start;">
                     <label>KEYWORDS / TAGS</label>
                     <input type="text" name="keywords" id="edit-keywords" placeholder="e.g., Environment, Baha, Business">
-                </div>
-            </div>
-
-            <div class="form-row">
-                <div class="form-group full-width">
-                    <label>PROJECT CO-SPONSOR/S</label>
-                    <input type="text" name="co_sponsors" id="edit-co-sponsors" placeholder="Separate names with commas">
                 </div>
             </div>
             

@@ -127,6 +127,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (name === 'status') {
                                 input.dispatchEvent(new Event('change'));
                             }
+                            if (name === 'co_sponsors') {
+                                const container = input.closest('.form-group');
+                                if (container && typeof container.setCoSponsors === 'function') {
+                                    container.setCoSponsors(data[name]);
+                                }
+                            }
                         }
                     }
                     return true;
@@ -771,6 +777,16 @@ document.addEventListener('DOMContentLoaded', () => {
             if (editVisibility) editVisibility.value = docVisibility || 'Public Access';
             if (editPhysicalStorage) editPhysicalStorage.value = docStorage || '';
 
+            // Populate co-sponsors dynamically in the Edit modal
+            const editDocSponsorsContainer = document.getElementById('edit-doc-sponsors-container');
+            if (editDocSponsorsContainer && typeof editDocSponsorsContainer.setCoSponsors === 'function') {
+                editDocSponsorsContainer.setCoSponsors(docCoSponsors || '');
+            }
+            const editVetoSponsorsContainer = document.getElementById('edit-veto-sponsors-container');
+            if (editVetoSponsorsContainer && typeof editVetoSponsorsContainer.setCoSponsors === 'function') {
+                editVetoSponsorsContainer.setCoSponsors(docCoSponsors || '');
+            }
+
             // Disable already used statuses in Edit Modal, except current status (with grayed-out styles)
             const editStatusSelect = document.getElementById('edit-status');
             if (editStatusSelect) {
@@ -1388,6 +1404,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 100);
     }
+
+    // Initialize dynamic sponsor rows
+    initDynamicSponsors('upload-new-sponsors-container', '.btn-add-sponsor-row', '.additional-sponsors-wrapper', 'upload-new-co-sponsors');
+    initDynamicSponsors('upload-existing-sponsors-container', '.btn-add-sponsor-row', '.additional-sponsors-wrapper', 'upload-existing-co-sponsors');
+    initDynamicSponsors('edit-doc-sponsors-container', '.btn-add-sponsor-row', '.additional-sponsors-wrapper', 'edit-co-sponsors');
+    initDynamicSponsors('edit-veto-sponsors-container', '.btn-add-sponsor-row', '.additional-sponsors-wrapper', 'edit-co-sponsors');
+
+    ['uploadNewForm', 'uploadExistingForm', 'editDocumentForm', 'editVetoedForm'].forEach(formId => {
+        const form = document.getElementById(formId);
+        if (form) {
+            form.addEventListener('reset', () => {
+                const container = form.querySelector('[id$="-sponsors-container"]');
+                if (container && typeof container.setCoSponsors === 'function') {
+                    setTimeout(() => container.setCoSponsors(''), 10);
+                }
+            });
+        }
+    });
 }); // END OF DOMContentLoaded
 
 
@@ -1686,6 +1720,106 @@ function showProgressDetail(btn) {
         });
 }
 
+// Helper to initialize dynamic sponsors row inputs
+function initDynamicSponsors(containerId, plusBtnClass, wrapperClass, hiddenInputId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const plusBtn = container.querySelector(plusBtnClass);
+    const wrapper = container.querySelector(wrapperClass);
+    const hiddenInput = document.getElementById(hiddenInputId);
+    const primaryInput = container.querySelector('input[name="sponsor"]');
+
+    if (!plusBtn || !wrapper || !hiddenInput || !primaryInput) return;
+
+    function updateHiddenField() {
+        const inputs = wrapper.querySelectorAll('.additional-sponsor-input');
+        const values = Array.from(inputs)
+            .map(inp => inp.value.trim())
+            .filter(val => val !== '');
+        hiddenInput.value = values.join(', ');
+        // Dispatch input and change events on the hidden input to trigger draft save
+        hiddenInput.dispatchEvent(new Event('input', { bubbles: true }));
+        hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    // Listen for input changes in the wrapper to update the hidden field
+    wrapper.addEventListener('input', (e) => {
+        if (e.target.classList.contains('additional-sponsor-input')) {
+            updateHiddenField();
+        }
+    });
+
+    // Also listen to primary input changes to update
+    primaryInput.addEventListener('input', updateHiddenField);
+
+    plusBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const row = document.createElement('div');
+        row.className = 'sponsor-input-row';
+        row.style.display = 'flex';
+        row.style.gap = '8px';
+        row.style.marginBottom = '8px';
+        row.style.alignItems = 'center';
+
+        row.innerHTML = `
+            <input type="text" class="additional-sponsor-input" placeholder="Hon. Name of Sponsor" style="flex: 1;">
+            <button type="button" class="btn-remove-sponsor-row" style="background: #EF4444; color: white; border: none; border-radius: 4px; padding: 0 12px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem;" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+        `;
+
+        const removeBtn = row.querySelector('.btn-remove-sponsor-row');
+        removeBtn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            row.remove();
+            updateHiddenField();
+            primaryInput.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        wrapper.appendChild(row);
+        row.querySelector('.additional-sponsor-input').focus();
+        updateHiddenField();
+    });
+
+    container.setCoSponsors = function(coSponsorsString) {
+        wrapper.innerHTML = ''; // Clear existing
+        if (!coSponsorsString || coSponsorsString.trim() === '' || coSponsorsString === 'None' || coSponsorsString === 'null') {
+            hiddenInput.value = '';
+            return;
+        }
+
+        hiddenInput.value = coSponsorsString;
+        const sponsorsList = coSponsorsString.split(',').map(s => s.trim()).filter(s => s !== '');
+        sponsorsList.forEach(sponsorName => {
+            const row = document.createElement('div');
+            row.className = 'sponsor-input-row';
+            row.style.display = 'flex';
+            row.style.gap = '8px';
+            row.style.marginBottom = '8px';
+            row.style.alignItems = 'center';
+
+            row.innerHTML = `
+                <input type="text" class="additional-sponsor-input" placeholder="Hon. Name of Sponsor" style="flex: 1;" value="${escapeHtmlAttribute(sponsorName)}">
+                <button type="button" class="btn-remove-sponsor-row" style="background: #EF4444; color: white; border: none; border-radius: 4px; padding: 0 12px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem;" title="Remove"><i class="fa-solid fa-xmark"></i></button>
+            `;
+
+            const removeBtn = row.querySelector('.btn-remove-sponsor-row');
+            removeBtn.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                ev.stopPropagation();
+                row.remove();
+                updateHiddenField();
+                primaryInput.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+
+            wrapper.appendChild(row);
+        });
+    };
+}
+
 // Expose functions to global scope explicitly
 window.showProgressDetail = showProgressDetail;
 window.loadProgressTimeline = loadProgressTimeline;
+window.initDynamicSponsors = initDynamicSponsors;
