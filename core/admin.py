@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder
+from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument
 
 # This customized class tells Django how to display the Legislative Document table
 @admin.register(LegislativeDocument)
@@ -37,3 +37,11 @@ class ArchiveFolderAdmin(admin.ModelAdmin):
     list_filter = ('created_at',)
     search_fields = ('name',)
     ordering = ('-created_at',)
+
+
+@admin.register(VetoedDocument)
+class VetoedDocumentAdmin(admin.ModelAdmin):
+    list_display = ('document_number', 'title', 'doc_type', 'year', 'date_vetoed', 'vetoed_by')
+    list_filter = ('doc_type', 'year', 'date_vetoed')
+    search_fields = ('document_number', 'title', 'sponsor', 'veto_reason')
+    ordering = ('-date_vetoed',)
