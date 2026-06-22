@@ -778,6 +778,31 @@ td strong {
   color: #616161;
 }
 
+.badge.proposed.measures {
+  background: #e8d5c4;
+  color: #3e2723;
+}
+
+.badge.endorsement {
+  background: #d7ccc8;
+  color: #3e2723;
+}
+
+.badge.referral {
+  background: #bcaaa4;
+  color: #fff;
+}
+
+.badge.hearing {
+  background: #a1887f;
+  color: #fff;
+}
+
+.badge.committee.report {
+  background: #8d6e63;
+  color: #fff;
+}
+
 .status-tag {
   padding: 4px 10px;
   border-radius: 4px;

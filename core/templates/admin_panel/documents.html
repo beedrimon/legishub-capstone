@@ -58,6 +58,8 @@
                                 Ordinance</option>
                             <option value="Resolution" {% if current_filters.doc_type == 'Resolution' %}selected{% endif %}>
                                 Resolution</option>
+                            <option value="Document" {% if current_filters.doc_type == 'Document' %}selected{% endif %}>
+                                Document</option>
                         </select>
                     </div>
                     <div class="filter-group">
@@ -75,6 +77,11 @@
                         <select name="status" onchange="document.getElementById('filterForm').submit();">
                             <option value="">All Statuses</option>
                             <option value="Urgent" {% if current_filters.status == 'Urgent' %}selected{% endif %}>Urgent</option>
+                            <option value="Proposed Measures" {% if current_filters.status == 'Proposed Measures' %}selected{% endif %}>Proposed Measures</option>
+                            <option value="Endorsement" {% if current_filters.status == 'Endorsement' %}selected{% endif %}>Endorsement</option>
+                            <option value="Referral" {% if current_filters.status == 'Referral' %}selected{% endif %}>Referral</option>
+                            <option value="Hearing" {% if current_filters.status == 'Hearing' %}selected{% endif %}>Hearing</option>
+                            <option value="Committee Report" {% if current_filters.status == 'Committee Report' %}selected{% endif %}>Committee Report</option>
                             <option value="1st reading" {% if current_filters.status == '1st reading' %}selected{% endif %}>1st reading</option>
                             <option value="2nd reading" {% if current_filters.status == '2nd reading' %}selected{% endif %}>2nd reading</option>
                             <option value="3rd reading" {% if current_filters.status == '3rd reading' %}selected{% endif %}>3rd reading</option>
@@ -540,6 +547,7 @@
                     <select name="doc_type" id="edit-type">
                         <option value="Ordinance">Ordinance</option>
                         <option value="Resolution">Resolution</option>
+                        <option value="Document">Document</option>
                     </select>
                 </div>
             </div>
@@ -575,6 +583,11 @@
                     <label>STATUS</label>
                     <select name="status" id="edit-status">
                         <option value="Urgent">Urgent</option>
+                        <option value="Proposed Measures">Proposed Measures</option>
+                        <option value="Endorsement">Endorsement</option>
+                        <option value="Referral">Referral</option>
+                        <option value="Hearing">Hearing</option>
+                        <option value="Committee Report">Committee Report</option>
                         <option value="1st reading">1st reading</option>
                         <option value="2nd reading">2nd reading</option>
                         <option value="3rd reading">3rd reading</option>

@@ -24,11 +24,17 @@ class LegislativeDocument(models.Model):
     DOCUMENT_TYPES = [
         ('Ordinance', 'Ordinance'),
         ('Resolution', 'Resolution'),
+        ('Document', 'Document'),
     ]
     STATUS_CHOICES = [
         ('Active', 'Active'),
         ('Pending', 'Pending'),
         ('Archived', 'Archived'),
+        ('Proposed Measures', 'Proposed Measures'),
+        ('Endorsement', 'Endorsement'),
+        ('Referral', 'Referral'),
+        ('Hearing', 'Hearing'),
+        ('Committee Report', 'Committee Report'),
         ('1st reading', '1st reading'),
         ('2nd reading', '2nd reading'),
         ('3rd reading', '3rd reading'),
