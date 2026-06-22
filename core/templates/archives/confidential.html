@@ -173,10 +173,22 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn-discard">Close View</button>
+            <div class="modal-footer" style="padding: 12px 25px; background: #fff; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap; border-radius: 0 0 12px 12px;">
+                <!-- Left Side: Share via Email -->
+                <div style="display: flex; align-items: center; gap: 8px; flex-grow: 1; max-width: 400px;">
+                    {% csrf_token %}
+                    <input type="email" id="share-recipient-email" placeholder="Share via email: recipient@example.com" style="flex: 1; padding: 8px 12px; border: 1px solid #d9c8ac; border-radius: 6px; font-size: 0.75rem; outline: none; background: #fff; box-sizing: border-box; height: 34px;">
+                    <button type="button" id="btn-share-email" class="btn-add" style="padding: 8px 14px; font-size: 0.75rem; margin: 0; display: inline-flex; align-items: center; gap: 5px; height: 34px; border: none; border-radius: 6px; cursor: pointer; justify-content: center; box-sizing: border-box;">
+                        <i class="fa-solid fa-paper-plane"></i> Share
+                    </button>
+                    <span id="share-email-status" style="font-size: 0.7rem; font-weight: 600; margin-left: 5px; white-space: nowrap;"></span>
+                </div>
                 
-                <button type="button" class="btn-add" id="view-download-btn">Download Archive PDF</button>
+                <!-- Right Side: Close/Download Buttons -->
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button type="button" class="btn-discard" style="border-color: #d9c8ac; color: #333; height: 34px; padding: 0 16px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">Close View</button>
+                    <button type="button" class="btn-add" id="view-download-btn" style="height: 34px; padding: 0 16px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">Download Archive PDF</button>
+                </div>
             </div>
         </div>
     </div>

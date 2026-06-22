@@ -76,6 +76,7 @@ urlpatterns = [
 
     # Document Progress
     path('add-progress/', views.add_document_progress, name='add_progress'),
+    path('edit-progress/', views.edit_document_progress, name='edit_progress'),
     path('api/document-progress/', views.get_document_progress, name='get_document_progress'),
     path('api/progress-detail/', views.get_progress_detail, name='get_progress_detail'),
 ]

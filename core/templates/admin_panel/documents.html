@@ -337,12 +337,25 @@
         </div>
         
         <!-- FOOTER -->
-        <div class="modal-footer" style="padding: 12px 25px; background: #fff; border-top: 1px solid #e5e7eb; display: flex; justify-content: flex-end; gap: 15px; flex-wrap: wrap; border-radius: 0 0 12px 12px;">
-            <button type="button" class="btn-discard" onclick="closeModal('viewModal')" style="border-color: #d9c8ac; color: #333;">Close View</button>
-            {% if not is_legislator %}
-            <button type="button" class="btn-tan" id="modal-edit-btn">Edit Details</button>
-            {% endif %}
-            <button type="button" class="btn-add" id="view-download-btn">Download Original PDF</button>
+        <div class="modal-footer" style="padding: 12px 25px; background: #fff; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap; border-radius: 0 0 12px 12px;">
+            <!-- Left Side: Share via Email -->
+            <div style="display: flex; align-items: center; gap: 8px; flex-grow: 1; max-width: 400px;">
+                {% csrf_token %}
+                <input type="email" id="share-recipient-email" placeholder="Share via email: recipient@example.com" style="flex: 1; padding: 8px 12px; border: 1px solid #d9c8ac; border-radius: 6px; font-size: 0.75rem; outline: none; background: #fff; box-sizing: border-box; height: 34px;">
+                <button type="button" id="btn-share-email" class="btn-add" style="padding: 8px 14px; font-size: 0.75rem; margin: 0; display: inline-flex; align-items: center; gap: 5px; height: 34px; border: none; border-radius: 6px; cursor: pointer; justify-content: center; box-sizing: border-box;">
+                    <i class="fa-solid fa-paper-plane"></i> Share
+                </button>
+                <span id="share-email-status" style="font-size: 0.7rem; font-weight: 600; margin-left: 5px; white-space: nowrap;"></span>
+            </div>
+            
+            <!-- Right Side: Close/Edit/Download Buttons -->
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <button type="button" class="btn-discard" onclick="closeModal('viewModal')" style="border-color: #d9c8ac; color: #333; height: 34px; padding: 0 16px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">Close View</button>
+                {% if not is_legislator %}
+                <button type="button" class="btn-tan" id="modal-edit-btn" style="height: 34px; padding: 0 16px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">Edit Details</button>
+                {% endif %}
+                <button type="button" class="btn-add" id="view-download-btn" style="height: 34px; padding: 0 16px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">Download Original PDF</button>
+            </div>
         </div>
     </div>
 </div>
@@ -436,6 +449,65 @@
         <div class="modal-footer">
             <button type="button" class="btn-discard" onclick="closeModal('progressDetailModal')">Close</button>
         </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- EDIT PROGRESS/STATUS MODAL -->
+<!-- ========================================== -->
+<div id="editProgressModal" class="modal-overlay">
+    <div class="modal-container" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2 id="editProgressModalTitle">EDIT PROGRESS/STATUS</h2>
+            <button class="close-modal" onclick="closeModal('editProgressModal')">&times;</button>
+        </div>
+        <form class="modal-body" method="POST" action="{% url 'edit_progress' %}" enctype="multipart/form-data" id="editProgressForm">
+            {% csrf_token %}
+            <input type="hidden" name="progress_id" id="edit-progress-id">
+
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label>UPDATE DATE</label>
+                    <input type="date" name="update_date" id="edit-progress-update-date" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label>STATUS</label>
+                    <select name="status" id="edit-progress-status" required>
+                        <option value="">-- Select Status --</option>
+                        <option value="1st reading">1st Reading</option>
+                        <option value="2nd reading">2nd Reading</option>
+                        <option value="3rd reading">3rd Reading</option>
+                        <option value="For Certification">For Certification</option>
+                        <option value="For Signing">For Signing</option>
+                        <option value="For Approval">For Approval</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label>NOTE</label>
+                    <textarea name="note" id="edit-progress-note" rows="4" style="width: 100%; padding: 10px; border: 1px solid #d9c8ac; border-radius: 6px; font-family: inherit; resize: vertical;" placeholder="Enter notes about this progress update..."></textarea>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group full-width">
+                    <label>ATTACH FILE</label>
+                    <label for="editProgressFileInput" class="upload-area" style="cursor: pointer; display: block; border: 2px dashed #d9c8ac; border-radius: 8px; padding: 20px; text-align: center; background: #fdf9f3;">
+                        <i class="fa-regular fa-file-pdf" style="font-size: 2rem; color: #a0835d; display: block; margin-bottom: 10px;"></i>
+                        <p id="edit-progress-file-text" style="font-weight: 600; color: #7c5c35; margin: 0;">Click to upload a new PDF (Leave blank to keep existing file)</p>
+                        <span style="font-size: 0.75rem; color: #999;">Upload related file (PDF, DOCX, etc.)</span>
+                        <input type="file" name="file_attachment" id="editProgressFileInput" hidden accept=".pdf,.docx,.doc">
+                    </label>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn-discard" onclick="closeModal('editProgressModal')">Cancel</button>
+                <button type="submit" class="btn-add">Update Progress</button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -587,10 +659,59 @@
 
             if (modalEditBtn) {
                 modalEditBtn.addEventListener('click', function() {
-                    const targetId = this.getAttribute('data-target-id');
-                    const realPencilIcon = document.querySelector(`.trigger-edit[data-id="${targetId}"]`);
-                    if (realPencilIcon) {
-                        realPencilIcon.click();
+                    const viewModal = document.getElementById('viewModal');
+                    const activeProgressId = viewModal ? viewModal.getAttribute('data-active-progress-id') : null;
+                    
+                    if (activeProgressId) {
+                        const status = viewModal.getAttribute('data-active-progress-status');
+                        const updateDate = viewModal.getAttribute('data-active-progress-date');
+                        const note = viewModal.getAttribute('data-active-progress-note');
+                        
+                        document.getElementById('edit-progress-id').value = activeProgressId;
+                        document.getElementById('edit-progress-update-date').value = updateDate;
+                        document.getElementById('edit-progress-status').value = status;
+                        document.getElementById('edit-progress-note').value = note || '';
+                        
+                        const fileText = document.getElementById('edit-progress-file-text');
+                        if (fileText) {
+                            fileText.innerHTML = `Click to upload a new PDF (Leave blank to keep existing file)`;
+                        }
+                        
+                        // Disable already used statuses in the Edit Progress dropdown
+                        const statusSelect = document.getElementById('edit-progress-status');
+                        if (statusSelect) {
+                            Array.from(statusSelect.options).forEach(opt => {
+                                opt.disabled = false;
+                                opt.style.color = '';
+                            });
+                            
+                            const docId = viewModal.getAttribute('data-current-doc-id');
+                            fetch(`/api/document-progress/?doc_id=${docId}`)
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.progress) {
+                                        const usedStatuses = data.progress.map(p => p.status.toLowerCase().trim());
+                                        Array.from(statusSelect.options).forEach(opt => {
+                                            const optValue = opt.value.toLowerCase().trim();
+                                            if (optValue && opt.value !== status && usedStatuses.includes(optValue)) {
+                                                opt.disabled = true;
+                                                opt.style.color = '#a0a0a0';
+                                            }
+                                        });
+                                    }
+                                })
+                                .catch(err => console.error('Error fetching progress for edit validation:', err));
+                        }
+                        
+                        if (viewModal) viewModal.style.display = 'none';
+                        const editProgressModal = document.getElementById('editProgressModal');
+                        if (editProgressModal) editProgressModal.style.display = 'flex';
+                    } else {
+                        const targetId = this.getAttribute('data-target-id');
+                        const realPencilIcon = document.querySelector(`.trigger-edit[data-id="${targetId}"]`);
+                        if (realPencilIcon) {
+                            realPencilIcon.click();
+                        }
                     }
                 });
             }
@@ -611,6 +732,32 @@
                     const modalHeader = document.getElementById('progressModalTitle');
                     if (modalHeader) {
                         modalHeader.textContent = `ADD PROGRESS/STATUS: ${docNumber}`;
+                    }
+
+                    // Disable already used statuses in the dropdown (with grayed-out styles)
+                    const statusSelect = document.getElementById('progress-status');
+                    if (statusSelect) {
+                        // Reset options
+                        Array.from(statusSelect.options).forEach(opt => {
+                            opt.disabled = false;
+                            opt.style.color = '';
+                        });
+
+                        fetch(`/api/document-progress/?doc_id=${docId}`)
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.progress) {
+                                    const usedStatuses = data.progress.map(p => p.status.toLowerCase().trim());
+                                    Array.from(statusSelect.options).forEach(opt => {
+                                        const optValue = opt.value.toLowerCase().trim();
+                                        if (optValue && usedStatuses.includes(optValue)) {
+                                            opt.disabled = true;
+                                            opt.style.color = '#a0a0a0';
+                                        }
+                                    });
+                                }
+                            })
+                            .catch(err => console.error('Error fetching progress for validation:', err));
                     }
                 });
             });

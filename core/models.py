@@ -350,7 +350,7 @@ def notify_document_saved(sender, instance, created, **kwargs):
                     }
                 }
             )
-            print(f"✅ SUCCESS: WebSocket broadcast sent for upload: {instance.document_number}!")
+            print(f"[SUCCESS] WebSocket broadcast sent for upload: {instance.document_number}!")
         else:  # Document edited/updated
             async_to_sync(channel_layer.group_send)(
                 'documents_group',
@@ -364,9 +364,9 @@ def notify_document_saved(sender, instance, created, **kwargs):
                     }
                 }
             )
-            print(f"✅ SUCCESS: WebSocket broadcast sent for update: {instance.document_number}!")
+            print(f"[SUCCESS] WebSocket broadcast sent for update: {instance.document_number}!")
     except Exception as e:
-        print(f"❌ WEBSOCKET ERROR: Failed to broadcast document save: {e}")
+        print(f"[WEBSOCKET ERROR] Failed to broadcast document save: {e}")
 
 @receiver(post_delete, sender=LegislativeDocument)
 def notify_document_deleted(sender, instance, **kwargs):
@@ -383,9 +383,9 @@ def notify_document_deleted(sender, instance, **kwargs):
                 }
             }
         )
-        print(f"✅ SUCCESS: WebSocket broadcast sent for delete: {instance.document_number}!")
+        print(f"[SUCCESS] WebSocket broadcast sent for delete: {instance.document_number}!")
     except Exception as e:
-        print(f"❌ WEBSOCKET ERROR: Failed to broadcast document delete: {e}")
+        print(f"[WEBSOCKET ERROR] Failed to broadcast document delete: {e}")
 
 @receiver(post_save, sender=AuditLog)
 def notify_system_update(sender, instance, created, **kwargs):
@@ -403,9 +403,9 @@ def notify_system_update(sender, instance, created, **kwargs):
                     }
                 }
             )
-            print(f"✅ SUCCESS: WebSocket broadcast sent for system update: {instance.action}!")
+            print(f"[SUCCESS] WebSocket broadcast sent for system update: {instance.action}!")
         except Exception as e:
-            print(f"❌ WEBSOCKET ERROR: Failed to broadcast system update: {e}")
+            print(f"[WEBSOCKET ERROR] Failed to broadcast system update: {e}")
 
 @receiver(post_save, sender=BackupLog)
 def notify_backup_update(sender, instance, created, **kwargs):
@@ -424,9 +424,9 @@ def notify_backup_update(sender, instance, created, **kwargs):
                     }
                 }
             )
-            print(f"✅ SUCCESS: WebSocket broadcast sent for BackupLog update: {instance.id}!")
+            print(f"[SUCCESS] WebSocket broadcast sent for BackupLog update: {instance.id}!")
         except Exception as e:
-            print(f"❌ WEBSOCKET ERROR: Failed to broadcast BackupLog update: {e}")
+            print(f"[WEBSOCKET ERROR] Failed to broadcast BackupLog update: {e}")
 
 
 # ==========================================

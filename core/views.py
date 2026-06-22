@@ -2062,6 +2062,19 @@ def edit_document(request):
         
         new_status = request.POST.get('status')
         if new_status and new_status != old_status:
+            # Check if this status has already been used in this document's progress history
+            if DocumentProgress.objects.filter(document=doc, status=new_status).exists():
+                messages.error(request, f"Status '{new_status}' has already been used in this document's timeline.")
+                referer = request.META.get('HTTP_REFERER')
+                if referer:
+                    from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+                    url_parts = list(urlparse(referer))
+                    query = parse_qs(url_parts[4])
+                    query['view_doc_id'] = [doc.id]
+                    url_parts[4] = urlencode(query, doseq=True)
+                    return redirect(urlunparse(url_parts))
+                return redirect(f"/documents/?view_doc_id={doc.id}")
+
             changes.append(f"Status to '{new_status}'")
             doc.status = new_status
             status_changed = True
@@ -2121,10 +2134,26 @@ def edit_document(request):
                     
             except IntegrityError:
                 messages.error(request, f'An archive for {doc.document_number} already exists.')
-                return redirect(request.META.get('HTTP_REFERER', 'documents'))
+                referer = request.META.get('HTTP_REFERER')
+                if referer:
+                    from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+                    url_parts = list(urlparse(referer))
+                    query = parse_qs(url_parts[4])
+                    query['view_doc_id'] = [doc.id]
+                    url_parts[4] = urlencode(query, doseq=True)
+                    return redirect(urlunparse(url_parts))
+                return redirect(f"/documents/?view_doc_id={doc.id}")
             except Exception as e:
                 messages.error(request, f'Failed to archive: {str(e)}')
-                return redirect(request.META.get('HTTP_REFERER', 'documents'))
+                referer = request.META.get('HTTP_REFERER')
+                if referer:
+                    from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+                    url_parts = list(urlparse(referer))
+                    query = parse_qs(url_parts[4])
+                    query['view_doc_id'] = [doc.id]
+                    url_parts[4] = urlencode(query, doseq=True)
+                    return redirect(urlunparse(url_parts))
+                return redirect(f"/documents/?view_doc_id={doc.id}")
         
         # --- VETO TRANSFER LOGIC ---
         elif doc.status == 'Vetoed':
@@ -2170,10 +2199,26 @@ def edit_document(request):
                     
             except IntegrityError:
                 messages.error(request, f'A veto record for {doc.document_number} already exists.')
-                return redirect(request.META.get('HTTP_REFERER', 'documents'))
+                referer = request.META.get('HTTP_REFERER')
+                if referer:
+                    from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+                    url_parts = list(urlparse(referer))
+                    query = parse_qs(url_parts[4])
+                    query['view_doc_id'] = [doc.id]
+                    url_parts[4] = urlencode(query, doseq=True)
+                    return redirect(urlunparse(url_parts))
+                return redirect(f"/documents/?view_doc_id={doc.id}")
             except Exception as e:
                 messages.error(request, f'Failed to veto document: {str(e)}')
-                return redirect(request.META.get('HTTP_REFERER', 'documents'))
+                referer = request.META.get('HTTP_REFERER')
+                if referer:
+                    from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+                    url_parts = list(urlparse(referer))
+                    query = parse_qs(url_parts[4])
+                    query['view_doc_id'] = [doc.id]
+                    url_parts[4] = urlencode(query, doseq=True)
+                    return redirect(urlunparse(url_parts))
+                return redirect(f"/documents/?view_doc_id={doc.id}")
         
         else:
             doc.save()
@@ -2203,7 +2248,15 @@ def edit_document(request):
             )
 
             messages.success(request, 'Document successfully updated.')
-            return redirect(request.META.get('HTTP_REFERER', 'documents'))
+            referer = request.META.get('HTTP_REFERER')
+            if referer:
+                from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+                url_parts = list(urlparse(referer))
+                query = parse_qs(url_parts[4])
+                query['view_doc_id'] = [doc.id]
+                url_parts[4] = urlencode(query, doseq=True)
+                return redirect(urlunparse(url_parts))
+            return redirect(f"/documents/?view_doc_id={doc.id}")
         
 # ==========================================
 # EDIT VETOED DOCUMENT VIEW
@@ -2608,6 +2661,19 @@ def add_document_progress(request):
         messages.error(request, 'Invalid status selected.')
         return redirect('documents')
     
+    # Check if this status has already been used in this document's progress history
+    if DocumentProgress.objects.filter(document=doc, status=status).exists():
+        messages.error(request, f"Status '{status}' has already been used in this document's timeline.")
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+            url_parts = list(urlparse(referer))
+            query = parse_qs(url_parts[4])
+            query['view_doc_id'] = [doc.id]
+            url_parts[4] = urlencode(query, doseq=True)
+            return redirect(urlunparse(url_parts))
+        return redirect(f"/documents/?view_doc_id={doc.id}")
+    
     # Create progress entry with file
     progress = DocumentProgress.objects.create(
         document=doc,
@@ -2631,7 +2697,15 @@ def add_document_progress(request):
     )
     
     messages.success(request, f'Progress status updated to "{status}" successfully!')
-    return redirect('documents')
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+        url_parts = list(urlparse(referer))
+        query = parse_qs(url_parts[4])
+        query['view_doc_id'] = [doc.id]
+        url_parts[4] = urlencode(query, doseq=True)
+        return redirect(urlunparse(url_parts))
+    return redirect(f"/documents/?view_doc_id={doc.id}")
 
 
 # ==========================================
@@ -2696,3 +2770,97 @@ def get_progress_detail(request):
     }
     
     return JsonResponse({'success': True, 'progress': data})
+
+
+# ==========================================
+# EDIT DOCUMENT PROGRESS VIEW
+# ==========================================
+@login_required(login_url='login')
+@require_http_methods(["POST"])
+def edit_document_progress(request):
+    if is_legislator(request.user):
+        messages.error(request, 'Action Denied: Legislators have read-only access.')
+        return redirect('documents')
+
+    progress_id = request.POST.get('progress_id')
+    update_date = request.POST.get('update_date')
+    status = request.POST.get('status')
+    note = request.POST.get('note', '').strip()
+    file_attachment = request.FILES.get('file_attachment')
+
+    if not progress_id or not update_date or not status:
+        messages.error(request, 'Please fill in all required fields.')
+        return redirect('documents')
+
+    try:
+        progress = DocumentProgress.objects.get(id=progress_id)
+        doc = progress.document
+    except DocumentProgress.DoesNotExist:
+        messages.error(request, 'Progress record not found.')
+        return redirect('documents')
+
+    # Validate status choice
+    valid_statuses = [choice[0] for choice in LegislativeDocument.STATUS_CHOICES]
+    if status not in valid_statuses:
+        messages.error(request, 'Invalid status selected.')
+        return redirect('documents')
+
+    # Check if this status has already been used by ANOTHER progress entry of the same document
+    if DocumentProgress.objects.filter(document=doc, status=status).exclude(id=progress.id).exists():
+        messages.error(request, f"Status '{status}' is already used in this document's timeline.")
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+            url_parts = list(urlparse(referer))
+            query = parse_qs(url_parts[4])
+            query['view_doc_id'] = [doc.id]
+            url_parts[4] = urlencode(query, doseq=True)
+            return redirect(urlunparse(url_parts))
+        return redirect(f"/documents/?view_doc_id={doc.id}")
+
+    # Track changes for AuditLog
+    changes = []
+    if str(progress.update_date) != str(update_date):
+        changes.append(f"Date from '{progress.update_date}' to '{update_date}'")
+        progress.update_date = update_date
+    if progress.status != status:
+        changes.append(f"Status from '{progress.status}' to '{status}'")
+        progress.status = status
+    if (progress.note or '') != note:
+        changes.append("Note updated")
+        progress.note = note
+    if file_attachment:
+        changes.append("File attachment replaced")
+        progress.file_attachment = file_attachment
+
+    if changes:
+        progress.save()
+        
+        # If this edited progress step is the latest progress step (by update_date),
+        # we sync/update the parent document's current status.
+        latest_progress = DocumentProgress.objects.filter(document=doc).order_by('-update_date').first()
+        if latest_progress and latest_progress.id == progress.id:
+            if doc.status != status:
+                doc.status = status
+                doc.save()
+
+        # Log action
+        AuditLog.objects.create(
+            user=request.user,
+            action='Edit',
+            document=doc,
+            details=f"Edited progress step for '{doc.document_number}': " + ", ".join(changes)
+        )
+        messages.success(request, 'Progress timeline details successfully updated.')
+    else:
+        messages.info(request, 'No changes were made to the progress timeline.')
+
+    referer = request.META.get('HTTP_REFERER')
+    if referer:
+        from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+        url_parts = list(urlparse(referer))
+        query = parse_qs(url_parts[4])
+        query['view_doc_id'] = [doc.id]
+        url_parts[4] = urlencode(query, doseq=True)
+        return redirect(urlunparse(url_parts))
+    return redirect(f"/documents/?view_doc_id={doc.id}")

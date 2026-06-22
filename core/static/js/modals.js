@@ -19,7 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
         editUser: document.getElementById('editUserModal'),
         reviewUpload: document.getElementById('reviewUploadModal'),
         progress: document.getElementById('progressModal'),
-        progressDetail: document.getElementById('progressDetailModal') 
+        progressDetail: document.getElementById('progressDetailModal'),
+        editProgress: document.getElementById('editProgressModal')
     };
 
     // 2. Helper to close all UI overlays
@@ -709,6 +710,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 viewModal.setAttribute('data-current-doc-number', docNumber || '');
                 viewModal.setAttribute('data-current-doc-title', docTitle || '');
                 viewModal.setAttribute('data-current-file-url', fileUrl || '');
+                // Clear active progress ID and variables
+                viewModal.removeAttribute('data-active-progress-id');
+                viewModal.removeAttribute('data-active-progress-status');
+                viewModal.removeAttribute('data-active-progress-date');
+                viewModal.removeAttribute('data-active-progress-note');
             }
             
             const statusMsg = document.getElementById('share-email-status');
@@ -739,18 +745,57 @@ document.addEventListener('DOMContentLoaded', () => {
             const fileName = btn.getAttribute('data-file');
             const vetoReason = btn.getAttribute('data-vetoreason');
 
-            document.getElementById('edit-doc-id').value = docId;
-            document.getElementById('edit-number').value = docNumber;
-            document.getElementById('edit-title').value = docTitle;
-            document.getElementById('edit-type').value = docType;
-            document.getElementById('edit-year').value = docYear;
-            document.getElementById('edit-date').value = docDate;
-            document.getElementById('edit-sponsor').value = docSponsor || '';
-            document.getElementById('edit-co-sponsors').value = docCoSponsors || '';
-            document.getElementById('edit-keywords').value = docKeywords || '';
-            document.getElementById('edit-status').value = docStatus || 'Pending';
-            document.getElementById('edit-visibility').value = docVisibility || 'Public Access';
-            document.getElementById('edit-physical-storage').value = docStorage || '';
+            const editDocId = document.getElementById('edit-doc-id');
+            const editNumber = document.getElementById('edit-number');
+            const editTitle = document.getElementById('edit-title');
+            const editType = document.getElementById('edit-type');
+            const editYear = document.getElementById('edit-year');
+            const editDate = document.getElementById('edit-date');
+            const editSponsor = document.getElementById('edit-sponsor');
+            const editCoSponsors = document.getElementById('edit-co-sponsors');
+            const editKeywords = document.getElementById('edit-keywords');
+            const editStatus = document.getElementById('edit-status');
+            const editVisibility = document.getElementById('edit-visibility');
+            const editPhysicalStorage = document.getElementById('edit-physical-storage');
+
+            if (editDocId) editDocId.value = docId;
+            if (editNumber) editNumber.value = docNumber;
+            if (editTitle) editTitle.value = docTitle;
+            if (editType) editType.value = docType;
+            if (editYear) editYear.value = docYear;
+            if (editDate) editDate.value = docDate;
+            if (editSponsor) editSponsor.value = docSponsor || '';
+            if (editCoSponsors) editCoSponsors.value = docCoSponsors || '';
+            if (editKeywords) editKeywords.value = docKeywords || '';
+            if (editStatus) editStatus.value = docStatus || 'Pending';
+            if (editVisibility) editVisibility.value = docVisibility || 'Public Access';
+            if (editPhysicalStorage) editPhysicalStorage.value = docStorage || '';
+
+            // Disable already used statuses in Edit Modal, except current status (with grayed-out styles)
+            const editStatusSelect = document.getElementById('edit-status');
+            if (editStatusSelect) {
+                // Enable all first
+                Array.from(editStatusSelect.options).forEach(opt => {
+                    opt.disabled = false;
+                    opt.style.color = '';
+                });
+
+                fetch(`/api/document-progress/?doc_id=${docId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.progress) {
+                            const usedStatuses = data.progress.map(p => p.status.toLowerCase().trim());
+                            Array.from(editStatusSelect.options).forEach(opt => {
+                                const optValue = opt.value.toLowerCase().trim();
+                                if (optValue && opt.value !== docStatus && usedStatuses.includes(optValue)) {
+                                    opt.disabled = true;
+                                    opt.style.color = '#a0a0a0';
+                                }
+                            });
+                        }
+                    })
+                    .catch(err => console.error('Error fetching progress for edit validation:', err));
+            }
 
             if (document.getElementById('edit-veto-reason')) {
                 document.getElementById('edit-veto-reason').value = vetoReason || '';
@@ -760,13 +805,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const uploadArea = fileText ? fileText.closest('.upload-area') : null;
             const uploadSpan = uploadArea ? uploadArea.querySelector('span') : null;
 
-            if (fileName && fileName !== 'None' && fileName !== 'null' && fileName.trim() !== '') {
-                const cleanName = fileName.split('/').pop();
-                fileText.innerHTML = `Current File: <strong>${cleanName}</strong>`;
-                if (uploadSpan) uploadSpan.innerText = 'Click to browse or replace file';
-            } else {
-                fileText.innerHTML = `Current File: <strong style="color: #888;">No file attached</strong>`;
-                if (uploadSpan) uploadSpan.innerText = 'Click to browse or drag and drop';
+            if (fileText) {
+                if (fileName && fileName !== 'None' && fileName !== 'null' && fileName.trim() !== '') {
+                    const cleanName = fileName.split('/').pop();
+                    fileText.innerHTML = `Current File: <strong>${cleanName}</strong>`;
+                    if (uploadSpan) uploadSpan.innerText = 'Click to browse or replace file';
+                } else {
+                    fileText.innerHTML = `Current File: <strong style="color: #888;">No file attached</strong>`;
+                    if (uploadSpan) uploadSpan.innerText = 'Click to browse or drag and drop';
+                }
             }
 
             setTimeout(() => {
@@ -788,11 +835,17 @@ document.addEventListener('DOMContentLoaded', () => {
             const userUsername = btn.getAttribute('data-username');
             const userRole = btn.getAttribute('data-role');
 
-            document.getElementById('edit-user-id').value = userId;
-            document.getElementById('edit-user-first').value = userFirst;
-            document.getElementById('edit-user-last').value = userLast;
-            document.getElementById('edit-user-email').value = userEmail;
-            document.getElementById('edit-user-username').value = userUsername;
+            const editUserId = document.getElementById('edit-user-id');
+            const editUserFirst = document.getElementById('edit-user-first');
+            const editUserLast = document.getElementById('edit-user-last');
+            const editUserEmail = document.getElementById('edit-user-email');
+            const editUserUsername = document.getElementById('edit-user-username');
+
+            if (editUserId) editUserId.value = userId;
+            if (editUserFirst) editUserFirst.value = userFirst;
+            if (editUserLast) editUserLast.value = userLast;
+            if (editUserEmail) editUserEmail.value = userEmail;
+            if (editUserUsername) editUserUsername.value = userUsername;
             if (document.getElementById('edit-user-role')) {
                 document.getElementById('edit-user-role').value = userRole;
             }
@@ -1219,6 +1272,122 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize WebSocket
     connectWebSocket();
+
+    // ==========================================
+    // SHARE VIA EMAIL LOGIC
+    // ==========================================
+    document.addEventListener('click', function(e) {
+        const shareBtn = e.target.closest('#btn-share-email');
+        if (shareBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const viewModal = document.getElementById('viewModal');
+            if (!viewModal) return;
+
+            const emailInput = document.getElementById('share-recipient-email');
+            const statusMsg = document.getElementById('share-email-status');
+            if (!emailInput || !statusMsg) return;
+
+            const email = emailInput.value.trim();
+            const docId = viewModal.getAttribute('data-current-doc-id');
+            const docNumber = viewModal.getAttribute('data-current-doc-number');
+            const fileUrl = viewModal.getAttribute('data-current-file-url');
+
+            // Client side validation
+            if (!email) {
+                showShareStatus('Please enter a recipient email address.', 'error');
+                return;
+            }
+
+            // Simple email regex validation
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showShareStatus('Please enter a valid email address.', 'error');
+                return;
+            }
+
+            if (!docId) {
+                showShareStatus('Error: Document details not found.', 'error');
+                return;
+            }
+
+            // Check if document has a PDF file
+            const hasFile = fileUrl && fileUrl.trim() !== '' && fileUrl !== 'None' && fileUrl !== 'null';
+            if (!hasFile) {
+                showShareStatus('This document does not have a PDF file attached to it.', 'error');
+                return;
+            }
+
+            // Disable button during send
+            shareBtn.disabled = true;
+            const originalText = shareBtn.innerHTML;
+            shareBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sharing...';
+            showShareStatus('Sending request...', 'info');
+
+            // Retrieve CSRF token
+            const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
+
+            fetch('/api/share-document/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    email: email,
+                    doc_id: docId,
+                    doc_number: docNumber
+                })
+            })
+            .then(response => {
+                return response.json().then(data => {
+                    if (response.ok) {
+                        return data;
+                    } else {
+                        throw new Error(data.message || 'Failed to share document.');
+                    }
+                });
+            })
+            .then(data => {
+                showShareStatus(data.message || 'Email has been queued and will be sent shortly.', 'success');
+                emailInput.value = '';
+            })
+            .catch(error => {
+                console.error('Error sharing document:', error);
+                showShareStatus(error.message || 'An error occurred while sharing the document.', 'error');
+            })
+            .finally(() => {
+                shareBtn.disabled = false;
+                shareBtn.innerHTML = originalText;
+            });
+
+            function showShareStatus(message, type) {
+                statusMsg.innerText = message;
+                if (type === 'success') {
+                    statusMsg.style.color = '#22C55E'; // green
+                } else if (type === 'error') {
+                    statusMsg.style.color = '#EF4444'; // red
+                } else {
+                    statusMsg.style.color = '#6B7280'; // gray (info)
+                }
+            }
+        }
+    });
+
+    // Auto-open detailed view modal if view_doc_id is present in URL query parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const viewDocId = urlParams.get('view_doc_id');
+    if (viewDocId) {
+        // Wait briefly for all click listeners to be bound before clicking
+        setTimeout(() => {
+            const viewButton = document.querySelector(`.trigger-view[data-id="${viewDocId}"]`);
+            if (viewButton) {
+                viewButton.click();
+            }
+        }, 100);
+    }
 }); // END OF DOMContentLoaded
 
 
@@ -1423,6 +1592,15 @@ function showProgressDetail(btn) {
         document.getElementById('pd-status').textContent = status ? status.toUpperCase() : 'N/A';
         document.getElementById('pd-note').textContent = note || 'No note provided.';
     }
+
+    // Set active progress details on viewModal
+    const viewModal = document.getElementById('viewModal');
+    if (viewModal) {
+        viewModal.setAttribute('data-active-progress-id', progressId || '');
+        viewModal.setAttribute('data-active-progress-status', status || '');
+        viewModal.setAttribute('data-active-progress-date', updateDate || '');
+        viewModal.setAttribute('data-active-progress-note', note || '');
+    }
     
     // Show loading placeholder while the API resolves the progress file URL
     const fileContainer = document.getElementById('pd-file');
@@ -1432,10 +1610,19 @@ function showProgressDetail(btn) {
     
     const pdfIframe = document.getElementById('view-pdf-iframe');
     const pdfMissing = document.getElementById('view-pdf-missing');
+    const mainFileUrl = viewModal ? viewModal.getAttribute('data-current-file-url') : '';
+    const hasMainFile = mainFileUrl && mainFileUrl.trim() !== '' && mainFileUrl !== 'None' && mainFileUrl !== 'null';
+
     if (pdfIframe && pdfMissing) {
-        pdfIframe.src = '';
-        pdfIframe.style.display = 'none';
-        pdfMissing.style.display = 'block';
+        if (hasMainFile) {
+            pdfIframe.src = mainFileUrl + '#view=FitH';
+            pdfIframe.style.display = 'block';
+            pdfMissing.style.display = 'none';
+        } else {
+            pdfIframe.src = '';
+            pdfIframe.style.display = 'none';
+            pdfMissing.style.display = 'block';
+        }
     }
 
     console.log('Fetching progress detail for ID:', progressId);
@@ -1473,10 +1660,18 @@ function showProgressDetail(btn) {
                         pdfMissing.style.display = 'none';
                         console.log('PDF loaded successfully from:', fileUrl);
                     } else {
-                        pdfIframe.src = '';
-                        pdfIframe.style.display = 'none';
-                        pdfMissing.style.display = 'block';
-                        console.log('No file attached to this progress');
+                        // Fallback to main document's PDF if no progress-specific file
+                        if (hasMainFile) {
+                            pdfIframe.src = mainFileUrl + '#view=FitH';
+                            pdfIframe.style.display = 'block';
+                            pdfMissing.style.display = 'none';
+                            console.log('Progress step has no PDF; fallback to main document PDF:', mainFileUrl);
+                        } else {
+                            pdfIframe.src = '';
+                            pdfIframe.style.display = 'none';
+                            pdfMissing.style.display = 'block';
+                            console.log('No file attached to progress step and no main document PDF');
+                        }
                     }
                 }
             } else {
