@@ -1,5 +1,6 @@
 from django.contrib import admin
-from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument
+from django.utils.html import format_html
+from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument, DocumentProgress
 
 # This customized class tells Django how to display the Legislative Document table
 @admin.register(LegislativeDocument)
@@ -37,6 +38,20 @@ class ArchiveFolderAdmin(admin.ModelAdmin):
     list_filter = ('created_at',)
     search_fields = ('name',)
     ordering = ('-created_at',)
+
+
+@admin.register(DocumentProgress)
+class DocumentProgressAdmin(admin.ModelAdmin):
+    list_display = ('document', 'status', 'update_date', 'created_by', 'file_link')
+    list_filter = ('status', 'update_date', 'created_by')
+    search_fields = ('document__document_number', 'document__title', 'note')
+    ordering = ('-update_date',)
+
+    def file_link(self, obj):
+        if obj.file_attachment:
+            return format_html('<a href="{}" target="_blank">Download</a>', obj.file_attachment.url)
+        return '-'
+    file_link.short_description = 'File'
 
 
 @admin.register(VetoedDocument)
