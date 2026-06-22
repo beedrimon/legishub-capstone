@@ -1524,68 +1524,6 @@ td strong {
 }
 
 /* ============================================================
-   DASHBOARD NO-SCROLL — everything fits in viewport
-   ============================================================ */
-
-/* Only on dashboard: lock the body so nothing overflows */
-body.page-dashboard {
-  overflow: hidden;
-  height: 100vh;
-}
-
-body.page-dashboard .main-content {
-  height: 100vh;
-  overflow: hidden;
-}
-
-/* Header stays fixed height */
-body.page-dashboard .top-header {
-  flex-shrink: 0;
-}
-
-/* dashboard-body fills the remaining space */
-body.page-dashboard .dashboard-body {
-  flex: 1;
-  overflow: hidden;
-  padding: 24px 36px;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Stats grid — fixed, no shrink */
-body.page-dashboard .stats-grid {
-  flex-shrink: 0;
-  margin-bottom: 20px;
-}
-
-/* Content grid fills remaining space */
-body.page-dashboard .content-grid {
-  flex: 1;
-  min-height: 0;
-  /* critical for nested flex overflow */
-  overflow: hidden;
-}
-
-/* Left table card scrolls internally if content is tall */
-body.page-dashboard .table-card {
-  height: 100%;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-}
-
-body.page-dashboard .table-card table {
-  flex: 1;
-}
-
-/* Right column scrolls internally */
-body.page-dashboard .right-column {
-  height: 100%;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-/* ============================================================
    MODAL STYLES — shared across multiple pages, consistent design
    ============================================================ */
 .modal-overlay {
@@ -3005,29 +2943,7 @@ body.page-dashboard .right-column {
         min-height: 36px !important;
     }
 
-    /* === DASHBOARD PAGE === */
-    body.page-dashboard .dashboard-body {
-        padding: 12px 14px !important;
-        overflow: auto !important;
-        height: auto !important;
-    }
-
-    body.page-dashboard .content-grid {
-        overflow: visible !important;
-    }
-
-    body.page-dashboard .table-card {
-        height: auto !important;
-        overflow-y: visible !important;
-        max-height: 300px !important;
-        overflow-y: auto !important;
-    }
-
-    body.page-dashboard .right-column {
-        height: auto !important;
-        overflow-y: visible !important;
-    }
-
+    
     /* === NOTIFICATION DROPDOWN === */
     .notif-dropdown {
         width: calc(100% - 20px) !important;
