@@ -406,7 +406,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (notifBadge) {
                             if (unreadItemsCount > 0) {
                                 notifBadge.style.display = 'flex';
-                                notifBadge.innerText = unreadItemsCount > 99 ? '99+' : unreadItemsCount;
+                                notifBadge.innerText = unreadItemsCount >= 10 ? '10+' : unreadItemsCount;
                             } else {
                                 notifBadge.style.display = 'none';
                             }
@@ -476,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (remainingUnread === 0) {
                             notifBadge.style.display = 'none';
                         } else {
-                            notifBadge.innerText = remainingUnread > 99 ? '99+' : remainingUnread;
+                            notifBadge.innerText = remainingUnread >= 10 ? '10+' : remainingUnread;
                         }
                     }
 
