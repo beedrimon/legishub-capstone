@@ -109,9 +109,9 @@
                     </select>
                 </div>
                 <div class="filter-group">
-                    <label>AUTHOR</label>
+                    <label>SPONSOR / CLIENT</label>
                     <select name="author" onchange="document.getElementById('filterForm').submit();">
-                        <option value="">All Authors</option>
+                        <option value="">All Sponsors/Clients</option>
                         {% for a in available_authors %}
                         <option value="{{ a }}" {% if current_filters.author == a %}selected{% endif %}>{{ a }}
                         </option>
@@ -131,7 +131,7 @@
                             <th style="padding: 15px;">No.</th>
                             <th>ARCHIVE ID</th>
                             <th>DOCUMENT TITLE</th>
-                            <th>AUTHOR</th>
+                            <th>SPONSOR / CLIENT</th>
                             <th>REFERENCE NO.</th>
                             <th>DATE ENACTED</th>
                             <th>STATUS</th>
@@ -242,11 +242,11 @@
                         </div>
                     </div>
                     <div class="meta-group">
-                        <label>PRIMARY AUTHOR / SPONSOR</label>
+                        <label>PRIMARY SPONSOR / CLIENT</label>
                         <p class="meta-val" id="view-sponsor"></p>
                     </div>
                     <div class="meta-group">
-                        <label>CO-SPONSOR(S)</label>
+                        <label>ADDITIONAL SPONSOR(S) / CLIENT(S)</label>
                         <p class="meta-val" id="view-cosponsors"></p>
                     </div>
                     <div class="meta-row">

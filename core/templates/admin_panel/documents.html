@@ -84,9 +84,9 @@
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label>AUTHOR</label>
+                        <label>SPONSOR / CLIENT</label>
                         <select name="author" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Authors</option>
+                            <option value="">All Sponsors/Clients</option>
                             {% for a in available_authors %}
                             <option value="{{ a }}" {% if current_filters.author == a %}selected{% endif %}>{{ a }}
                             </option>
@@ -275,7 +275,7 @@
     
     <!-- Primary Author -->
     <div style="margin-bottom: 10px;">
-        <p style="margin: 0; font-size: 0.55rem; font-weight: 700; color: #a0835d; text-transform: uppercase; letter-spacing: 0.5px;">PRIMARY AUTHOR / SPONSOR</p>
+        <p style="margin: 0; font-size: 0.55rem; font-weight: 700; color: #a0835d; text-transform: uppercase; letter-spacing: 0.5px;">PRIMARY SPONSOR / CLIENT</p>
         <p id="view-sponsor" style="margin: 2px 0 0 0; font-size: 0.8rem; color: #1f2937;"></p>
     </div>
     
@@ -556,7 +556,7 @@
 
             <div class="form-row">
                 <div class="form-group" id="edit-doc-sponsors-container">
-                    <label>PROJECT SPONSOR / AUTHOR(S)</label>
+                    <label>PROJECT SPONSOR / CLIENT(S)</label>
                     <div style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
                         <input type="text" name="sponsor" id="edit-sponsor" placeholder="Hon. Name of Sponsor" style="flex: 1;">
                         <button type="button" class="btn-add-sponsor-row" style="background: var(--sidebar-bg); color: white; border: none; border-radius: 4px; padding: 0 12px; height: 38px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem;" title="Add another sponsor"><i class="fa-solid fa-plus"></i></button>
