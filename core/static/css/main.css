@@ -2490,7 +2490,9 @@ td strong {
     .table-card {
         padding: 14px !important;
         border-radius: 10px !important;
-        min-width: 0; /* Prevents the card from expanding beyond its container due to wide table content */
+        min-width: 0;
+        width: 100% !important; /* FIXED: Force strict width limit */
+        overflow: hidden !important; /* FIXED: Prevent the table from stretching the card */
     }
 
     .page-dashboard .table-card h2 {
@@ -2501,13 +2503,16 @@ td strong {
 
     /* === DASHBOARD RECENT DOCS - Horizontal Scroll on Mobile === */
     .page-dashboard .table-responsive-wrapper {
-        overflow-x: auto;
+        width: 100% !important; /* FIXED: Confine the wrapper to the card */
+        overflow-x: auto !important; /* FIXED: Force the scrollbar */
         -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+        display: block !important;
+        padding-bottom: 5px; /* Gives the scrollbar a little breathing room */
     }
 
     .page-dashboard .table-card table {
-        /* Let the content determine the width, which will trigger the parent's overflow */
-        width: auto;
+        width: 100% !important;
+        min-width: 480px !important; /* FIXED: Forces the table to be wider than the phone to trigger the scroll */
     }
 
     .page-dashboard .table-card th,
