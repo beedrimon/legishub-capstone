@@ -2726,7 +2726,7 @@ def get_document_progress(request):
     
     data = []
     for p in progress:
-        file_url = p.file_attachment.url if p.file_attachment else None
+        file_url = p.file_url if p.file_attachment else None
         if file_url and not file_url.startswith('http'):
             file_url = request.build_absolute_uri(file_url)
 
@@ -2755,7 +2755,7 @@ def get_progress_detail(request):
     except DocumentProgress.DoesNotExist:
         return JsonResponse({'error': 'Progress not found'}, status=404)
     
-    file_url = progress.file_attachment.url if progress.file_attachment else None
+    file_url = progress.file_url if progress.file_attachment else None
     if file_url and not file_url.startswith('http'):
         file_url = request.build_absolute_uri(file_url)
     

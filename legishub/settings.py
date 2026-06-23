@@ -136,6 +136,17 @@ else:
         }
     }
 
+# ==========================================
+# CACHE CONFIGURATION (DATABASE CACHE)
+# ==========================================
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'legishub_cache',
+    }
+}
+
+
 # Password validations
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
 

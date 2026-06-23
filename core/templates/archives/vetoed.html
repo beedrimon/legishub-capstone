@@ -84,7 +84,7 @@
                                     data-status="Vetoed"
                                     data-visibility="{{ doc.visibility }}"
                                     data-storage="{{ doc.physical_storage|default:'Not specified' }}"
-                                    {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}" {% endif %}></i>
+                                    {% if doc.file_attachment %}data-file="{{ doc.file_url }}" {% endif %}></i>
                                 {% if not is_legislator %}
                                 <i class="fa-regular fa-pen-to-square trigger-edit" title="Edit Record"
                                     style="cursor: pointer; color: #888; margin-left: 10px;" 

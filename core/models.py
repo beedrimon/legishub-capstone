@@ -50,14 +50,14 @@ class LegislativeDocument(models.Model):
 
     title = models.CharField(max_length=255)
     document_number = models.CharField(max_length=100, unique=True)
-    doc_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES)
-    year = models.IntegerField()
+    doc_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES, db_index=True)
+    year = models.IntegerField(db_index=True)
     
     # ==========================================
     # NEW COLUMNS ADDED TO MATCH YOUR MODAL
     # ==========================================
     date_enacted = models.DateField(null=True, blank=True)
-    sponsor = models.CharField(max_length=255, null=True, blank=True)
+    sponsor = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     co_sponsors = models.CharField(max_length=500, null=True, blank=True)
     visibility = models.CharField(max_length=50, choices=VISIBILITY_CHOICES, default='Public Access')
     keywords = models.CharField(max_length=255, null=True, blank=True)
@@ -65,10 +65,24 @@ class LegislativeDocument(models.Model):
     veto_reason = models.TextField(blank=True, null=True)
     
     # Original system columns
-    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Pending')
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='Pending', db_index=True)
     date_filed = models.DateField(auto_now_add=True)
     file_attachment = models.FileField(upload_to=document_upload_path, null=True, blank=True)
     uploaded_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='documents')
+
+    @property
+    def file_url(self):
+        if not self.file_attachment:
+            return ""
+        import hashlib
+        name_hash = hashlib.md5(self.file_attachment.name.encode('utf-8')).hexdigest()
+        cache_key = f"file_url_{self.__class__.__name__}_{self.id}_{name_hash}"
+        from django.core.cache import cache
+        url = cache.get(cache_key)
+        if not url:
+            url = self.file_attachment.url
+            cache.set(cache_key, url, 3000) # Cache for 50 minutes (S3 signed URLs expire in 1 hour)
+        return url
 
     def __str__(self):
         return f"{self.document_number}: {self.title}"
@@ -109,14 +123,14 @@ class ArchivedDocument(models.Model):
     
     custom_folder = models.ForeignKey(ArchiveFolder, on_delete=models.SET_NULL, null=True, blank=True, related_name='documents')
     # Optional: Keep a record of what the original Legis Number was
-    original_document_number = models.CharField(max_length=100, null=True, blank=True)
+    original_document_number = models.CharField(max_length=100, null=True, blank=True, db_index=True)
     
     # 2. Mirrored Attributes from LegislativeDocument
     title = models.CharField(max_length=255)
-    doc_type = models.CharField(max_length=50, choices=LegislativeDocument.DOCUMENT_TYPES)
-    year = models.IntegerField()
+    doc_type = models.CharField(max_length=50, choices=LegislativeDocument.DOCUMENT_TYPES, db_index=True)
+    year = models.IntegerField(db_index=True)
     date_enacted = models.DateField(null=True, blank=True)
-    sponsor = models.CharField(max_length=255, null=True, blank=True)
+    sponsor = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     co_sponsors = models.CharField(max_length=500, null=True, blank=True)
     visibility = models.CharField(max_length=50, choices=LegislativeDocument.VISIBILITY_CHOICES, default='Internal Only')
     keywords = models.CharField(max_length=255, null=True, blank=True)
@@ -131,6 +145,20 @@ class ArchivedDocument(models.Model):
     # Uses the new archive upload path
     file_attachment = models.FileField(upload_to=archive_upload_path, null=True, blank=True)
     archived_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='archived_docs')
+
+    @property
+    def file_url(self):
+        if not self.file_attachment:
+            return ""
+        import hashlib
+        name_hash = hashlib.md5(self.file_attachment.name.encode('utf-8')).hexdigest()
+        cache_key = f"file_url_{self.__class__.__name__}_{self.id}_{name_hash}"
+        from django.core.cache import cache
+        url = cache.get(cache_key)
+        if not url:
+            url = self.file_attachment.url
+            cache.set(cache_key, url, 3000) # Cache for 50 minutes (S3 signed URLs expire in 1 hour)
+        return url
 
     def __str__(self):
         return f"{self.archive_id}: {self.title}"
@@ -199,10 +227,10 @@ class VetoedDocument(models.Model):
     # Mirrors the main table so we don't lose any data
     document_number = models.CharField(max_length=100, unique=True)
     title = models.CharField(max_length=255)
-    doc_type = models.CharField(max_length=50, choices=LegislativeDocument.DOCUMENT_TYPES)
-    year = models.IntegerField()
+    doc_type = models.CharField(max_length=50, choices=LegislativeDocument.DOCUMENT_TYPES, db_index=True)
+    year = models.IntegerField(db_index=True)
     date_enacted = models.DateField(null=True, blank=True)
-    sponsor = models.CharField(max_length=255, null=True, blank=True)
+    sponsor = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     co_sponsors = models.CharField(max_length=500, null=True, blank=True)
     visibility = models.CharField(max_length=50, choices=LegislativeDocument.VISIBILITY_CHOICES, default='Public Access')
     keywords = models.CharField(max_length=255, null=True, blank=True)
@@ -216,6 +244,20 @@ class VetoedDocument(models.Model):
     # Store the file in a separate 'vetoed' folder to keep things organized
     file_attachment = models.FileField(upload_to='vetoed/', null=True, blank=True)
     vetoed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='vetoed_docs')
+
+    @property
+    def file_url(self):
+        if not self.file_attachment:
+            return ""
+        import hashlib
+        name_hash = hashlib.md5(self.file_attachment.name.encode('utf-8')).hexdigest()
+        cache_key = f"file_url_{self.__class__.__name__}_{self.id}_{name_hash}"
+        from django.core.cache import cache
+        url = cache.get(cache_key)
+        if not url:
+            url = self.file_attachment.url
+            cache.set(cache_key, url, 3000) # Cache for 50 minutes (S3 signed URLs expire in 1 hour)
+        return url
 
     def __str__(self):
         return f"VETOED - {self.document_number}: {self.title}"
@@ -452,6 +494,20 @@ class DocumentProgress(models.Model):
     class Meta:
         db_table = 'document_progress'
         ordering = ['-update_date']
+
+    @property
+    def file_url(self):
+        if not self.file_attachment:
+            return ""
+        import hashlib
+        name_hash = hashlib.md5(self.file_attachment.name.encode('utf-8')).hexdigest()
+        cache_key = f"file_url_{self.__class__.__name__}_{self.id}_{name_hash}"
+        from django.core.cache import cache
+        url = cache.get(cache_key)
+        if not url:
+            url = self.file_attachment.url
+            cache.set(cache_key, url, 3000) # Cache for 50 minutes (S3 signed URLs expire in 1 hour)
+        return url
     
     def __str__(self):
         return f"{self.document.document_number} - {self.status} - {self.update_date}"

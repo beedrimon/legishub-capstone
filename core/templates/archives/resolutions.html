@@ -121,7 +121,7 @@
                             data-status="Archived"
                             data-visibility="{{ doc.visibility }}"
                             data-storage="{{ doc.physical_storage|default:'Not specified' }}"
-                            {% if doc.file_attachment %}data-file="{{ doc.file_attachment.url }}"{% endif %}
+                            {% if doc.file_attachment %}data-file="{{ doc.file_url }}"{% endif %}
                             style="cursor: pointer; color: #888;"></i>
                         </td>
                     </tr>
