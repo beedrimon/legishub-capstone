@@ -594,7 +594,9 @@ body {
   color: var(--sidebar-bg);
   border: none;
 }
-
+.form-group select:invalid {
+  color: #888 !important;
+}
 /* ============================================================
    7. SHARED TABLE
    ============================================================ */

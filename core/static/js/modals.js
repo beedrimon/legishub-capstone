@@ -186,6 +186,56 @@ document.addEventListener('DOMContentLoaded', () => {
     setupTrigger('.trigger-edit-user', 'editUser');
     setupTrigger('.trigger-progress', 'progress');
 
+
+    // Add this function to modals.js
+function clearDraftAndReset(formId) {
+    const form = document.getElementById(formId);
+    if (!form) return;
+    
+    // Clear the draft from localStorage
+    clearDraft(formId);
+    
+    // Reset the form to its initial state
+    form.reset();
+    
+    // Reset file inputs
+    const fileInputs = form.querySelectorAll('input[type="file"]');
+    fileInputs.forEach(input => {
+        input.value = '';
+        const uploadArea = input.closest('.upload-area');
+        if (uploadArea) {
+            const uploadText = uploadArea.querySelector('p');
+            const uploadSpan = uploadArea.querySelector('span');
+            if (uploadText) {
+                uploadText.innerHTML = 'Upload Certified PDF Copy';
+            }
+            if (uploadSpan) {
+                uploadSpan.innerText = 'Click here to browse files (Max 20MB)';
+            }
+        }
+    });
+    
+    // Reset co-sponsors if any
+    const container = form.querySelector('[id$="-sponsors-container"]');
+    if (container && typeof container.setCoSponsors === 'function') {
+        container.setCoSponsors('');
+    }
+    
+    // Reset select fields
+    const selects = form.querySelectorAll('select');
+    selects.forEach(select => {
+        // Reset to the first option (which should be the placeholder)
+        const firstOption = select.querySelector('option[selected]');
+        if (firstOption) {
+            select.value = firstOption.value;
+        } else {
+            select.selectedIndex = 0;
+        }
+        // Trigger change event to update any dependent UI
+        select.dispatchEvent(new Event('change'));
+    });
+}
+
     // ==========================================
     // REVIEW UPLOAD MODAL LOGIC
     // ==========================================
@@ -257,20 +307,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const confirmUploadBtn = document.getElementById('confirmUploadBtn');
     if (confirmUploadBtn) {
-        confirmUploadBtn.addEventListener('click', function() {
-            if (activeUploadForm) {
-                this.innerHTML = 'Uploading... <i class="fa-solid fa-spinner fa-spin"></i>';
-                this.style.pointerEvents = 'none';
-                this.style.opacity = '0.7';
+        // In the confirmUploadBtn click handler, update to clear drafts:
+    confirmUploadBtn.addEventListener('click', function() {
+    if (activeUploadForm) {
+        this.innerHTML = 'Uploading... <i class="fa-solid fa-spinner fa-spin"></i>';
+        this.style.pointerEvents = 'none';
+        this.style.opacity = '0.7';
 
-                const formId = activeUploadForm.id;
-                const docId = formId === 'editDocumentForm' ? document.getElementById('edit-doc-id')?.value : null;
-                clearDraft(formId, docId);
+        const formId = activeUploadForm.id;
+        const docId = formId === 'editDocumentForm' ? document.getElementById('edit-doc-id')?.value : null;
+        
+        // Clear the draft before submitting
+        clearDraft(formId, docId);
+        
+        // Also clear any localStorage for this form
+        const key = DRAFT_KEYS[formId];
+        if (key) {
+            const storageKey = docId ? `${key}_${docId}` : key;
+            localStorage.removeItem(storageKey);
+        }
 
-                activeUploadForm.submit();
-            }
-        });
+        activeUploadForm.submit();
     }
+});
 
     const backToEditBtn = document.getElementById('backToEditBtn');
     if (backToEditBtn) {
@@ -311,16 +370,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 if (isDirty) {
-                    if (!confirm("Are you sure you want to close? Your inputs will be kept here in the background.")) {
-                        return;
+                // Ask user if they want to discard the draft
+                if (confirm("Are you sure you want to discard this draft? Any unsaved changes will be lost.")) {
+                    // Clear the draft from localStorage
+                    const formId = form ? form.id : null;
+                    if (formId && DRAFT_KEYS[formId]) {
+                        clearDraft(formId);
+                        // Reset the form
+                        form.reset();
                     }
+                    closeAllOverlays();
                 }
+                // If they click Cancel, don't close the modal
+                return;
             }
-
-            closeAllOverlays();
         }
-    });
 
+        closeAllOverlays();
+    }
+});
     // 5. Notification Logic & Real-Time Polling
     if (bell && notifDropdown) {
         bell.addEventListener('click', (e) => {

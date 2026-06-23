@@ -53,7 +53,7 @@
                     <div class="filter-group">
                         <label>LEGISLATION TYPE</label>
                         <select name="doc_type" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Types</option>
+                            <option value="" disabled selected hidden>Select a Type</option>
                             <option value="Ordinance" {% if current_filters.doc_type == 'Ordinance' %}selected{% endif %}>
                                 Ordinance</option>
                             <option value="Resolution" {% if current_filters.doc_type == 'Resolution' %}selected{% endif %}>
@@ -63,7 +63,7 @@
                     <div class="filter-group">
                         <label>YEAR</label>
                         <select name="year" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Years</option>
+                            
                             {% for y in available_years %}
                             <option value="{{ y }}" {% if current_filters.year == y|stringformat:"s" %}selected{% endif %}>
                                 {{ y }}</option>
@@ -73,7 +73,7 @@
                     <div class="filter-group">
                         <label>STATUS</label>
                         <select name="status" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Statuses</option>
+                            <option value="" disabled selected hidden>Select a Status</option>
                             <option value="Urgent" {% if current_filters.status == 'Urgent' %}selected{% endif %}>Urgent</option>
                             <option value="Proposed Measures" {% if current_filters.status == 'Proposed Measures' %}selected{% endif %}>Proposed Measures</option>
                             <option value="Endorsement" {% if current_filters.status == 'Endorsement' %}selected{% endif %}>Endorsement</option>
@@ -91,7 +91,7 @@
                     <div class="filter-group">
                         <label>SPONSOR / CLIENT</label>
                         <select name="author" onchange="document.getElementById('filterForm').submit();">
-                            <option value="">All Sponsors/Clients</option>
+                            <option value="" disabled selected hidden>Select a Sponsor/Client</option>
                             {% for a in available_authors %}
                             <option value="{{ a }}" {% if current_filters.author == a %}selected{% endif %}>{{ a }}
                             </option>
@@ -480,13 +480,21 @@
                 <div class="form-group full-width">
                     <label>STATUS</label>
                     <select name="status" id="edit-progress-status" required>
-                        <option value="">-- Select Status --</option>
-                        <option value="1st reading">1st Reading</option>
-                        <option value="2nd reading">2nd Reading</option>
-                        <option value="3rd reading">3rd Reading</option>
-                        <option value="For Certification">For Certification</option>
-                        <option value="For Signing">For Signing</option>
-                        <option value="For Approval">For Approval</option>
+                        <option value="" disabled selected hidden>-- Select a Status --</option>
+                            <option value="Urgent">Urgent</option>
+                            <option value="Proposed Measures">Proposed Measures</option>
+                            <option value="Endorsement">Endorsement</option>
+                            <option value="Referral">Referral</option>
+                            <option value="Hearing">Hearing</option>
+                            <option value="Committee Report">Committee Report</option>
+                            <option value="1st reading">1st reading</option>
+                            <option value="2nd reading">2nd reading</option>
+                            <option value="3rd reading">3rd reading</option>
+                            <option value="For Certification">For Certification</option>
+                            <option value="For Signing">For Signing</option>
+                            <option value="For Approval">For Approval</option>
+                            <option value="Vetoed">Vetoed</option>
+                            <option value="Archived">Archived</option>
                     </select>
                 </div>
             </div>
@@ -543,6 +551,7 @@
                 <div class="form-group">
                     <label>LEGISLATION TYPE</label>
                     <select name="doc_type" id="edit-type">
+                        <option value="" disabled selected hidden>-- Select a Type --</option>
                         <option value="Ordinance">Ordinance</option>
                         <option value="Resolution">Resolution</option>
                     </select>
@@ -599,6 +608,7 @@
                 <div class="form-group">
                     <label>VISIBILITY / PRIVACY</label>
                     <select name="visibility" id="edit-visibility">
+                        <option value="" disabled selected hidden>-- Select a Visibility --</option>
                         <option value="Public Access">Public Access</option>
                         <option value="Internal Only">Internal Only</option>
                     </select>
