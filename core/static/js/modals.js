@@ -1515,7 +1515,7 @@ function loadProgressTimeline(docId) {
             if (data.progress && data.progress.length > 0) {
                 timeline.innerHTML = '';
 
-                const sorted = [...data.progress].sort((a, b) => new Date(a.update_date) - new Date(b.update_date));
+                const sorted = [...data.progress].sort((a, b) => a.id - b.id);
                 const latest = sorted[sorted.length - 1];
                 const currentStatus = latest ? latest.status : null;
                 
