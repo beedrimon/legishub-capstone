@@ -665,7 +665,7 @@ function clearDraftAndReset(formId) {
         }
     });
 
-  // ==========================================
+    // ==========================================
 // CUSTOM VIEW MODAL HANDLER
 // ==========================================
 document.addEventListener('click', function(e) {
@@ -718,78 +718,201 @@ document.addEventListener('click', function(e) {
     if (statusMsg) statusMsg.innerText = '';
     if (emailInput) emailInput.value = '';
 
-    // ---- Load PDF preview from latest progress (or fallback to main) ----
+    // ---- Load progress timeline and auto‑show latest details ----
     const pdfIframe = document.getElementById('view-pdf-iframe');
     const pdfMissing = document.getElementById('view-pdf-missing');
+    const mainFileUrl = btn.getAttribute('data-file');
 
-    if (pdfIframe && pdfMissing) {
-        pdfIframe.src = '';
-        pdfIframe.style.display = 'none';
-        pdfMissing.style.display = 'block';
-        pdfMissing.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading PDF...';
+    // Fetch progress data to build timeline and auto‑show latest
+    fetch(`/api/document-progress/?doc_id=${docId}`)
+        .then(response => response.json())
+        .then(data => {
+            let latestProgress = null;
+            let latestWithFile = null;
 
-        // First, get the main document file URL (fallback)
-        const mainFileUrl = btn.getAttribute('data-file');
+            if (data.progress && data.progress.length > 0) {
+                // Sort by ID descending to get the most recent first
+                const sorted = [...data.progress].sort((a, b) => b.id - a.id);
+                latestProgress = sorted[0]; // the newest overall
+                // Find the first with a file attachment (for PDF)
+                latestWithFile = sorted.find(p => p.file_attachment && p.file_attachment.trim() !== '' && p.file_attachment !== 'null');
+            }
 
-        // Fetch progress entries to find the latest with a file
-        fetch(`/api/document-progress/?doc_id=${docId}`)
-            .then(response => response.json())
-            .then(data => {
-                let latestFileUrl = null;
-
+            // ---- Build the timeline (bookmarks) ----
+            const timeline = document.getElementById('progressTimeline');
+            if (timeline) {
                 if (data.progress && data.progress.length > 0) {
-                    // Sort by ID descending to get the most recent first
-                    const sorted = [...data.progress].sort((a, b) => b.id - a.id);
-                    // Find the first progress entry that has a file attachment
-                    const withFile = sorted.find(p => p.file_attachment && p.file_attachment.trim() !== '' && p.file_attachment !== 'null');
-                    if (withFile) {
-                        latestFileUrl = withFile.file_attachment;
+                    timeline.innerHTML = '';
+                    const sorted = [...data.progress].sort((a, b) => b.id - a.id); // descending
+                    const currentStatus = latestProgress ? latestProgress.status : null;
+                    const darkBrown = '#7c5c35';
+                    const lightBrown = '#d9c8ac';
+                    const textLight = '#6b5a4a';
+
+                    sorted.forEach((item) => {
+                        const isCurrent = item.id === (latestProgress ? latestProgress.id : null);
+                        const wrapper = document.createElement('div');
+                        wrapper.className = 'bookmark-item';
+                        wrapper.style.display = 'flex';
+                        wrapper.style.alignItems = 'stretch';
+                        wrapper.style.marginBottom = '0';
+                        wrapper.style.position = 'relative';
+
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'progress-bookmark';
+                        button.dataset.progressId = item.id;
+                        button.dataset.status = item.status || '';
+                        button.dataset.updateDate = item.update_date || '';
+                        button.dataset.note = item.note || 'No note provided.';
+                        button.style.display = 'flex';
+                        button.style.flexDirection = 'column';
+                        button.style.alignItems = 'flex-start';
+                        button.style.justifyContent = 'center';
+                        button.style.background = isCurrent ? darkBrown : lightBrown;
+                        button.style.color = isCurrent ? 'white' : textLight;
+                        button.style.border = 'none';
+                        button.style.borderRadius = '4px 0 0 4px';
+                        button.style.padding = '8px 14px 8px 16px';
+                        button.style.fontSize = '0.75rem';
+                        button.style.fontWeight = isCurrent ? '700' : '600';
+                        button.style.cursor = 'pointer';
+                        button.style.transition = 'all 0.2s';
+                        button.style.width = '100%';
+                        button.style.textAlign = 'left';
+                        button.style.boxShadow = isCurrent ? '0 2px 8px rgba(124,92,53,0.25)' : 'none';
+                        button.style.position = 'relative';
+                        button.style.minHeight = '48px';
+                        button.style.flex = '1';
+                        button.style.borderRight = `3px solid ${isCurrent ? darkBrown : 'transparent'}`;
+
+                        const statusText = document.createElement('span');
+                        statusText.style.fontSize = '0.8rem';
+                        statusText.style.fontWeight = isCurrent ? '700' : '600';
+                        statusText.style.marginBottom = '2px';
+                        statusText.textContent = item.status.toUpperCase();
+                        button.appendChild(statusText);
+
+                        const dateText = document.createElement('span');
+                        dateText.style.fontSize = '0.55rem';
+                        dateText.style.opacity = '0.8';
+                        dateText.style.fontWeight = '400';
+                        dateText.textContent = item.update_date;
+                        button.appendChild(dateText);
+
+                        button.addEventListener('click', () => showProgressDetail(button));
+                        wrapper.appendChild(button);
+
+                        const marker = document.createElement('div');
+                        marker.style.width = isCurrent ? '6px' : '4px';
+                        marker.style.background = isCurrent ? darkBrown : lightBrown;
+                        marker.style.borderRadius = isCurrent ? '0 4px 4px 0' : '0 3px 3px 0';
+                        marker.style.flexShrink = '0';
+                        wrapper.appendChild(marker);
+
+                        timeline.appendChild(wrapper);
+                    });
+
+                    // Scroll to top to show latest
+                    const firstBookmark = timeline.querySelector('.bookmark-item:first-child');
+                    if (firstBookmark) {
+                        setTimeout(() => {
+                            firstBookmark.scrollIntoView({ block: 'start', behavior: 'smooth' });
+                        }, 100);
+                    }
+                } else {
+                    timeline.innerHTML = `
+                        <div style="color: var(--text-light); font-size: 0.75rem; padding: 20px 10px; text-align: center;">
+                            <i class="fa-regular fa-clock"></i> No progress yet.
+                        </div>
+                    `;
+                }
+            }
+
+            // ---- Auto‑show details for the latest progress ----
+            if (latestProgress) {
+                // Populate the detail display panel
+                const detailDisplay = document.getElementById('progressDetailDisplay');
+                if (detailDisplay) {
+                    detailDisplay.style.display = 'block';
+                    document.getElementById('pd-date').textContent = latestProgress.update_date || 'N/A';
+                    document.getElementById('pd-status').textContent = latestProgress.status ? latestProgress.status.toUpperCase() : 'N/A';
+                    document.getElementById('pd-note').textContent = latestProgress.note || 'No note provided.';
+                }
+
+                // Set active progress ID on modal
+                viewModal.setAttribute('data-active-progress-id', latestProgress.id);
+                viewModal.setAttribute('data-active-progress-status', latestProgress.status);
+                viewModal.setAttribute('data-active-progress-date', latestProgress.update_date);
+                viewModal.setAttribute('data-active-progress-note', latestProgress.note);
+
+                // Show file attachment (if any)
+                const fileContainer = document.getElementById('pd-file');
+                if (fileContainer) {
+                    if (latestProgress.file_attachment) {
+                        const safeUrl = escapeHtmlAttribute(latestProgress.file_attachment);
+                        fileContainer.innerHTML = `
+                            <a href="${safeUrl}" target="_blank" style="color: var(--sidebar-bg); text-decoration: none; font-weight: 600;">
+                                <i class="fa-regular fa-file-pdf"></i> View Attached File
+                            </a>
+                        `;
+                    } else {
+                        fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">No file attached.</span>`;
                     }
                 }
 
-                // If no progress file found, use the main document file
-                if (!latestFileUrl) {
-                    latestFileUrl = mainFileUrl;
-                }
+                // Highlight the corresponding bookmark (already done via isCurrent logic)
+                // No need to call showProgressDetail, details are already shown.
+            } else {
+                // No progress at all – hide detail panel
+                const detailDisplay = document.getElementById('progressDetailDisplay');
+                if (detailDisplay) detailDisplay.style.display = 'none';
+            }
 
-                // Store the final file URL for sharing and later use
-                viewModal.setAttribute('data-current-file-url', latestFileUrl || '');
+            // ---- PDF preview: use the latest progress with a file, or fallback to main ----
+            const fileUrl = latestWithFile ? latestWithFile.file_attachment : mainFileUrl;
+            viewModal.setAttribute('data-current-file-url', fileUrl || '');
 
-                if (latestFileUrl && latestFileUrl.trim() !== '' && latestFileUrl !== 'None' && latestFileUrl !== 'null') {
-                    // Do not add cache buster – preserve signed URLs
-                    pdfIframe.src = latestFileUrl + '#view=FitH';
+            if (pdfIframe && pdfMissing) {
+                if (fileUrl && fileUrl.trim() !== '' && fileUrl !== 'None' && fileUrl !== 'null') {
+                    pdfIframe.src = fileUrl + '#view=FitH';
                     pdfIframe.style.display = 'block';
                     pdfMissing.style.display = 'none';
-                    console.log('PDF loaded from:', latestFileUrl);
+                    console.log('PDF loaded from:', fileUrl);
                 } else {
                     pdfIframe.src = '';
                     pdfIframe.style.display = 'none';
                     pdfMissing.style.display = 'block';
                     pdfMissing.innerHTML = '<i class="fa-regular fa-file-pdf"></i> No PDF document attached.';
                 }
-            })
-            .catch(error => {
-                console.error('Error fetching progress for PDF preview:', error);
-                // Fallback to main file on error
-                const fallback = mainFileUrl;
-                if (fallback && fallback.trim() !== '' && fallback !== 'None' && fallback !== 'null') {
-                    pdfIframe.src = fallback + '#view=FitH';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading progress:', error);
+            // Fallback: show main PDF if progress fetch fails
+            if (pdfIframe && pdfMissing) {
+                if (mainFileUrl && mainFileUrl.trim() !== '' && mainFileUrl !== 'None' && mainFileUrl !== 'null') {
+                    pdfIframe.src = mainFileUrl + '#view=FitH';
                     pdfIframe.style.display = 'block';
                     pdfMissing.style.display = 'none';
-                    viewModal.setAttribute('data-current-file-url', fallback);
+                    viewModal.setAttribute('data-current-file-url', mainFileUrl);
                 } else {
                     pdfIframe.src = '';
                     pdfIframe.style.display = 'none';
                     pdfMissing.style.display = 'block';
                     pdfMissing.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Failed to load PDF.';
                 }
-            });
-    }
-
-    // ---- Load progress timeline ----
-    if (docId) {
-        loadProgressTimeline(docId);
-    }
+            }
+            // Show empty timeline
+            const timeline = document.getElementById('progressTimeline');
+            if (timeline) {
+                timeline.innerHTML = `
+                    <div style="color: #dc3545; font-size: 0.75rem; padding: 10px; text-align: center;">
+                        <i class="fa-solid fa-exclamation-triangle"></i> Failed to load.
+                    </div>
+                `;
+            }
+        });
 });
     
     // ==========================================
