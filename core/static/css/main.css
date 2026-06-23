@@ -2357,6 +2357,10 @@ td strong {
         background: white !important;
         box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
     }
+    .page-dashboard .top-header {
+        justify-content: center;
+    }
+
 
     .header-title {
         font-size: 0.7rem !important;
@@ -2381,6 +2385,12 @@ td strong {
         gap: 12px !important;
         flex-wrap: nowrap !important;
         align-items: center !important;
+        width: 100%;
+    }
+
+    .header-actions .upload-dropdown {
+        margin-left: auto; /* Push the group to the right, starting with upload */
+        order: 1; /* Upload button is first in the group */
     }
 
     .header-actions .fa-bell,
@@ -2389,15 +2399,41 @@ td strong {
         color: #777 !important;
     }
 
+    /* On pages with an upload button, the bell comes second in the icon group */
+    .header-actions .notification-wrapper {
+        order: 2; /* Bell is second */
+    }
+
+    /* On pages that DO NOT have an upload button, make the notification bell the first item and push the group right */
+    .header-actions:not(:has(.upload-dropdown)) .notification-wrapper {
+        margin-left: auto;
+        order: 1;
+    }
+
     .profile {
         font-size: 0.75rem !important;
         gap: 4px !important;
         font-weight: 500 !important;
     }
+    .profile, .header-actions .help-link { order: 3; } /* Help and Profile are last */
 
     .profile .fa-circle-user {
         font-size: 1.3rem !important;
+        margin-left: auto;
         color: #7c5c35 !important;
+    }
+
+    .header-actions .btn-upload {
+        width: 36px !important;
+        height: 36px !important;
+        padding: 0 !important;
+        font-size: 0 !important; /* Hides the text */
+        border-radius: 8px !important; /* From circle to rounded rectangle */
+        justify-content: center !important;
+    }
+
+    .header-actions .btn-upload i {
+        font-size: 1rem !important;
     }
 
     .profile span {
@@ -2454,28 +2490,35 @@ td strong {
     .table-card {
         padding: 14px !important;
         border-radius: 10px !important;
-        overflow: hidden !important;
+        min-width: 0; /* Prevents the card from expanding beyond its container due to wide table content */
     }
 
-    .table-card h2 {
+    .page-dashboard .table-card h2 {
         font-size: 0.85rem !important;
         margin-bottom: 12px !important;
+        text-align: center;
     }
 
-    .table-card table {
+    /* === DASHBOARD RECENT DOCS - Horizontal Scroll on Mobile === */
+    .page-dashboard .table-responsive-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    }
+
+    .page-dashboard .table-card table {
+        /* Let the content determine the width, which will trigger the parent's overflow */
+        width: auto;
+    }
+
+    .page-dashboard .table-card th,
+    .page-dashboard .table-card td {
+        white-space: nowrap; /* Prevent text from wrapping */
+        padding: 12px 15px !important;
+        font-size: 0.8rem !important;
+    }
+
+    .page-dashboard .table-card th {
         font-size: 0.7rem !important;
-    }
-
-    .table-card th {
-        font-size: 0.55rem !important;
-        padding: 6px 4px !important;
-        white-space: nowrap !important;
-    }
-
-    .table-card td {
-        padding: 8px 4px !important;
-        font-size: 0.65rem !important;
-        white-space: nowrap !important;
     }
 
     /* === WIDGETS === */
@@ -2855,6 +2898,77 @@ td strong {
     .iam-card {
         padding: 14px !important;
         border-radius: 10px !important;
+    }
+
+    /* === SETTINGS PAGE - SPECIFIC COMPONENTS === */
+    .cloud-status-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+    }
+
+    .cloud-status-card .stats-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 8px !important;
+    }
+
+    .stat-item {
+        background: #f0f0f0;
+        padding: 8px;
+        border-radius: 6px;
+    }
+
+    .manual-sync-card {
+        flex-direction: column !important;
+        gap: 15px !important;
+    }
+
+    .manual-sync-content {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        width: 100% !important;
+        text-align: left !important;
+    }
+
+    .sync-button {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .backup-logs-table, .purge-history-table {
+        display: block !important;
+        width: 100% !important;
+    }
+
+    .backup-logs-table thead, .purge-history-table thead {
+        display: none !important;
+    }
+
+    .backup-logs-table tr, .purge-history-table tr {
+        display: block !important;
+        padding: 10px 0 !important;
+        border-bottom: 1px solid var(--border-color) !important;
+    }
+
+    .backup-logs-table td, .purge-history-table td {
+        display: flex !important;
+        justify-content: space-between !important;
+        padding: 5px 0 !important;
+        border: none !important;
+        font-size: 0.75rem !important;
+        text-align: right;
+    }
+
+    .backup-logs-table td::before, .purge-history-table td::before {
+        content: attr(data-label) !important;
+        font-weight: 600 !important;
+        color: var(--text-light) !important;
+        margin-right: 10px !important;
+        text-align: left;
     }
 
     /* === FOLDERS === */

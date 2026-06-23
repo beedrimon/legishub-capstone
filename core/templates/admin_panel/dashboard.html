@@ -81,30 +81,32 @@
 
                 <div class="table-card">
                     <h2>Recent Legislative Documents</h2>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Category</th>
-                                <th>Date Filed</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for doc in recent_documents %}
-                            <tr>
-                                <td>{{ doc.title }}</td>
-                                <td>{{ doc.doc_type }}</td>
-                                <td>{{ doc.date_filed }}</td>
-                                <td><span class="badge {{ doc.status|lower }}">{{ doc.status }}</span></td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4">No recent documents found.</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                    <div class="table-responsive-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Date Filed</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for doc in recent_documents %}
+                                <tr>
+                                    <td>{{ doc.title }}</td>
+                                    <td>{{ doc.doc_type }}</td>
+                                    <td>{{ doc.date_filed }}</td>
+                                    <td><span class="badge {{ doc.status|lower }}">{{ doc.status }}</span></td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4">No recent documents found.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <div class="right-column">

@@ -8,9 +8,20 @@
 {% block top_header_content %}
 <div class="header-title">System Configuration v.1.0</div>
 <div class="header-actions">
-    <i class="fa-regular fa-circle-question"></i>
-    <div class="profile">
+    <div class="notification-wrapper">
+        <i class="fa-regular fa-bell" id="notifBell" style="cursor: pointer; font-size: 1.2rem;"></i>
+        <span class="notif-badge"></span>
+    </div>
+    <a href="{% url 'help_center' %}" class="help-link">
+        <i class="fa-regular fa-circle-question" title="Help"></i>
+    </a>
+    <div class="profile" id="profileDropdownBtn">
         <i class="fa-regular fa-circle-user"></i> {{ request.user.username }}
+        <div class="profile-dropdown-content" id="profileDropdown">
+            <a href="{% url 'general_info' %}"><i class="fa-solid fa-user"></i> My Profile</a>
+            <a href="{% url 'security_policy' %}"><i class="fa-solid fa-lock"></i> Security & Password</a>
+            <a href="{% url 'logout' %}" style="color: #dc3545;"><i class="fa-solid fa-right-from-bracket"></i> Logout</a>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -147,8 +158,8 @@
                     <tbody>
                         {% for log in backup_logs %}
                         <tr>
-                            <td>{{ log.started_at|date:"Y-m-d H:i:s" }}</td>
-                            <td>
+                            <td data-label="Started At">{{ log.started_at|date:"Y-m-d H:i:s" }}</td>
+                            <td data-label="Type">
                                 {% if log.backup_type == 'auto' %}
                                     <span class="badge-info">Auto</span>
                                 {% elif log.backup_type == 'restore' %}
@@ -157,7 +168,7 @@
                                     <span class="badge-warning">Manual</span>
                                 {% endif %}
                             </td>
-                            <td>
+                            <td data-label="Status">
                                 {% if log.status == 'success' %}
                                     <span class="status-success"><i class="fa-solid fa-check-circle"></i> Success</span>
                                 {% elif log.status == 'failed' %}
@@ -168,11 +179,11 @@
                                     <span class="badge-warning">Pending</span>
                                 {% endif %}
                             </td>
-                            <td>{{ log.documents_synced }}</td>
-                            <td>{{ log.archives_synced }}</td>
-                            <td>{{ log.audit_logs_synced }}</td>
-                            <td>{{ log.users_synced }}</td>
-                            <td><strong>{{ log.records_synced }}</strong></td>
+                            <td data-label="Documents">{{ log.documents_synced }}</td>
+                            <td data-label="Archives">{{ log.archives_synced }}</td>
+                            <td data-label="Audit Logs">{{ log.audit_logs_synced }}</td>
+                            <td data-label="Users">{{ log.users_synced }}</td>
+                            <td data-label="Total"><strong>{{ log.records_synced }}</strong></td>
                         </tr>
                         {% empty %}
                         <tr>
@@ -207,11 +218,6 @@
         </form>
     </div>
 </div>
-
-<!-- IMPORTANT: Override the modals block to prevent base modals from loading -->
-{% block modals %}
-<!-- Modals are disabled on settings pages -->
-{% endblock %}
 
 {% block extra_js %}
 <script>

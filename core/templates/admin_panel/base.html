@@ -953,6 +953,10 @@
             <span>Audit</span>
         </a>
         {% if request.user.is_superuser %}
+        <a href="{% url 'user_management' %}" class="{% if url_name == 'user_management' %}active{% endif %}">
+            <i class="fa-solid fa-users"></i>
+            <span>Users</span>
+        </a>
         <a href="{% url 'general_info' %}" class="{% if url_name == 'general_info' or url_name == 'backup_cloud' or url_name == 'metadata_tags' or url_name == 'security_policy' or url_name == 'notifications' %}active{% endif %}">
             <i class="fa-solid fa-gear"></i>
             <span>Settings</span>

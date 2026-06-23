@@ -1193,6 +1193,13 @@ function clearDraftAndReset(formId) {
         });
     });
 
+    // Hide skeleton loader on page load/show
+    window.addEventListener('pageshow', function() {
+        if (skeletonOverlay && skeletonOverlay.classList.contains('show')) {
+            skeletonOverlay.classList.remove('show');
+        }
+    });
+
     // ==========================================
     // REAL-TIME WEBSOCKET LISTENER
     // ==========================================
