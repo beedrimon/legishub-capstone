@@ -2375,10 +2375,45 @@ td strong {
         font-size: 0.8rem !important;
     }
 
-    .header-actions {
-        gap: 12px !important;
-        flex-wrap: nowrap !important;
+    .upload-dropdown {
+      order: 0 !important;
+        flex-shrink: 0 !important;
+    }
+
+    .btn-upload-dropdown {
+        padding: 6px 10px !important;
+        min-width: 36px !important;
+        min-height: 36px !important;
+        display: flex !important;
         align-items: center !important;
+        justify-content: center !important;
+        border-radius: 6px !important;
+        background: var(--sidebar-bg) !important;
+        color: white !important;
+        border: none !important;
+        cursor: pointer !important;
+    }
+
+    .btn-upload-dropdown i {
+        font-size: 1.1rem !important;
+    }
+
+    .btn-upload-dropdown span {
+        display: none !important;
+    }
+
+    .header-actions {
+      gap: 8px !important;
+      flex-wrap: nowrap !important;
+      align-items: center !important;
+      order: 1 !important;
+      margin-left: auto !important;
+      justify-content: flex-end !important;
+      width: auto !important;
+    }
+
+    .header-actions > * {
+        flex-shrink: 0 !important;
     }
 
     .header-actions .fa-bell,
@@ -2388,14 +2423,22 @@ td strong {
     }
 
     .profile {
+        display: flex !important;
+        align-items: center !important;
         font-size: 0.75rem !important;
         gap: 4px !important;
         font-weight: 500 !important;
+        margin-left: auto !important;
+        max-width: 160px !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        white-space: nowrap !important;
     }
 
     .profile .fa-circle-user {
         font-size: 1.3rem !important;
         color: #7c5c35 !important;
+        flex-shrink: 0 !important;
     }
 
     .profile span {
@@ -2440,6 +2483,14 @@ td strong {
         display: flex !important;
         flex-direction: column !important;
         gap: 14px !important;
+        align-items: center !important;
+    }
+
+    .table-card,
+    .right-column {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
     }
 
     .right-column {
