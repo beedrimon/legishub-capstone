@@ -1490,6 +1490,7 @@ function clearDraftAndReset(formId) {
             });
         }
     });
+}
 }); // END OF DOMContentLoaded
 
 
