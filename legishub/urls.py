@@ -79,6 +79,8 @@ urlpatterns = [
     path('edit-progress/', views.edit_document_progress, name='edit_progress'),
     path('api/document-progress/', views.get_document_progress, name='get_document_progress'),
     path('api/progress-detail/', views.get_progress_detail, name='get_progress_detail'),
+    path('api/archived-progress/', views.get_archived_progress, name='get_archived_progress'),
+    path('api/archived-progress-detail/', views.get_archived_progress_detail, name='get_archived_progress_detail'),
 ]
 
 if settings.DEBUG:
