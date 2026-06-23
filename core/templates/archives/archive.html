@@ -141,14 +141,14 @@
                     <tbody>
                         {% for doc in archives %}
                         <tr data-doc-id="{{ doc.id }}" data-doc-number="{{ doc.original_document_number }}" style="border-bottom: 1px solid #eee;">
-                            <td data-label="No.">{{ forloop.counter0|add:archives.start_index }}</td>
-                            <td data-label="Archive ID">{{ doc.archive_id }}</td>
-                            <td data-label="Document Title">{{ doc.title }}</td>
-                            <td data-label="Sponsor / Client">{{ doc.sponsor|default:'No Sponsor Listed' }}</td>
-                            <td data-label="Reference No.">{{ doc.original_document_number }}</td> 
-                            <td data-label="Date Enacted">{{ doc.original_date_filed|date:"M d, Y" }}</td>
-                            <td data-label="Status"><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></td>
-                            <td class="action-icons" data-label="Actions">
+                            <td>{{ forloop.counter0|add:archives.start_index }}</td>
+                            <td>{{ doc.archive_id }}</td>
+                            <td>{{ doc.title }}</td>
+                            <td>{{ doc.sponsor|default:'No Sponsor Listed' }}</td>
+                            <td>{{ doc.original_document_number }}</td> 
+                            <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
+                            <td><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></td>
+                            <td class="action-icons">
                                 <i class="fa-regular fa-eye trigger-view" title="View Document"
                                     style="cursor: pointer; color: #888;" 
                                     data-id="{{ doc.id }}"
