@@ -180,7 +180,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupTrigger('.trigger-upload-new', 'uploadNew', 'uploadNewForm');
     setupTrigger('.trigger-upload-existing', 'uploadExisting', 'uploadExistingForm');
-    setupTrigger('.trigger-view', 'view');
     setupTrigger('.trigger-edit', 'edit');
     setupTrigger('.trigger-user', 'user');
     setupTrigger('.trigger-edit-user', 'editUser');
@@ -667,136 +666,114 @@ function clearDraftAndReset(formId) {
     });
 
     // ==========================================
-    // POPULATE DETAILED VIEW MODAL
-    // ==========================================
-    document.addEventListener('click', function (e) {
-        const btn = e.target.closest('.trigger-view');
-        if (btn) {
-            const docNumber = btn.getAttribute('data-number');
-            const docTitle = btn.getAttribute('data-title');
-            const docType = btn.getAttribute('data-type');
-            const docYear = btn.getAttribute('data-year');
-            const docDate = btn.getAttribute('data-date');
-            const docSponsor = btn.getAttribute('data-sponsor');
-            const docKeywords = btn.getAttribute('data-keywords');
-            const docEnacted = btn.getAttribute('data-enacted');
-            const docCosponsors = btn.getAttribute('data-cosponsors');
-            const docStatus = btn.getAttribute('data-status');
-            const docVisibility = btn.getAttribute('data-visibility');
-            const docStorage = btn.getAttribute('data-storage');
-            const fileUrl = btn.getAttribute('data-file');
-            const vetoReason = btn.getAttribute('data-vetoreason');
+// CUSTOM VIEW MODAL HANDLER
+// ==========================================
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.trigger-view');
+    if (!btn) return;
 
-            // Populate metadata - with null checks for all elements
-            const viewNumber = document.getElementById('view-number');
-            if (viewNumber) viewNumber.innerText = docNumber;
-            
-            const viewTitle = document.getElementById('view-title');
-            if (viewTitle) viewTitle.innerHTML = `<strong>${docTitle}</strong>`;
-            
-            const viewType = document.getElementById('view-type');
-            if (viewType) viewType.innerText = docType;
-            
-            const viewYear = document.getElementById('view-year');
-            if (viewYear) viewYear.innerText = docYear;
-            
-            const viewDate = document.getElementById('view-date');
-            if (viewDate) viewDate.innerText = docDate;
-            
-            const viewSponsor = document.getElementById('view-sponsor');
-            if (viewSponsor) viewSponsor.innerText = docSponsor;
-            
-            const viewKeywords = document.getElementById('view-keywords');
-            if (viewKeywords) viewKeywords.innerText = docKeywords;
-            
-            const viewEnacted = document.getElementById('view-enacted');
-            if (viewEnacted) viewEnacted.innerText = docEnacted;
-            
-            const viewCosponsors = document.getElementById('view-cosponsors');
-            if (viewCosponsors) viewCosponsors.innerText = docCosponsors;
-            
-            const viewStatus = document.getElementById('view-status');
-            if (viewStatus) viewStatus.innerHTML = `<span class="badge ${docStatus ? docStatus.toLowerCase() : ''}">${docStatus}</span>`;
-            
-            const viewVisibility = document.getElementById('view-visibility');
-            if (viewVisibility) viewVisibility.innerText = docVisibility;
-            
-            const viewStorage = document.getElementById('view-storage');
-            if (viewStorage) viewStorage.innerText = docStorage;
-            
-            const viewVetoReason = document.getElementById('view-veto-reason');
-            if (viewVetoReason) viewVetoReason.innerText = vetoReason;
+    e.preventDefault();
+    e.stopPropagation();
 
-            // ==========================================
-            // NEW ELEMENTS - Add these to your view modal HTML
-            // ==========================================
-            const viewRefNo = document.getElementById('view-ref-no');
-            if (viewRefNo) viewRefNo.innerText = docNumber;
-            
-            const viewCommittee = document.getElementById('view-committee');
-            if (viewCommittee) viewCommittee.innerText = docSponsor || 'N/A';
-            
-            const viewAbstract = document.getElementById('view-abstract');
-            if (viewAbstract) viewAbstract.innerText = docTitle || 'No abstract available.';
+    // Close all other overlays
+    closeAllOverlays();
 
-            // Download button
-            const downloadBtn = document.getElementById('view-download-btn');
-            if (downloadBtn) {
-                if (fileUrl) {
-                    downloadBtn.style.display = 'inline-block';
-                    downloadBtn.onclick = function () { window.open(fileUrl, '_blank'); };
-                } else {
-                    downloadBtn.style.display = 'none';
+    // Show the view modal
+    const viewModal = document.getElementById('viewModal');
+    if (!viewModal) return;
+    viewModal.style.display = 'flex';
+
+    // ---- Populate left‑side metadata ----
+    const docId = btn.getAttribute('data-id');
+    const docNumber = btn.getAttribute('data-number');
+    const docTitle = btn.getAttribute('data-title');
+    const docType = btn.getAttribute('data-type');
+    const docYear = btn.getAttribute('data-year');
+    const docDate = btn.getAttribute('data-date');
+    const docSponsor = btn.getAttribute('data-sponsor');
+    const docKeywords = btn.getAttribute('data-keywords');
+    const docCosponsors = btn.getAttribute('data-cosponsors');
+
+    document.getElementById('view-number').textContent = docNumber || 'N/A';
+    document.getElementById('view-title').textContent = docTitle || 'Untitled';
+    document.getElementById('view-type').textContent = docType || 'N/A';
+    document.getElementById('view-ref-no').textContent = docNumber || 'N/A';
+    document.getElementById('view-year').textContent = docYear || 'N/A';
+    document.getElementById('view-date').textContent = docDate || 'N/A';
+    document.getElementById('view-sponsor').textContent = docSponsor || 'Not specified';
+    document.getElementById('view-committee').textContent = docCosponsors || 'Not specified';
+    document.getElementById('view-abstract').textContent = docKeywords || 'No abstract provided.';
+
+    // ---- Store details for sharing ----
+    viewModal.setAttribute('data-current-doc-id', docId || '');
+    viewModal.setAttribute('data-current-doc-number', docNumber || '');
+    viewModal.setAttribute('data-current-doc-title', docTitle || '');
+    viewModal.removeAttribute('data-active-progress-id');
+    viewModal.removeAttribute('data-active-progress-status');
+    viewModal.removeAttribute('data-active-progress-date');
+    viewModal.removeAttribute('data-active-progress-note');
+
+    const statusMsg = document.getElementById('share-email-status');
+    const emailInput = document.getElementById('share-recipient-email');
+    if (statusMsg) statusMsg.innerText = '';
+    if (emailInput) emailInput.value = '';
+
+    // ---- Load PDF preview from latest progress ----
+    const pdfIframe = document.getElementById('view-pdf-iframe');
+    const pdfMissing = document.getElementById('view-pdf-missing');
+
+    if (pdfIframe && pdfMissing) {
+        pdfIframe.src = '';
+        pdfIframe.style.display = 'none';
+        pdfMissing.style.display = 'block';
+        pdfMissing.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading PDF...';
+
+        fetch(`/api/document-progress/?doc_id=${docId}`)
+            .then(response => response.json())
+            .then(data => {
+                let fileUrl = null;
+
+                if (data.progress && data.progress.length > 0) {
+                    const sorted = [...data.progress].sort((a, b) => 
+                        new Date(b.update_date) - new Date(a.update_date)
+                    );
+                    const latest = sorted[0];
+                    fileUrl = latest.file_attachment;
                 }
-            }
 
-            // PDF Preview
-            const pdfIframe = document.getElementById('view-pdf-iframe');
-            const pdfMissing = document.getElementById('view-pdf-missing');
-            const hasFile = fileUrl && fileUrl.trim() !== '' && fileUrl !== 'None' && fileUrl !== 'null';
+                if (!fileUrl) {
+                    fileUrl = btn.getAttribute('data-file');
+                }
 
-            if (pdfIframe && pdfMissing) {
-                if (hasFile) {
+                viewModal.setAttribute('data-current-file-url', fileUrl || '');
+
+                if (fileUrl && fileUrl.trim() !== '' && fileUrl !== 'None' && fileUrl !== 'null') {
+                    // Do not add cache buster – preserve signed URL
                     pdfIframe.src = fileUrl + '#view=FitH';
                     pdfIframe.style.display = 'block';
                     pdfMissing.style.display = 'none';
-                    console.log('PDF loaded:', fileUrl);
+                    console.log('PDF loaded from latest progress:', fileUrl);
                 } else {
                     pdfIframe.src = '';
                     pdfIframe.style.display = 'none';
                     pdfMissing.style.display = 'block';
-                    console.log('No PDF attached');
+                    pdfMissing.innerHTML = '<i class="fa-regular fa-file-pdf"></i> No PDF document attached.';
                 }
-            }
+            })
+            .catch(error => {
+                console.error('Error fetching progress for PDF preview:', error);
+                pdfIframe.src = '';
+                pdfIframe.style.display = 'none';
+                pdfMissing.style.display = 'block';
+                pdfMissing.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Failed to load PDF.';
+            });
+    }
 
-            // ==========================================
-            // LOAD PROGRESS TIMELINE (Bookmark Style)
-            // ==========================================
-            const docId = btn.getAttribute('data-id');
-            if (docId) {
-                loadProgressTimeline(docId);
-            }
-
-            // Store current details for sharing
-            const viewModal = document.getElementById('viewModal');
-            if (viewModal) {
-                viewModal.setAttribute('data-current-doc-id', docId || '');
-                viewModal.setAttribute('data-current-doc-number', docNumber || '');
-                viewModal.setAttribute('data-current-doc-title', docTitle || '');
-                viewModal.setAttribute('data-current-file-url', fileUrl || '');
-                // Clear active progress ID and variables
-                viewModal.removeAttribute('data-active-progress-id');
-                viewModal.removeAttribute('data-active-progress-status');
-                viewModal.removeAttribute('data-active-progress-date');
-                viewModal.removeAttribute('data-active-progress-note');
-            }
-            
-            const statusMsg = document.getElementById('share-email-status');
-            const emailInput = document.getElementById('share-recipient-email');
-            if (statusMsg) statusMsg.innerText = '';
-            if (emailInput) emailInput.value = '';
-        }
-    });
+    // ---- Load progress timeline ----
+    if (docId) {
+        loadProgressTimeline(docId);
+    }
+});
     
     // ==========================================
     // POPULATE EDIT MODAL
@@ -1588,11 +1565,12 @@ function loadProgressTimeline(docId) {
                     button.style.flex = '1';
                     button.style.borderRight = `3px solid ${isCurrent ? darkBrown : 'transparent'}`;
 
+                    // --- REMOVED "CURRENT - " prefix ---
                     const statusText = document.createElement('span');
                     statusText.style.fontSize = '0.8rem';
                     statusText.style.fontWeight = isCurrent ? '700' : '600';
                     statusText.style.marginBottom = '2px';
-                    statusText.textContent = `${isCurrent ? 'CURRENT - ' : ''}${item.status.toUpperCase()}`;
+                    statusText.textContent = item.status.toUpperCase(); // Just the status, no prefix
                     button.appendChild(statusText);
 
                     const dateText = document.createElement('span');
@@ -1649,7 +1627,7 @@ function showProgressDetail(btn) {
     const lightBrown = '#d9c8ac';
     const textLight = '#6b5a4a';
     
-    // Reset all bookmarks
+    // Reset all bookmarks – remove any "CURRENT - " prefix and reset styles
     document.querySelectorAll('.progress-bookmark').forEach(b => {
         b.style.background = lightBrown;
         b.style.color = textLight;
@@ -1661,14 +1639,14 @@ function showProgressDetail(btn) {
         
         const span = b.querySelector('span:first-child');
         if (span) {
-            const currentText = span.textContent;
-            if (currentText.includes('CURRENT - ')) {
-                span.textContent = currentText.replace('CURRENT - ', '');
+            // Remove any "CURRENT - " prefix if present (just in case)
+            if (span.textContent.includes('CURRENT - ')) {
+                span.textContent = span.textContent.replace('CURRENT - ', '');
             }
         }
     });
     
-    // Highlight clicked bookmark
+    // Highlight clicked bookmark – but DO NOT add "CURRENT" to the text
     btn.style.background = darkBrown;
     btn.style.color = 'white';
     btn.style.boxShadow = '0 2px 8px rgba(124,92,53,0.35)';
@@ -1677,13 +1655,7 @@ function showProgressDetail(btn) {
     btn.style.transform = 'translateX(-2px)';
     btn.style.borderRadius = '4px 0 0 4px';
     
-    const span = btn.querySelector('span:first-child');
-    if (span) {
-        const currentText = span.textContent;
-        if (!currentText.includes('CURRENT - ')) {
-            span.textContent = 'CURRENT - ' + currentText;
-        }
-    }
+    // (No text modification here – status stays as is)
     
     // Get data from button
     const status = btn.dataset.status || btn.getAttribute('data-status');
@@ -1737,10 +1709,7 @@ function showProgressDetail(btn) {
 
     console.log('Fetching progress detail for ID:', progressId);
     fetch(`/api/progress-detail/?id=${progressId}`)
-        .then(response => {
-            console.log('Progress detail response status:', response.status);
-            return response.json();
-        })
+        .then(response => response.json())
         .then(data => {
             console.log('Progress detail API response:', data);
             if (data.success) {
@@ -1770,7 +1739,6 @@ function showProgressDetail(btn) {
                         pdfMissing.style.display = 'none';
                         console.log('PDF loaded successfully from:', fileUrl);
                     } else {
-                        // Fallback to main document's PDF if no progress-specific file
                         if (hasMainFile) {
                             pdfIframe.src = mainFileUrl + '#view=FitH';
                             pdfIframe.style.display = 'block';
