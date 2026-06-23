@@ -665,7 +665,7 @@ function clearDraftAndReset(formId) {
         }
     });
 
-    // ==========================================
+  // ==========================================
 // CUSTOM VIEW MODAL HANDLER
 // ==========================================
 document.addEventListener('click', function(e) {
@@ -704,7 +704,7 @@ document.addEventListener('click', function(e) {
     document.getElementById('view-committee').textContent = docCosponsors || 'Not specified';
     document.getElementById('view-abstract').textContent = docKeywords || 'No abstract provided.';
 
-    // ---- Store details for sharing ----
+    // ---- Store basic details for sharing ----
     viewModal.setAttribute('data-current-doc-id', docId || '');
     viewModal.setAttribute('data-current-doc-number', docNumber || '');
     viewModal.setAttribute('data-current-doc-title', docTitle || '');
@@ -718,7 +718,7 @@ document.addEventListener('click', function(e) {
     if (statusMsg) statusMsg.innerText = '';
     if (emailInput) emailInput.value = '';
 
-    // ---- Load PDF preview from latest progress ----
+    // ---- Load PDF preview from latest progress (or fallback to main) ----
     const pdfIframe = document.getElementById('view-pdf-iframe');
     const pdfMissing = document.getElementById('view-pdf-missing');
 
@@ -728,31 +728,39 @@ document.addEventListener('click', function(e) {
         pdfMissing.style.display = 'block';
         pdfMissing.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading PDF...';
 
+        // First, get the main document file URL (fallback)
+        const mainFileUrl = btn.getAttribute('data-file');
+
+        // Fetch progress entries to find the latest with a file
         fetch(`/api/document-progress/?doc_id=${docId}`)
             .then(response => response.json())
             .then(data => {
-                let fileUrl = null;
+                let latestFileUrl = null;
 
                 if (data.progress && data.progress.length > 0) {
-                    const sorted = [...data.progress].sort((a, b) => 
-                        new Date(b.update_date) - new Date(a.update_date)
-                    );
-                    const latest = sorted[0];
-                    fileUrl = latest.file_attachment;
+                    // Sort by ID descending to get the most recent first
+                    const sorted = [...data.progress].sort((a, b) => b.id - a.id);
+                    // Find the first progress entry that has a file attachment
+                    const withFile = sorted.find(p => p.file_attachment && p.file_attachment.trim() !== '' && p.file_attachment !== 'null');
+                    if (withFile) {
+                        latestFileUrl = withFile.file_attachment;
+                    }
                 }
 
-                if (!fileUrl) {
-                    fileUrl = btn.getAttribute('data-file');
+                // If no progress file found, use the main document file
+                if (!latestFileUrl) {
+                    latestFileUrl = mainFileUrl;
                 }
 
-                viewModal.setAttribute('data-current-file-url', fileUrl || '');
+                // Store the final file URL for sharing and later use
+                viewModal.setAttribute('data-current-file-url', latestFileUrl || '');
 
-                if (fileUrl && fileUrl.trim() !== '' && fileUrl !== 'None' && fileUrl !== 'null') {
-                    // Do not add cache buster – preserve signed URL
-                    pdfIframe.src = fileUrl + '#view=FitH';
+                if (latestFileUrl && latestFileUrl.trim() !== '' && latestFileUrl !== 'None' && latestFileUrl !== 'null') {
+                    // Do not add cache buster – preserve signed URLs
+                    pdfIframe.src = latestFileUrl + '#view=FitH';
                     pdfIframe.style.display = 'block';
                     pdfMissing.style.display = 'none';
-                    console.log('PDF loaded from latest progress:', fileUrl);
+                    console.log('PDF loaded from:', latestFileUrl);
                 } else {
                     pdfIframe.src = '';
                     pdfIframe.style.display = 'none';
@@ -762,10 +770,19 @@ document.addEventListener('click', function(e) {
             })
             .catch(error => {
                 console.error('Error fetching progress for PDF preview:', error);
-                pdfIframe.src = '';
-                pdfIframe.style.display = 'none';
-                pdfMissing.style.display = 'block';
-                pdfMissing.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Failed to load PDF.';
+                // Fallback to main file on error
+                const fallback = mainFileUrl;
+                if (fallback && fallback.trim() !== '' && fallback !== 'None' && fallback !== 'null') {
+                    pdfIframe.src = fallback + '#view=FitH';
+                    pdfIframe.style.display = 'block';
+                    pdfMissing.style.display = 'none';
+                    viewModal.setAttribute('data-current-file-url', fallback);
+                } else {
+                    pdfIframe.src = '';
+                    pdfIframe.style.display = 'none';
+                    pdfMissing.style.display = 'block';
+                    pdfMissing.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Failed to load PDF.';
+                }
             });
     }
 
@@ -1515,11 +1532,12 @@ function loadProgressTimeline(docId) {
             if (data.progress && data.progress.length > 0) {
                 timeline.innerHTML = '';
 
-                const sorted = [...data.progress].sort((a, b) => a.id - b.id);
-                const latest = sorted[sorted.length - 1];
+                // Sort by ID descending – newest (most recent ID) at top
+                const sorted = [...data.progress].sort((a, b) => b.id - a.id);
+                const latest = sorted[0]; // the first is the most recent
                 const currentStatus = latest ? latest.status : null;
                 
-                console.log('Sorted progress items:', sorted);
+                console.log('Sorted progress items (by ID descending):', sorted);
                 console.log('Latest/current status:', currentStatus);
                 
                 const darkBrown = '#7c5c35';
@@ -1565,12 +1583,12 @@ function loadProgressTimeline(docId) {
                     button.style.flex = '1';
                     button.style.borderRight = `3px solid ${isCurrent ? darkBrown : 'transparent'}`;
 
-                    // --- REMOVED "CURRENT - " prefix ---
+                    // No "CURRENT - " prefix – just the status
                     const statusText = document.createElement('span');
                     statusText.style.fontSize = '0.8rem';
                     statusText.style.fontWeight = isCurrent ? '700' : '600';
                     statusText.style.marginBottom = '2px';
-                    statusText.textContent = item.status.toUpperCase(); // Just the status, no prefix
+                    statusText.textContent = item.status.toUpperCase();
                     button.appendChild(statusText);
 
                     const dateText = document.createElement('span');
@@ -1593,10 +1611,11 @@ function loadProgressTimeline(docId) {
                     timeline.appendChild(wrapper);
                 });
 
-                const currentBookmark = timeline.querySelector('.bookmark-item:last-child');
+                // Scroll to the top to show the latest (current) bookmark
+                const currentBookmark = timeline.querySelector('.bookmark-item:first-child');
                 if (currentBookmark) {
                     setTimeout(() => {
-                        currentBookmark.scrollIntoView({ block: 'end', behavior: 'smooth' });
+                        currentBookmark.scrollIntoView({ block: 'start', behavior: 'smooth' });
                     }, 100);
                 }
             } else {
@@ -1639,14 +1658,13 @@ function showProgressDetail(btn) {
         
         const span = b.querySelector('span:first-child');
         if (span) {
-            // Remove any "CURRENT - " prefix if present (just in case)
             if (span.textContent.includes('CURRENT - ')) {
                 span.textContent = span.textContent.replace('CURRENT - ', '');
             }
         }
     });
     
-    // Highlight clicked bookmark – but DO NOT add "CURRENT" to the text
+    // Highlight clicked bookmark – no "CURRENT" text added
     btn.style.background = darkBrown;
     btn.style.color = 'white';
     btn.style.boxShadow = '0 2px 8px rgba(124,92,53,0.35)';
@@ -1655,16 +1673,11 @@ function showProgressDetail(btn) {
     btn.style.transform = 'translateX(-2px)';
     btn.style.borderRadius = '4px 0 0 4px';
     
-    // (No text modification here – status stays as is)
-    
     // Get data from button
     const status = btn.dataset.status || btn.getAttribute('data-status');
     const updateDate = btn.dataset.updateDate || btn.getAttribute('data-update-date');
     const note = btn.dataset.note || btn.getAttribute('data-note');
     const progressId = btn.dataset.progressId || btn.getAttribute('data-progress-id');
-    
-    console.log('Status:', status);
-    console.log('Date:', updateDate);
     
     // Update detail display
     const detailDisplay = document.getElementById('progressDetailDisplay');
@@ -1711,10 +1724,8 @@ function showProgressDetail(btn) {
     fetch(`/api/progress-detail/?id=${progressId}`)
         .then(response => response.json())
         .then(data => {
-            console.log('Progress detail API response:', data);
             if (data.success) {
                 const fileUrl = data.progress.file_attachment;
-                console.log('File URL from API:', fileUrl);
                 const fileContainer = document.getElementById('pd-file');
                 const pdfIframe = document.getElementById('view-pdf-iframe');
                 const pdfMissing = document.getElementById('view-pdf-missing');
@@ -1737,23 +1748,23 @@ function showProgressDetail(btn) {
                         pdfIframe.src = fileUrl + '#view=FitH';
                         pdfIframe.style.display = 'block';
                         pdfMissing.style.display = 'none';
-                        console.log('PDF loaded successfully from:', fileUrl);
+                        console.log('PDF loaded from progress detail:', fileUrl);
                     } else {
+                        // Fallback to the main document PDF if progress has no file
                         if (hasMainFile) {
                             pdfIframe.src = mainFileUrl + '#view=FitH';
                             pdfIframe.style.display = 'block';
                             pdfMissing.style.display = 'none';
-                            console.log('Progress step has no PDF; fallback to main document PDF:', mainFileUrl);
+                            console.log('Fallback to main document PDF:', mainFileUrl);
                         } else {
                             pdfIframe.src = '';
                             pdfIframe.style.display = 'none';
                             pdfMissing.style.display = 'block';
-                            console.log('No file attached to progress step and no main document PDF');
                         }
                     }
                 }
             } else {
-                console.error('API returned error:', data.error);
+                console.error('API error:', data.error);
             }
         })
         .catch(error => {
