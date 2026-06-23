@@ -307,6 +307,7 @@
                 padding: 10px 15px;
                 flex-wrap: wrap;
                 gap: 8px;
+                justify-content: space-between;
                 position: sticky;
                 top: 0;
                 z-index: 100;
@@ -322,9 +323,41 @@
                 padding: 6px 12px;
             }
 
+            .upload-dropdown {
+                order: 0;
+                flex-shrink: 0;
+            }
+
+            .btn-upload-dropdown {
+                padding: 6px 10px;
+                min-width: 36px;
+                min-height: 36px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 6px;
+            }
+
+            .btn-upload-dropdown i {
+                font-size: 1.1rem;
+            }
+
+            .btn-upload-dropdown span {
+                display: none;
+            }
+
             .header-actions {
-                gap: 10px;
-                flex-wrap: wrap;
+                gap: 8px;
+                flex-wrap: nowrap;
+                align-items: center;
+                order: 1;
+                margin-left: auto;
+                justify-content: flex-end;
+                width: auto;
+            }
+
+            .header-actions > * {
+                flex-shrink: 0;
             }
 
             .header-actions .fa-bell,
@@ -332,12 +365,24 @@
                 font-size: 1rem;
             }
 
-            .profile .fa-circle-user {
-                font-size: 1.2rem;
+            .profile {
+                display: flex;
+                align-items: center;
+                font-size: 0.8rem;
+                max-width: 160px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                margin-left: auto;
             }
 
-            .profile {
-                font-size: 0.8rem;
+            .profile .fa-circle-user {
+                font-size: 1.2rem;
+                flex-shrink: 0;
+            }
+
+            .profile span {
+                display: none;
             }
 
             .dashboard-body {
@@ -953,6 +998,10 @@
             <span>Audit</span>
         </a>
         {% if request.user.is_superuser %}
+        <a href="{% url 'user_management' %}" class="{% if url_name == 'user_management' %}active{% endif %}">
+            <i class="fa-solid fa-users"></i>
+            <span>Users</span>
+        </a>
         <a href="{% url 'general_info' %}" class="{% if url_name == 'general_info' or url_name == 'backup_cloud' or url_name == 'metadata_tags' or url_name == 'security_policy' or url_name == 'notifications' %}active{% endif %}">
             <i class="fa-solid fa-gear"></i>
             <span>Settings</span>
