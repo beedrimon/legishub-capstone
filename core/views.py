@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument, SystemSetting, BackupLog, DocumentProgress, ArchivedDocumentProgress
+from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument, SystemSetting, BackupLog, DocumentProgress, ArchivedDocumentProgress, SupportTicket
 from django.core.paginator import Paginator
 from django.db.models import Q, Case, IntegerField, Value, When
 from django.db import transaction, IntegrityError
@@ -1656,10 +1656,70 @@ def help_center_view(request):
         support_email = SystemSetting.get('support_email', 'admin@marikinalegishub.gov.ph')
     except Exception:
         support_email = 'admin@marikinalegishub.gov.ph'
-        
+
+    if request.method == 'POST':
+        department = request.POST.get('department', '').strip()
+        other_department = request.POST.get('other_department', '').strip()
+        urgency = request.POST.get('urgency', 'Medium').strip()
+        subject = request.POST.get('subject', '').strip()
+        message = request.POST.get('message', '').strip()
+        screenshot = request.FILES.get('screenshot')
+
+        # Fallback to custom department if "Other" is selected
+        final_department = department
+        if department == 'Other' and other_department:
+            final_department = other_department
+
+        if not final_department or not subject or not message:
+            messages.error(request, 'Please fill in all required fields.')
+            return redirect('help_center')
+
+        try:
+            ticket = SupportTicket.objects.create(
+                user=request.user,
+                username=request.user.username,
+                department=final_department,
+                urgency=urgency,
+                subject=subject,
+                message=message,
+                screenshot=screenshot,
+                status='Pending'
+            )
+
+            # Send Email Confirmation asynchronously via Django Q
+            if request.user.email:
+                try:
+                    email_subject = f"Support Ticket Received: {ticket.ticket_number}"
+                    email_message = (
+                        f"Hello {request.user.first_name or request.user.username},\n\n"
+                        f"Thank you for contacting Marikina LegisHub Support. We have received your support ticket and it has been queued for review.\n\n"
+                        f"Ticket Details:\n"
+                        f"- Ticket Number: {ticket.ticket_number}\n"
+                        f"- Subject: {ticket.subject}\n"
+                        f"- Urgency: {ticket.urgency}\n"
+                        f"- Department: {ticket.department}\n\n"
+                        f"Our support team will get back to you shortly.\n\n"
+                        f"Best regards,\n"
+                        f"Marikina LegisHub Support Team"
+                    )
+                    async_task('core.views.send_dynamic_email', email_subject, email_message, [request.user.email])
+                    print(f"Queued confirmation email for ticket {ticket.ticket_number} to {request.user.email}")
+                except Exception as email_err:
+                    print(f"Failed to queue support email notification: {email_err}")
+
+            messages.success(request, f"Support ticket {ticket.ticket_number} has been submitted successfully!")
+            return redirect('help_center')
+        except Exception as e:
+            messages.error(request, f"An error occurred while submitting your support ticket: {str(e)}")
+            return redirect('help_center')
+
+    # Retrieve history of tickets submitted by the current user
+    tickets = SupportTicket.objects.filter(user=request.user).order_by('-created_at')
+
     context = {
         'support_email': support_email,
         'is_legislator': is_legislator(request.user),
+        'tickets': tickets,
     }
     return render(request, 'settings_page/help_center.html', context)
 

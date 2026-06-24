@@ -547,3 +547,49 @@ class ArchivedDocumentProgress(models.Model):
 
     def __str__(self):
         return f"{self.archived_document.archive_id} - {self.status} - {self.update_date}"
+
+# ==========================================
+# SUPPORT TICKET MODEL
+# ==========================================
+class SupportTicket(models.Model):
+    URGENCY_CHOICES = [
+        ('Low', 'Low'),
+        ('Medium', 'Medium'),
+        ('High', 'High'),
+    ]
+    STATUS_CHOICES = [
+        ('Pending', 'Pending'),
+        ('In Progress', 'In Progress'),
+        ('Resolved', 'Resolved'),
+    ]
+
+    ticket_number = models.CharField(max_length=50, unique=True, editable=False)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='support_tickets')
+    username = models.CharField(max_length=150)
+    department = models.CharField(max_length=100)
+    urgency = models.CharField(max_length=20, choices=URGENCY_CHOICES, default='Medium')
+    subject = models.CharField(max_length=255)
+    message = models.TextField()
+    screenshot = models.FileField(upload_to='tickets/', blank=True, null=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='Pending')
+    
+    # Premium Tracking Fields
+    created_at = models.DateTimeField(auto_now_add=True)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+    admin_notes = models.TextField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'support_tickets'
+        ordering = ['-created_at']
+
+    def save(self, *args, **kwargs):
+        if not self.ticket_number:
+            import random
+            from django.utils import timezone
+            date_str = timezone.now().strftime('%Y%m%d')
+            rand_suffix = ''.join(random.choices('0123456789', k=4))
+            self.ticket_number = f"LH-TKT-{date_str}-{rand_suffix}"
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.ticket_number}: {self.subject} ({self.status})"

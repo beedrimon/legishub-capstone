@@ -87,8 +87,8 @@
 
         <!-- Contact Support -->
         <div class="storage-card" style="margin-top: 24px;">
-            <div class="storage-info" style="justify-content: flex-start; gap: 15px;">
-                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--sidebar-bg); box-shadow: var(--shadow-sm);">
+            <div class="storage-info" style="justify-content: flex-start; gap: 15px; flex-wrap: wrap;">
+                <div style="background: white; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; color: var(--sidebar-bg); box-shadow: var(--shadow-sm); flex-shrink: 0;">
                     <i class="fa-solid fa-headset"></i>
                 </div>
                 <div>
@@ -97,8 +97,321 @@
                         Contact the system administrator at: <br>
                         <a href="mailto:{{ support_email }}" style="color: #1e88e5; font-weight: bold; text-decoration: none;">{{ support_email }}</a>
                     </p>
+                    <div style="margin-top: 15px;">
+                        <button type="button" class="btn-add" id="btn-open-ticket" style="background-color: var(--sidebar-bg); color: white; display: inline-flex; align-items: center; gap: 8px; font-size: 0.85rem; font-weight: 600; padding: 10px 18px; border-radius: 6px; cursor: pointer; border: none; transition: opacity 0.2s;">
+                            <i class="fa-solid fa-ticket"></i> Submit Support Ticket
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Submitted Tickets (History Panel) -->
+        {% if tickets %}
+        <div class="table-card" style="margin-top: 24px;">
+            <h2 style="border-bottom: 2px solid var(--border-color); padding-bottom: 10px; margin-bottom: 15px; font-size: 1.1rem; color: var(--sidebar-bg); display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-list-check"></i> My Submitted Tickets
+            </h2>
+            <div style="overflow-x: auto;">
+                <table class="archive-table" style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--border-color); text-align: left;">
+                            <th style="padding: 12px 10px;">Ticket No.</th>
+                            <th>Subject</th>
+                            <th>Department</th>
+                            <th>Urgency</th>
+                            <th>Status</th>
+                            <th>Submitted At</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 12px 10px; font-weight: 700; color: var(--sidebar-bg);">{{ ticket.ticket_number }}</td>
+                            <td>{{ ticket.subject }}</td>
+                            <td>{{ ticket.department }}</td>
+                            <td>
+                                {% if ticket.urgency == 'High' %}
+                                <span class="badge" style="background-color: #ffebee; color: #c62828; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">High</span>
+                                {% elif ticket.urgency == 'Medium' %}
+                                <span class="badge" style="background-color: #fff3e0; color: #ef6c00; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">Medium</span>
+                                {% else %}
+                                <span class="badge" style="background-color: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">Low</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ticket.status == 'Resolved' %}
+                                <span class="badge" style="background-color: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">Resolved</span>
+                                {% elif ticket.status == 'In Progress' %}
+                                <span class="badge" style="background-color: #e3f2fd; color: #1565c0; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">In Progress</span>
+                                {% else %}
+                                <span class="badge" style="background-color: #eceff1; color: #37474f; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ ticket.created_at|date:"M d, Y H:i" }}</td>
+                            <td>
+                                <button type="button" class="btn-tan" onclick="showTicketDetailModal('{{ ticket.ticket_number|escapejs }}', '{{ ticket.subject|escapejs }}', '{{ ticket.message|escapejs }}', '{{ ticket.urgency|escapejs }}', '{{ ticket.status|escapejs }}', '{{ ticket.admin_notes|default_if_none:''|escapejs }}', '{% if ticket.screenshot %}{{ ticket.screenshot.url|escapejs }}{% endif %}')" style="padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; border: 1px solid #d9c8ac; font-weight: 600;">
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- TICKET SUBMISSION MODAL -->
+    <div id="ticketModal" class="modal-overlay" style="display: none;">
+        <div class="modal-container" style="max-width: 550px;">
+            <div class="modal-header">
+                <h2>SUBMIT SUPPORT TICKET</h2>
+                <button type="button" class="close-modal" id="btn-close-ticket">&times;</button>
+            </div>
+            <form class="modal-body" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>USERNAME</label>
+                        <input type="text" value="{{ request.user.username }}" disabled style="background-color: #f3f4f6; cursor: not-allowed;">
+                    </div>
+                    <div class="form-group">
+                        <label>DEPARTMENT <span style="color: red;">*</span></label>
+                        <select name="department" id="ticket-department" required onchange="toggleOtherDepartmentField()">
+                            <option value="">-- Select Department --</option>
+                            <option value="Secretariat">Secretariat</option>
+                            <option value="IT Support">IT Support</option>
+                            <option value="Legal Department">Legal Department</option>
+                            <option value="Finance">Finance</option>
+                            <option value="Legislative Office">Legislative Office</option>
+                            <option value="Executive Office">Executive Office</option>
+                            <option value="Other">Other (Specify below)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row" id="other-department-row" style="display: none;">
+                    <div class="form-group full-width">
+                        <label>SPECIFY DEPARTMENT <span style="color: red;">*</span></label>
+                        <input type="text" name="other_department" id="ticket-other-department" placeholder="Please specify your department...">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>URGENCY LEVEL <span style="color: red;">*</span></label>
+                        <select name="urgency" required>
+                            <option value="Low">Low (General inquiry, suggestion)</option>
+                            <option value="Medium" selected>Medium (Standard issue, bug report)</option>
+                            <option value="High">High (System blocker, security/login issue)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>SUBJECT OF THE ISSUE <span style="color: red;">*</span></label>
+                        <input type="text" name="subject" required placeholder="Brief summary of the problem...">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>MESSAGE / DETAILS <span style="color: red;">*</span></label>
+                        <textarea name="message" required rows="5" placeholder="Please describe the issue in detail, including steps to reproduce it..." style="width: 100%; padding: 10px; border: 1px solid #d9c8ac; border-radius: 6px; font-family: inherit; font-size: 0.9rem; resize: vertical; box-sizing: border-box;"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label>ATTACH SCREENSHOT OR FILE (Optional)</label>
+                        <label for="ticketFileInput" class="upload-area" style="cursor: pointer; display: block; padding: 20px;">
+                            <i class="fa-regular fa-image" id="ticket-upload-icon"></i>
+                            <p id="ticket-file-text" style="margin: 5px 0 0 0; font-weight: 600; color: #7c5c35; font-size: 0.85rem;">Click to upload screenshot or file</p>
+                            <span style="font-size: 0.7rem; color: #999;">Supported files: PDF, PNG, JPG, JPEG (Max 5MB)</span>
+                            <input type="file" name="screenshot" hidden id="ticketFileInput" accept="image/*,application/pdf" onchange="handleTicketFileSelection()">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="modal-footer" style="padding-top: 15px;">
+                    <button type="button" class="btn-discard" id="btn-discard-ticket">Discard</button>
+                    <button type="submit" class="btn-add" style="background-color: var(--sidebar-bg); color: white;">Submit Ticket</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TICKET DETAIL VIEW MODAL -->
+    <div id="ticketDetailModal" class="modal-overlay" style="display: none;">
+        <div class="modal-container" style="max-width: 500px;">
+            <div class="modal-header" style="background-color: var(--sidebar-bg);">
+                <h2>TICKET DETAILS</h2>
+                <button type="button" class="close-modal" onclick="closeModal('ticketDetailModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="margin-bottom: 12px;">
+                    <label style="font-weight: 700; font-size: 0.75rem; color: #a0835d;">TICKET NUMBER</label>
+                    <p id="td-number" style="font-weight: bold; font-size: 1rem; color: var(--sidebar-bg); margin: 2px 0 0 0;"></p>
+                </div>
+                <div style="margin-bottom: 12px; display: flex; gap: 20px;">
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.75rem; color: #a0835d;">URGENCY</label>
+                        <p id="td-urgency" style="margin: 2px 0 0 0;"></p>
+                    </div>
+                    <div>
+                        <label style="font-weight: 700; font-size: 0.75rem; color: #a0835d;">STATUS</label>
+                        <p id="td-status" style="margin: 2px 0 0 0;"></p>
+                    </div>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-weight: 700; font-size: 0.75rem; color: #a0835d;">SUBJECT</label>
+                    <p id="td-subject" style="font-weight: 600; color: var(--text-main); margin: 2px 0 0 0;"></p>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label style="font-weight: 700; font-size: 0.75rem; color: #a0835d;">DESCRIPTION</label>
+                    <p id="td-message" style="color: #4b5563; background: #f9f6f0; padding: 10px; border-radius: 6px; border-left: 3px solid var(--sidebar-bg); white-space: pre-wrap; font-size: 0.85rem; margin: 4px 0 0 0;"></p>
+                </div>
+                <div id="td-attachment-container" style="margin-bottom: 12px; display: none;">
+                    <label style="font-weight: 700; font-size: 0.75rem; color: #a0835d;">ATTACHMENT</label>
+                    <p style="margin: 4px 0 0 0;">
+                        <a id="td-attachment-link" href="" target="_blank" style="color: #1e88e5; text-decoration: none; font-weight: bold; font-size: 0.85rem;">
+                            <i class="fa-solid fa-paperclip"></i> View Attached Screenshot/File
+                        </a>
+                    </p>
+                </div>
+                <div id="td-admin-notes-container" style="margin-bottom: 12px; display: none;">
+                    <label style="font-weight: 700; font-size: 0.75rem; color: #d32f2f;">ADMIN RESOLUTION NOTES</label>
+                    <p id="td-admin-notes" style="color: #2e7d32; background: #e8f5e9; padding: 10px; border-radius: 6px; border-left: 3px solid #2e7d32; font-size: 0.85rem; margin: 4px 0 0 0;"></p>
+                </div>
+                <div class="modal-footer" style="padding-top: 15px;">
+                    <button type="button" class="btn-discard" onclick="closeModal('ticketDetailModal')">Close</button>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- SCRIPT CONTROL FOR SUPPORT TICKETS -->
+    <script>
+        const ticketModal = document.getElementById('ticketModal');
+        const btnOpenTicket = document.getElementById('btn-open-ticket');
+        const btnCloseTicket = document.getElementById('btn-close-ticket');
+        const btnDiscardTicket = document.getElementById('btn-discard-ticket');
+
+        if (btnOpenTicket) {
+            btnOpenTicket.addEventListener('click', () => {
+                ticketModal.style.display = 'flex';
+            });
+        }
+
+        const closeTicketModal = () => {
+            ticketModal.style.display = 'none';
+            ticketModal.querySelector('form').reset();
+            document.getElementById('other-department-row').style.display = 'none';
+            document.getElementById('ticket-other-department').removeAttribute('required');
+            
+            document.getElementById('ticket-file-text').textContent = 'Click to upload screenshot or file';
+            const uploadIcon = document.getElementById('ticket-upload-icon');
+            uploadIcon.className = 'fa-regular fa-image';
+            uploadIcon.style.color = '#a0835d';
+        };
+
+        if (btnCloseTicket) btnCloseTicket.addEventListener('click', closeTicketModal);
+        if (btnDiscardTicket) btnDiscardTicket.addEventListener('click', closeTicketModal);
+
+        window.closeModal = function(modalId) {
+            const modal = document.getElementById(modalId);
+            if (modal) modal.style.display = 'none';
+        };
+
+        function toggleOtherDepartmentField() {
+            const deptSelect = document.getElementById('ticket-department');
+            const otherRow = document.getElementById('other-department-row');
+            const otherInput = document.getElementById('ticket-other-department');
+            
+            if (deptSelect && deptSelect.value === 'Other') {
+                otherRow.style.display = 'flex';
+                otherInput.setAttribute('required', 'true');
+                otherInput.focus();
+            } else {
+                otherRow.style.display = 'none';
+                otherInput.removeAttribute('required');
+                otherInput.value = '';
+            }
+        }
+
+        function handleTicketFileSelection() {
+            const fileInput = document.getElementById('ticketFileInput');
+            const fileText = document.getElementById('ticket-file-text');
+            const uploadIcon = document.getElementById('ticket-upload-icon');
+            
+            if (fileInput.files.length > 0) {
+                const fileName = fileInput.files[0].name;
+                fileText.textContent = `Selected: ${fileName}`;
+                uploadIcon.className = 'fa-solid fa-file-circle-check';
+                uploadIcon.style.color = '#2e7d32';
+            } else {
+                fileText.textContent = 'Click to upload screenshot or file';
+                uploadIcon.className = 'fa-regular fa-image';
+                uploadIcon.style.color = '#a0835d';
+            }
+        }
+
+        function showTicketDetailModal(number, subject, message, urgency, status, adminNotes, attachmentUrl) {
+            document.getElementById('td-number').textContent = number;
+            document.getElementById('td-subject').textContent = subject;
+            document.getElementById('td-message').textContent = message;
+
+            const urgencyEl = document.getElementById('td-urgency');
+            if (urgency === 'High') {
+                urgencyEl.innerHTML = `<span class="badge" style="background-color: #ffebee; color: #c62828; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">High</span>`;
+            } else if (urgency === 'Medium') {
+                urgencyEl.innerHTML = `<span class="badge" style="background-color: #fff3e0; color: #ef6c00; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">Medium</span>`;
+            } else {
+                urgencyEl.innerHTML = `<span class="badge" style="background-color: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">Low</span>`;
+            }
+
+            const statusEl = document.getElementById('td-status');
+            if (status === 'Resolved') {
+                statusEl.innerHTML = `<span class="badge" style="background-color: #e8f5e9; color: #2e7d32; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">Resolved</span>`;
+            } else if (status === 'In Progress') {
+                statusEl.innerHTML = `<span class="badge" style="background-color: #e3f2fd; color: #1565c0; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">In Progress</span>`;
+            } else {
+                statusEl.innerHTML = `<span class="badge" style="background-color: #eceff1; color: #37474f; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;">Pending</span>`;
+            }
+
+            const attachmentContainer = document.getElementById('td-attachment-container');
+            const attachmentLink = document.getElementById('td-attachment-link');
+            if (attachmentUrl && attachmentUrl !== '') {
+                attachmentLink.href = attachmentUrl;
+                attachmentContainer.style.display = 'block';
+            } else {
+                attachmentContainer.style.display = 'none';
+            }
+
+            const adminNotesContainer = document.getElementById('td-admin-notes-container');
+            const adminNotesText = document.getElementById('td-admin-notes');
+            if (adminNotes && adminNotes.trim() !== '') {
+                adminNotesText.textContent = adminNotes;
+                adminNotesContainer.style.display = 'block';
+            } else {
+                adminNotesContainer.style.display = 'none';
+            }
+
+            document.getElementById('ticketDetailModal').style.display = 'flex';
+        }
+
+        function escapeHtmlAttribute(value) {
+            return String(value || '')
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+    </script>
 {% endblock %}

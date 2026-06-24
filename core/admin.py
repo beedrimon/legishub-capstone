@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument, DocumentProgress
+from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument, DocumentProgress, SupportTicket, SystemSetting
 
 # This customized class tells Django how to display the Legislative Document table
 @admin.register(LegislativeDocument)
@@ -60,3 +60,41 @@ class VetoedDocumentAdmin(admin.ModelAdmin):
     list_filter = ('doc_type', 'year', 'date_vetoed')
     search_fields = ('document_number', 'title', 'sponsor', 'veto_reason')
     ordering = ('-date_vetoed',)
+
+
+@admin.register(SupportTicket)
+class SupportTicketAdmin(admin.ModelAdmin):
+    list_display = ('ticket_number', 'username', 'department', 'urgency', 'status', 'created_at', 'screenshot_link')
+    list_filter = ('status', 'urgency', 'department', 'created_at')
+    search_fields = ('ticket_number', 'username', 'subject', 'message', 'admin_notes')
+    ordering = ('-created_at',)
+    readonly_fields = ('ticket_number', 'user', 'username', 'department', 'urgency', 'subject', 'message', 'screenshot', 'created_at', 'resolved_at')
+    fields = ('ticket_number', 'user', 'username', 'department', 'urgency', 'subject', 'message', 'screenshot', 'created_at', 'status', 'admin_notes', 'resolved_at')
+
+    def screenshot_link(self, obj):
+        if obj.screenshot:
+            return format_html('<a href="{}" target="_blank">View File</a>', obj.screenshot.url)
+        return '-'
+    screenshot_link.short_description = 'Attachment'
+
+    def save_model(self, request, obj, form, change):
+        if change and 'status' in form.changed_data:
+            from django.utils import timezone
+            if obj.status == 'Resolved':
+                obj.resolved_at = timezone.now()
+            else:
+                obj.resolved_at = None
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(SystemSetting)
+class SystemSettingAdmin(admin.ModelAdmin):
+    list_display = ('key', 'value', 'value_type', 'description', 'updated_at')
+    list_filter = ('value_type',)
+    search_fields = ('key', 'value', 'description')
+    ordering = ('key',)
+
+    def save_model(self, request, obj, form, change):
+        if not change or not obj.updated_by:
+            obj.updated_by = request.user
+        super().save_model(request, obj, form, change)

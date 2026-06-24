@@ -43,7 +43,7 @@
             </div>
 
             <form method="GET" action="{% url 'audit_logs' %}" id="auditFilterForm" class="filter-section">
-                
+                <input type="hidden" name="page" id="pageInput" value="{{ current_filters.page|default:'1' }}">
                 <input type="hidden" name="q" value="{{ current_filters.q }}">
                 
                 <div class="filter-group">
@@ -108,37 +108,42 @@
                 </table>
 
                 <!-- Pagination Section -->
-                {% if audit_logs.has_other_pages %}
                 <div class="pagination">
-                    <div class="page-info">
-                        Showing page {{ audit_logs.number }} of {{ audit_logs.paginator.num_pages }}
-                    </div>
+                    <span>
+                        {% if total_records > 0 %}
+                        Showing {{ audit_logs.start_index }} to {{ audit_logs.end_index }} of {{ total_records }}
+                        results
+                        {% else %}
+                        No results to display
+                        {% endif %}
+                    </span>
+
                     <div class="page-numbers">
                         {% if audit_logs.has_previous %}
-                        <a href="?page=1{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.user %}&user={{ current_filters.user }}{% endif %}{% if current_filters.action %}&action={{ current_filters.action }}{% endif %}{% if current_filters.date %}&date={{ current_filters.date }}{% endif %}"
-                            style="text-decoration: none;">
-                            <button>&laquo; First</button>
-                        </a>
-                        <a href="?page={{ audit_logs.previous_page_number }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.user %}&user={{ current_filters.user }}{% endif %}{% if current_filters.action %}&action={{ current_filters.action }}{% endif %}{% if current_filters.date %}&date={{ current_filters.date }}{% endif %}"
-                            style="text-decoration: none;">
-                            <button>Previous</button>
-                        </a>
+                        <button type="button" onclick="goToPage('{{ audit_logs.previous_page_number }}')">&laquo; Prev</button>
                         {% endif %}
 
-                        <span>Page {{ audit_logs.number }}</span>
+                        {% for num in audit_logs.paginator.page_range %}
+                        {% if audit_logs.number == num %}
+                        <button type="button" class="active">{{ num }}</button>
+                        {% else %}
+                        <button type="button" onclick="goToPage('{{ num }}')">{{ num }}</button>
+                        {% endif %}
+                        {% endfor %}
 
                         {% if audit_logs.has_next %}
-                        <a href="?page={{ audit_logs.next_page_number }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.user %}&user={{ current_filters.user }}{% endif %}{% if current_filters.action %}&action={{ current_filters.action }}{% endif %}{% if current_filters.date %}&date={{ current_filters.date }}{% endif %}"
-                            style="text-decoration: none;">
-                            <button>Next</button>
-                        </a>
-                        <a href="?page={{ audit_logs.paginator.num_pages }}{% if current_filters.q %}&q={{ current_filters.q }}{% endif %}{% if current_filters.user %}&user={{ current_filters.user }}{% endif %}{% if current_filters.action %}&action={{ current_filters.action }}{% endif %}{% if current_filters.date %}&date={{ current_filters.date }}{% endif %}"
-                            style="text-decoration: none;">
-                            <button>Last &raquo;</button>
-                        </a>
+                        <button type="button" onclick="goToPage('{{ audit_logs.next_page_number }}')">Next &raquo;</button>
                         {% endif %}
                     </div>
                 </div>
-                {% endif %}
             </section>
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        function goToPage(pageNum) {
+            document.getElementById('pageInput').value = pageNum;
+            document.getElementById('auditFilterForm').submit();
+        }
+    </script>
 {% endblock %}

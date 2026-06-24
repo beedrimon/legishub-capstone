@@ -233,3 +233,68 @@ class ProgressTimelineTestCase(TestCase):
         self.assertIn(f'view_doc_id={self.doc.id}', response.url)
         prog2.refresh_from_db()
         self.assertEqual(prog2.status, '2nd reading')  # Validation rejected change
+
+
+class HelpCenterTicketingTestCase(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='password123', email='testuser@example.com')
+        self.client = Client()
+        self.client.login(username='testuser', password='password123')
+
+    @patch('core.views.async_task')
+    def test_submit_ticket_success(self, mock_async_task):
+        from core.models import SupportTicket
+        url = reverse('help_center')
+        response = self.client.post(url, {
+            'department': 'IT Support',
+            'urgency': 'High',
+            'subject': 'System error',
+            'message': 'Cannot download PDFs'
+        })
+        # Check redirect
+        self.assertEqual(response.status_code, 302)
+        
+        # Verify ticket creation
+        ticket = SupportTicket.objects.filter(user=self.user).first()
+        self.assertIsNotNone(ticket)
+        self.assertEqual(ticket.department, 'IT Support')
+        self.assertEqual(ticket.urgency, 'High')
+        self.assertEqual(ticket.subject, 'System error')
+        self.assertEqual(ticket.message, 'Cannot download PDFs')
+        self.assertEqual(ticket.status, 'Pending')
+        self.assertTrue(ticket.ticket_number.startswith('LH-TKT-'))
+
+        # Verify async_task was called for the email
+        mock_async_task.assert_called_once()
+        args = mock_async_task.call_args[0]
+        self.assertEqual(args[0], 'core.views.send_dynamic_email')
+        self.assertIn('Support Ticket Received', args[1])
+        self.assertIn('LH-TKT-', args[2])
+
+    def test_submit_ticket_missing_fields_fails(self):
+        from core.models import SupportTicket
+        url = reverse('help_center')
+        response = self.client.post(url, {
+            'department': '',
+            'urgency': 'High',
+            'subject': '',
+            'message': 'Cannot download PDFs'
+        })
+        self.assertEqual(response.status_code, 302)
+        # Verify ticket was NOT created
+        self.assertEqual(SupportTicket.objects.count(), 0)
+
+    def test_submit_ticket_other_department_fallback(self):
+        from core.models import SupportTicket
+        url = reverse('help_center')
+        response = self.client.post(url, {
+            'department': 'Other',
+            'other_department': 'Custom Secretariat Office',
+            'urgency': 'Low',
+            'subject': 'Missing feature request',
+            'message': 'Add calendar'
+        })
+        self.assertEqual(response.status_code, 302)
+        ticket = SupportTicket.objects.filter(user=self.user).first()
+        self.assertIsNotNone(ticket)
+        self.assertEqual(ticket.department, 'Custom Secretariat Office')
