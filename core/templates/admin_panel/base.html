@@ -1312,46 +1312,70 @@
         <div class="modal-container detail-view-container"
             style="max-width: 550px; height: auto !important; min-height: unset;">
             <div class="modal-header"
-                style="background-color: #f3f4f6; border-bottom: 1px solid #e5e7eb; padding: 15px 25px;">
-                <h2 style="margin:0; font-size: 1.1rem; color: #374151;"><i class="fa-solid fa-bell"
-                        style="color: #8b7355; margin-right: 8px;"></i> NOTIFICATION DETAILS</h2>
+                style="background-color: var(--sidebar-bg); border-bottom: 1px solid #e5e7eb; padding: 18px 25px;">
+                <h2 style="margin:0; font-size: 1.15rem; color: white; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                    <i class="fa-solid fa-circle-info"></i> NOTIFICATION DETAILS
+                </h2>
                 <button class="close-modal"
                     onclick="document.getElementById('notifDetailModal').style.display='none'">&times;</button>
             </div>
             <div class="modal-body"
-                style="padding: 25px; display: flex; flex-direction: column; gap: 15px; border: none;">
-                <div class="meta-group">
-                    <label>TIMESTAMP</label>
-                    <p class="meta-val" id="nd-time"></p>
+                style="padding: 25px; display: flex; flex-direction: column; gap: 15px; border: none; background-color: #fffbf5;">
+                
+                <div style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: #666; border-bottom: 1px solid #eee; padding-bottom: 12px; margin-bottom: 5px;">
+                    <i class="fa-regular fa-clock" style="color: #888;"></i>
+                    <span>Logged at:</span>
+                    <strong id="nd-time" style="color: #333;"></strong>
                 </div>
-                <div class="meta-row">
-                    <div class="meta-group">
-                        <label>ACTION PERFORMED BY</label>
-                        <p class="meta-val highlight" id="nd-actor"></p>
+
+                <div class="meta-row" style="display: flex; gap: 20px;">
+                    <div class="meta-group" style="flex: 1;">
+                        <label style="font-size: 0.65rem; font-weight: 800; color: #a0835d; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">ACTION PERFORMED BY</label>
+                        <span style="font-weight: 600; color: var(--sidebar-bg); background: #fdfaf5; padding: 6px 12px; border-radius: 6px; border: 1px solid #e8e0d5; display: inline-flex; align-items: center; gap: 5px;">
+                            <i class="fa-solid fa-user" style="color: #a0835d;"></i>
+                            <span id="nd-actor"></span>
+                        </span>
                     </div>
-                    <div class="meta-group">
-                        <label>ACTION TYPE</label>
-                        <p class="meta-val" id="nd-action" style="font-weight: 600;"></p>
+                    <div class="meta-group" style="flex: 1;">
+                        <label style="font-size: 0.65rem; font-weight: 800; color: #a0835d; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 5px;">ACTION TYPE</label>
+                        <span id="nd-action" style="font-weight: 700; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; padding: 6px 12px; border-radius: 6px; display: inline-flex; align-items: center; gap: 5px;"></span>
                     </div>
                 </div>
-                <div class="meta-group">
-                    <label>TARGET REFERENCE NO.</label>
-                    <p class="meta-val" id="nd-doc-number" style="font-weight: 600; color: #111827;"></p>
+
+                <div style="background: white; border: 1px solid #e8e0d5; border-radius: 8px; padding: 15px; display: flex; flex-direction: column; gap: 8px; margin-top: 5px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed #e8e0d5; padding-bottom: 8px;">
+                        <span style="font-size: 0.65rem; font-weight: 800; color: #777; text-transform: uppercase; letter-spacing: 0.5px;">Target Document Reference</span>
+                        <span id="nd-doc-number" style="font-family: monospace; font-size: 0.85rem; font-weight: 700; color: #1e88e5; background: #e3f2fd; padding: 2px 8px; border-radius: 4px;"></span>
+                    </div>
+                    <div>
+                        <p id="nd-doc-title" style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #333; line-height: 1.4;"></p>
+                    </div>
                 </div>
-                <div class="meta-group">
-                    <label>DOCUMENT TITLE</label>
-                    <p class="meta-val" id="nd-doc-title"></p>
+
+                <div style="background: #fffbeb; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b; display: flex; flex-direction: column; gap: 6px; margin-top: 5px;">
+                    <label style="font-size: 0.65rem; font-weight: 800; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px;">Activity Description</label>
+                    <p id="nd-details" style="margin: 0; font-size: 0.85rem; font-style: italic; color: #374151; line-height: 1.5;"></p>
                 </div>
-                <div class="meta-group"
-                    style="background: #fffbeb; padding: 15px; border-radius: 6px; border-left: 4px solid #f59e0b; margin-top: 5px;">
-                    <label style="color: #b45309;">ACTION DETAILS & SUMMARY</label>
-                    <p class="meta-val" id="nd-details" style="margin-top: 8px; font-style: italic; color: #374151;">
-                    </p>
+
+                <div class="notif-important-alert" style="background: #fff8e1; border-left: 4px solid #ffb300; padding: 12px 16px; border-radius: 8px; display: flex; gap: 10px; align-items: flex-start; color: #b78103; margin-top: 5px;">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.1rem; margin-top: 2px;"></i>
+                    <div>
+                        <strong style="display: block; font-size: 0.82rem; margin-bottom: 2px; text-transform: uppercase; letter-spacing: 0.5px;">Security & Audit Log Notice</strong>
+                        <span style="font-size: 0.78rem; line-height: 1.4;">This action is permanently recorded under the Marikina LegisHub security protocol. Any unauthorized modifications are subject to administrative review.</span>
+                    </div>
                 </div>
             </div>
-            <div class="modal-footer" style="padding: 15px 25px; background: #f9fafb;">
+            <div class="modal-footer" style="padding: 15px 25px; background: #f9fafb; display: flex; justify-content: flex-end; gap: 10px; align-items: center;">
+                <button type="button" class="btn-tan" id="btn-nd-mark-unread" style="height: 34px; padding: 0 16px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">
+                    <i class="fa-regular fa-envelope" style="margin-right: 5px;"></i> Mark as Unread
+                </button>
+                <a id="btn-nd-go-to-doc" href="" class="btn-add" style="height: 34px; padding: 0 16px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; text-decoration: none;">
+                    <i class="fa-solid fa-file-invoice" style="margin-right: 5px;"></i> View Record
+                </a>
                 <button type="button" class="btn-discard"
-                    onclick="document.getElementById('notifDetailModal').style.display='none'">Close Window</button>
+                    onclick="document.getElementById('notifDetailModal').style.display='none'" style="height: 34px; padding: 0 16px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; margin: 0;">
+                    Close Window
+                </button>
             </div>
         </div>
     </div>
@@ -1506,30 +1530,131 @@
     <!-- NOTIFICATION DETAIL CLICK HANDLER -->
     <!-- ========================================== -->
     <script>
-        document.addEventListener('click', function(e) {
-            const dropdownBody = e.target.closest('#notifModalBody');
+        document.addEventListener('DOMContentLoaded', () => {
+            const notifDetailModal = document.getElementById('notifDetailModal');
+            const btnMarkUnread = document.getElementById('btn-nd-mark-unread');
+            
+            document.addEventListener('click', function(e) {
+                const dropdownBody = e.target.closest('#notifModalBody');
 
-            if (dropdownBody && e.target.tagName !== 'A') {
-                let clickedRow = e.target;
-                while (clickedRow && clickedRow.parentElement !== dropdownBody && clickedRow !== dropdownBody) {
-                    clickedRow = clickedRow.parentElement;
-                }
+                if (dropdownBody && e.target.tagName !== 'A' && !e.target.closest('.notif-action-btn')) {
+                    let clickedRow = e.target;
+                    while (clickedRow && clickedRow.parentElement !== dropdownBody && clickedRow !== dropdownBody) {
+                        clickedRow = clickedRow.parentElement;
+                    }
 
-                if (clickedRow && clickedRow !== dropdownBody) {
-                    const metaDiv = clickedRow.querySelector('.notif-meta-data');
+                    if (clickedRow && clickedRow !== dropdownBody) {
+                        const metaDiv = clickedRow.querySelector('.notif-meta-data');
 
-                    if (metaDiv) {
-                        document.getElementById('nd-actor').innerText = metaDiv.getAttribute('data-actor');
-                        document.getElementById('nd-action').innerText = metaDiv.getAttribute('data-action');
-                        document.getElementById('nd-doc-number').innerText = metaDiv.getAttribute('data-number');
-                        document.getElementById('nd-doc-title').innerText = metaDiv.getAttribute('data-title');
-                        document.getElementById('nd-details').innerHTML = metaDiv.getAttribute('data-details');
-                        document.getElementById('nd-time').innerText = metaDiv.getAttribute('data-time');
+                        if (metaDiv) {
+                            const notifId = clickedRow.getAttribute('data-id');
+                            notifDetailModal.setAttribute('data-notif-id', notifId);
 
-                        document.getElementById('notifDetailModal').style.display = 'flex';
-                        document.getElementById('notificationDropdown').style.display = 'none';
+                            document.getElementById('nd-actor').innerText = metaDiv.getAttribute('data-actor');
+                            
+                            const actionVal = metaDiv.getAttribute('data-action');
+                            const ndAction = document.getElementById('nd-action');
+                            ndAction.innerText = actionVal;
+                            
+                            // Style action badge dynamically
+                            ndAction.style.border = '1px solid';
+                            if (actionVal === 'Upload') {
+                                ndAction.style.background = '#e8f5e9';
+                                ndAction.style.color = '#2e7d32';
+                                ndAction.style.borderColor = '#c8e6c9';
+                            } else if (actionVal === 'Edit') {
+                                ndAction.style.background = '#e3f2fd';
+                                ndAction.style.color = '#1565c0';
+                                ndAction.style.borderColor = '#bbdefb';
+                            } else if (actionVal === 'Delete') {
+                                ndAction.style.background = '#ffebee';
+                                ndAction.style.color = '#c62828';
+                                ndAction.style.borderColor = '#ffcdd2';
+                            } else {
+                                ndAction.style.background = '#f5f5f5';
+                                ndAction.style.color = '#333';
+                                ndAction.style.borderColor = '#e0e0e0';
+                            }
+
+                            document.getElementById('nd-doc-number').innerText = metaDiv.getAttribute('data-number');
+                            document.getElementById('nd-doc-title').innerText = metaDiv.getAttribute('data-title');
+                            document.getElementById('nd-details').innerHTML = metaDiv.getAttribute('data-details');
+                            document.getElementById('nd-time').innerText = metaDiv.getAttribute('data-time');
+
+                            // Handle Go to Document Button
+                            const docId = metaDiv.getAttribute('data-doc-id');
+                            const goBtn = document.getElementById('btn-nd-go-to-doc');
+                            if (goBtn) {
+                                if (docId && docId !== 'None' && docId !== '') {
+                                    goBtn.href = `/documents/?view_doc_id=${docId}`;
+                                    goBtn.style.display = 'inline-flex';
+                                } else {
+                                    goBtn.style.display = 'none';
+                                }
+                            }
+
+                            notifDetailModal.style.display = 'flex';
+                            document.getElementById('notificationDropdown').style.display = 'none';
+                        }
                     }
                 }
+            });
+
+            if (btnMarkUnread && notifDetailModal) {
+                btnMarkUnread.addEventListener('click', function() {
+                    const notifId = parseInt(notifDetailModal.getAttribute('data-notif-id'));
+                    if (notifId) {
+                        // Toggle explicitlyUnreadIds and individuallyReadIds
+                        let individuallyReadIds = JSON.parse(localStorage.getItem('individuallyReadIds')) || [];
+                        individuallyReadIds = individuallyReadIds.filter(id => id !== notifId);
+                        localStorage.setItem('individuallyReadIds', JSON.stringify(individuallyReadIds));
+
+                        let explicitlyUnreadIds = JSON.parse(localStorage.getItem('explicitlyUnreadIds')) || [];
+                        if (!explicitlyUnreadIds.includes(notifId)) {
+                            explicitlyUnreadIds.push(notifId);
+                            localStorage.setItem('explicitlyUnreadIds', JSON.stringify(explicitlyUnreadIds));
+                        }
+
+                        // Close detail modal
+                        notifDetailModal.style.display = 'none';
+
+                        // Toggle list item UI
+                        const notifItem = document.querySelector(`.notif-list-item[data-id="${notifId}"]`);
+                        if (notifItem) {
+                            notifItem.classList.remove('read');
+                            notifItem.classList.add('unread');
+                            const indicator = notifItem.querySelector('.notif-status-indicator');
+                            if (indicator) {
+                                indicator.innerHTML = `
+                                    <div class="unread-dot"></div>
+                                    <div class="notif-action-btn" data-action="read" title="Mark as read"><i class="fa-solid fa-check"></i></div>
+                                `;
+                            }
+                            const iconDiv = notifItem.querySelector('.notif-icon');
+                            if (iconDiv && !iconDiv.querySelector('.red-dot')) {
+                                const redDot = document.createElement('span');
+                                redDot.className = 'red-dot';
+                                iconDiv.appendChild(redDot);
+                            }
+                        }
+
+                        // Update badge count
+                        const notifBadge = document.querySelector('.notif-badge');
+                        if (notifBadge) {
+                            const count = document.querySelectorAll('#notifModalBody .notif-list-item.unread').length;
+                            if (count > 0) {
+                                notifBadge.style.display = 'flex';
+                                notifBadge.innerText = count >= 10 ? '10+' : count;
+                            } else {
+                                notifBadge.style.display = 'none';
+                            }
+                        }
+
+                        // Trigger tab update
+                        const activeTab = document.querySelector('.notif-tab.active');
+                        if (activeTab) activeTab.click();
+                    }
+                });
             }
         });
     </script>

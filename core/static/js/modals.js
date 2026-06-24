@@ -477,6 +477,7 @@ window.clearDraftAndReset = clearDraftAndReset;
 
                     const lastReadId = parseInt(localStorage.getItem('lastReadNotifId')) || 0;
                     const individuallyReadIds = JSON.parse(localStorage.getItem('individuallyReadIds')) || [];
+                    const explicitlyUnreadIds = JSON.parse(localStorage.getItem('explicitlyUnreadIds')) || [];
 
                     window.highestNotifId = data.notifications.length > 0 ? Math.max(...data.notifications.map(n => n.id)) : 0;
 
@@ -488,26 +489,34 @@ window.clearDraftAndReset = clearDraftAndReset;
                             if (notif.message.includes('Upload')) iconClass = 'fa-file-invoice';
                             else if (notif.message.includes('Updated') || notif.message.includes('modified')) iconClass = 'fa-file-signature';
 
-                            const isUnread = notif.id > lastReadId && !individuallyReadIds.includes(notif.id);
+                            const isUnread = (notif.id > lastReadId || explicitlyUnreadIds.includes(notif.id)) && !individuallyReadIds.includes(notif.id);
                             const unreadClass = isUnread ? 'unread' : 'read';
                             const redDotHtml = isUnread ? '<span class="red-dot"></span>' : '';
                             const blueDotHtml = isUnread ? '<div class="unread-dot"></div>' : '';
 
+                            // Mark as read/unread toggle button
+                            const actionBtnHtml = isUnread 
+                                ? `<div class="notif-action-btn" data-action="read" title="Mark as read"><i class="fa-solid fa-check"></i></div>`
+                                : `<div class="notif-action-btn" data-action="unread" title="Mark as unread"><i class="fa-regular fa-envelope"></i></div>`;
+
                             htmlContent += `
-                            <div class="notif-list-item ${unreadClass}" data-id="${notif.id}" style="cursor: pointer;">
+                            <div class="notif-list-item ${unreadClass}" data-id="${notif.id}" style="cursor: pointer; display: flex; align-items: center; position: relative;">
                                 <div class="notif-icon">
                                     <i class="fa-solid ${iconClass}"></i>
                                     ${redDotHtml}
                                 </div>
-                                <div style="flex: 1;">
+                                <div style="flex: 1; min-width: 0; padding-right: 25px;">
                                     <p>${notif.message}</p>
                                     <span class="notif-time">${notif.time}</span>
                                 </div>
-                                ${blueDotHtml}
+                                <div class="notif-status-indicator" style="display: flex; align-items: center; gap: 8px;">
+                                    ${blueDotHtml}
+                                    ${actionBtnHtml}
+                                </div>
                             </div>`;
                         });
 
-                        const unreadItemsCount = data.notifications.filter(n => n.id > lastReadId && !individuallyReadIds.includes(n.id)).length;
+                        const unreadItemsCount = data.notifications.filter(n => (n.id > lastReadId || explicitlyUnreadIds.includes(n.id)) && !individuallyReadIds.includes(n.id)).length;
                         if (notifBadge) {
                             if (unreadItemsCount > 0) {
                                 notifBadge.style.display = 'flex';
@@ -552,47 +561,126 @@ window.clearDraftAndReset = clearDraftAndReset;
     }
 
     // ==========================================
-    // NOTIFICATION CLICK TO MARK AS READ
+    // NOTIFICATION MARK READ / UNREAD ACTIONS
     // ==========================================
+    function markNotifAsRead(notifId, notifItem) {
+        let individuallyReadIds = JSON.parse(localStorage.getItem('individuallyReadIds')) || [];
+        if (!individuallyReadIds.includes(notifId)) {
+            individuallyReadIds.push(notifId);
+            localStorage.setItem('individuallyReadIds', JSON.stringify(individuallyReadIds));
+        }
+        
+        let explicitlyUnreadIds = JSON.parse(localStorage.getItem('explicitlyUnreadIds')) || [];
+        explicitlyUnreadIds = explicitlyUnreadIds.filter(id => id !== notifId);
+        localStorage.setItem('explicitlyUnreadIds', JSON.stringify(explicitlyUnreadIds));
+
+        notifItem.classList.remove('unread');
+        notifItem.classList.add('read');
+        
+        const indicator = notifItem.querySelector('.notif-status-indicator');
+        if (indicator) {
+            indicator.innerHTML = `<div class="notif-action-btn" data-action="unread" title="Mark as unread"><i class="fa-regular fa-envelope"></i></div>`;
+        }
+        const redDot = notifItem.querySelector('.red-dot');
+        if (redDot) redDot.style.display = 'none';
+
+        updateBadgeCount();
+        
+        const activeTab = document.querySelector('.notif-tab.active');
+        if (activeTab && activeTab.getAttribute('data-tab') === 'unread') {
+            notifItem.style.display = 'none';
+            checkEmptyState();
+        }
+    }
+
+    function markNotifAsUnread(notifId, notifItem) {
+        let individuallyReadIds = JSON.parse(localStorage.getItem('individuallyReadIds')) || [];
+        individuallyReadIds = individuallyReadIds.filter(id => id !== notifId);
+        localStorage.setItem('individuallyReadIds', JSON.stringify(individuallyReadIds));
+        
+        let explicitlyUnreadIds = JSON.parse(localStorage.getItem('explicitlyUnreadIds')) || [];
+        if (!explicitlyUnreadIds.includes(notifId)) {
+            explicitlyUnreadIds.push(notifId);
+            localStorage.setItem('explicitlyUnreadIds', JSON.stringify(explicitlyUnreadIds));
+        }
+        
+        notifItem.classList.remove('read');
+        notifItem.classList.add('unread');
+        
+        const indicator = notifItem.querySelector('.notif-status-indicator');
+        if (indicator) {
+            indicator.innerHTML = `
+                <div class="unread-dot"></div>
+                <div class="notif-action-btn" data-action="read" title="Mark as read"><i class="fa-solid fa-check"></i></div>
+            `;
+        }
+        const iconDiv = notifItem.querySelector('.notif-icon');
+        if (iconDiv && !iconDiv.querySelector('.red-dot')) {
+            const redDot = document.createElement('span');
+            redDot.className = 'red-dot';
+            iconDiv.appendChild(redDot);
+        }
+
+        updateBadgeCount();
+        
+        const activeTab = document.querySelector('.notif-tab.active');
+        if (activeTab && activeTab.getAttribute('data-tab') === 'unread') {
+            notifItem.style.display = 'flex';
+            checkEmptyState();
+        }
+    }
+
+    function updateBadgeCount() {
+        const notifBadge = document.querySelector('.notif-badge');
+        if (notifBadge) {
+            const count = document.querySelectorAll('#notifModalBody .notif-list-item.unread').length;
+            if (count > 0) {
+                notifBadge.style.display = 'flex';
+                notifBadge.innerText = count >= 10 ? '10+' : count;
+            } else {
+                notifBadge.style.display = 'none';
+            }
+        }
+    }
+
+    function checkEmptyState() {
+        const notifModalBody = document.getElementById('notifModalBody');
+        const emptyState = document.getElementById('emptyNotifState');
+        if (notifModalBody && emptyState) {
+            const visibleItems = Array.from(notifModalBody.querySelectorAll('.notif-list-item')).filter(item => item.style.display !== 'none').length;
+            if (visibleItems === 0) {
+                emptyState.style.display = 'block';
+            } else {
+                emptyState.style.display = 'none';
+            }
+        }
+    }
+
     const notifModalBody = document.getElementById('notifModalBody');
     if (notifModalBody) {
         notifModalBody.addEventListener('click', function(e) {
-            const notifItem = e.target.closest('.notif-list-item');
+            const actionBtn = e.target.closest('.notif-action-btn');
+            if (actionBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const notifItem = actionBtn.closest('.notif-list-item');
+                const notifId = parseInt(notifItem.dataset.id);
+                const action = actionBtn.dataset.action;
+                
+                if (action === 'read') {
+                    markNotifAsRead(notifId, notifItem);
+                } else {
+                    markNotifAsUnread(notifId, notifItem);
+                }
+                return;
+            }
 
+            const notifItem = e.target.closest('.notif-list-item');
             if (notifItem && notifItem.classList.contains('unread')) {
                 const notifId = parseInt(notifItem.dataset.id);
                 if (notifId) {
-                    let individuallyReadIds = JSON.parse(localStorage.getItem('individuallyReadIds')) || [];
-                    if (!individuallyReadIds.includes(notifId)) {
-                        individuallyReadIds.push(notifId);
-                        localStorage.setItem('individuallyReadIds', JSON.stringify(individuallyReadIds));
-                    }
-
-                    notifItem.classList.remove('unread');
-                    notifItem.classList.add('read');
-                    const blueDot = notifItem.querySelector('.unread-dot');
-                    if (blueDot) blueDot.style.display = 'none';
-                    const redDot = notifItem.querySelector('.red-dot');
-                    if (redDot) redDot.style.display = 'none';
-
-                    const remainingUnread = notifModalBody.querySelectorAll('.notif-list-item.unread').length;
-                    const notifBadge = document.querySelector('.notif-badge');
-                    if (notifBadge) {
-                        if (remainingUnread === 0) {
-                            notifBadge.style.display = 'none';
-                        } else {
-                            notifBadge.innerText = remainingUnread >= 10 ? '10+' : remainingUnread;
-                        }
-                    }
-
-                    const activeTab = document.querySelector('.notif-tab.active');
-                    if (activeTab && activeTab.getAttribute('data-tab') === 'unread') {
-                        notifItem.style.display = 'none';
-                        const visibleItems = Array.from(notifModalBody.querySelectorAll('.notif-list-item')).filter(item => item.style.display !== 'none').length;
-                        if (visibleItems === 0 && document.getElementById('emptyNotifState')) {
-                            document.getElementById('emptyNotifState').style.display = 'block';
-                        }
-                    }
+                    markNotifAsRead(notifId, notifItem);
                 }
             }
         });
@@ -1155,6 +1243,7 @@ document.addEventListener('click', function(e) {
             if (window.highestNotifId) {
                 localStorage.setItem('lastReadNotifId', window.highestNotifId);
                 localStorage.removeItem('individuallyReadIds');
+                localStorage.removeItem('explicitlyUnreadIds');
             }
 
             const notifBadge = document.querySelector('.notif-badge');
@@ -1168,6 +1257,11 @@ document.addEventListener('click', function(e) {
                 if (blueDot) blueDot.style.display = 'none';
                 const redDot = item.querySelector('.red-dot');
                 if (redDot) redDot.style.display = 'none';
+                
+                const indicator = item.querySelector('.notif-status-indicator');
+                if (indicator) {
+                    indicator.innerHTML = `<div class="notif-action-btn" data-action="unread" title="Mark as unread"><i class="fa-regular fa-envelope"></i></div>`;
+                }
             });
             notifOptionsMenu.style.display = 'none';
             const activeTab = document.querySelector('.notif-tab.active');
@@ -1864,15 +1958,13 @@ function showProgressDetail(btn) {
     const hasMainFile = mainFileUrl && mainFileUrl.trim() !== '' && mainFileUrl !== 'None' && mainFileUrl !== 'null';
 
     if (pdfIframe && pdfMissing) {
-        if (hasMainFile) {
-            pdfIframe.src = mainFileUrl + '#view=FitH';
-            pdfIframe.style.display = 'block';
-            pdfMissing.style.display = 'none';
-        } else {
-            pdfIframe.src = '';
-            pdfIframe.style.display = 'none';
-            pdfMissing.style.display = 'block';
-        }
+        pdfIframe.src = '';
+        pdfIframe.style.display = 'none';
+        pdfMissing.style.display = 'block';
+        pdfMissing.innerHTML = `
+            <i class="fa-solid fa-spinner fa-spin" style="font-size: 4rem; color: var(--sidebar-bg);"></i>
+            <p style="margin-top: 10px; font-size: 0.9rem;">Loading progress file...</p>
+        `;
     }
 
     console.log('Fetching progress detail for ID:', progressId);
@@ -1905,17 +1997,13 @@ function showProgressDetail(btn) {
                         pdfMissing.style.display = 'none';
                         console.log('PDF loaded from progress detail:', fileUrl);
                     } else {
-                        // Fallback to the main document PDF if progress has no file
-                        if (hasMainFile) {
-                            pdfIframe.src = mainFileUrl + '#view=FitH';
-                            pdfIframe.style.display = 'block';
-                            pdfMissing.style.display = 'none';
-                            console.log('Fallback to main document PDF:', mainFileUrl);
-                        } else {
-                            pdfIframe.src = '';
-                            pdfIframe.style.display = 'none';
-                            pdfMissing.style.display = 'block';
-                        }
+                        pdfIframe.src = '';
+                        pdfIframe.style.display = 'none';
+                        pdfMissing.style.display = 'block';
+                        pdfMissing.innerHTML = `
+                            <i class="fa-regular fa-file-pdf" style="font-size: 4rem;"></i>
+                            <p style="margin-top: 10px; font-size: 0.9rem;">No file attached to this progress update.</p>
+                        `;
                     }
                 }
             } else {
@@ -1926,6 +2014,15 @@ function showProgressDetail(btn) {
             console.error('Error loading progress detail:', error);
             if (fileContainer) {
                 fileContainer.innerHTML = `<span style="color: #dc3545; font-style: italic;">Error loading file.</span>`;
+            }
+            if (pdfIframe && pdfMissing) {
+                pdfIframe.src = '';
+                pdfIframe.style.display = 'none';
+                pdfMissing.style.display = 'block';
+                pdfMissing.innerHTML = `
+                    <i class="fa-solid fa-exclamation-triangle" style="font-size: 4rem; color: #dc3545;"></i>
+                    <p style="margin-top: 10px; font-size: 0.9rem; color: #dc3545;">Error loading progress attachment.</p>
+                `;
             }
         });
 }

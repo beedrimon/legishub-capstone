@@ -1658,6 +1658,10 @@ td strong {
 .form-group select option {
   color: #333 !important; /* Ensures valid dropdown options retain dark text */
 }
+.form-group select option:disabled {
+  color: #a0a0a0 !important;
+  background-color: #f5f5f5 !important;
+}
 
 /* Footer Buttons */
 .modal-footer {
@@ -1719,7 +1723,7 @@ td strong {
   min-width: 18px;
   height: 18px;
   border-radius: 10px;
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: center;
   padding: 0 4px;
@@ -1977,6 +1981,43 @@ td strong {
   color: #888;
   font-size: 1.2rem;
   padding: 0 5px;
+}
+
+/* Mark as read/unread hover buttons styling */
+.notif-status-indicator {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.notif-action-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  color: #7d6339;
+  cursor: pointer;
+  background: #fdfaf5;
+  border: 1px solid #e8e0d5;
+  font-size: 0.75rem;
+  transition: all 0.2s;
+}
+
+.notif-action-btn:hover {
+  background: #7d6339;
+  color: white;
+  border-color: #7d6339;
+}
+
+.notif-list-item:hover .notif-status-indicator .unread-dot {
+  display: none;
+}
+
+.notif-list-item:hover .notif-status-indicator .notif-action-btn {
+  display: flex;
 }
 
 .notif-options-menu {

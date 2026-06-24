@@ -1986,6 +1986,7 @@ def get_notifications(request):
         clean_title = html.escape(doc_title)
         clean_actor = html.escape(actor_name)
         exact_time = notif.timestamp.strftime('%B %d, %Y, %I:%M %p')
+        doc_id_val = notif.document.id if notif.document else ""
 
         hidden_data = (
             f"<div class='notif-meta-data' style='display:none;' "
@@ -1994,6 +1995,7 @@ def get_notifications(request):
             f"data-number='{doc_number}' "
             f"data-title='{clean_title}' "
             f"data-time='{exact_time}' "
+            f"data-doc-id='{doc_id_val}' "
             f"data-details='{clean_details}'>"
             f"</div>"
         )

@@ -494,7 +494,21 @@ function showArchivedProgressDetail(btn) {
         document.getElementById('pd-date').textContent = updateDate;
         document.getElementById('pd-status').textContent = status.toUpperCase();
         document.getElementById('pd-note').textContent = note || 'No note provided.';
+        
         const fileContainer = document.getElementById('pd-file');
+        const pdfIframe = document.getElementById('view-pdf-iframe');
+        const pdfMissing = document.getElementById('view-pdf-missing');
+        
+        if (pdfIframe && pdfMissing) {
+            pdfIframe.src = '';
+            pdfIframe.style.display = 'none';
+            pdfMissing.style.display = 'block';
+            pdfMissing.innerHTML = `
+                <i class="fa-solid fa-spinner fa-spin" style="font-size: 4rem; color: var(--sidebar-bg);"></i>
+                <p style="margin-top: 10px; font-size: 0.9rem;">Loading progress file...</p>
+            `;
+        }
+
         if (fileContainer) {
             // Fetch detail to get file URL
             fetch(`/api/archived-progress-detail/?id=${progressId}`)
@@ -507,12 +521,35 @@ function showArchivedProgressDetail(btn) {
                                 <i class="fa-regular fa-file-pdf"></i> View Attached File
                             </a>
                         `;
+                        if (pdfIframe && pdfMissing) {
+                            pdfIframe.src = data.progress.file_attachment + '#view=FitH';
+                            pdfIframe.style.display = 'block';
+                            pdfMissing.style.display = 'none';
+                        }
                     } else {
                         fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">No file attached.</span>`;
+                        if (pdfIframe && pdfMissing) {
+                            pdfIframe.src = '';
+                            pdfIframe.style.display = 'none';
+                            pdfMissing.style.display = 'block';
+                            pdfMissing.innerHTML = `
+                                <i class="fa-regular fa-file-pdf" style="font-size: 4rem;"></i>
+                                <p style="margin-top: 10px; font-size: 0.9rem;">No file attached to this progress update.</p>
+                            `;
+                        }
                     }
                 })
                 .catch(() => {
                     fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">Error loading file.</span>`;
+                    if (pdfIframe && pdfMissing) {
+                        pdfIframe.src = '';
+                        pdfIframe.style.display = 'none';
+                        pdfMissing.style.display = 'block';
+                        pdfMissing.innerHTML = `
+                            <i class="fa-solid fa-exclamation-triangle" style="font-size: 4rem; color: #dc3545;"></i>
+                            <p style="margin-top: 10px; font-size: 0.9rem; color: #dc3545;">Error loading progress attachment.</p>
+                        `;
+                    }
                 });
         }
     }
