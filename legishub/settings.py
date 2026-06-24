@@ -253,6 +253,8 @@ except ImportError:
     }
 
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'Marikina LegisHub <noreply@legishub-marikina.me>')
+if DEFAULT_FROM_EMAIL:
+    DEFAULT_FROM_EMAIL = DEFAULT_FROM_EMAIL.strip("'\"")
 
 # ==========================================
 # LOGIN REDIRECT URL
