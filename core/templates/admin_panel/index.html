@@ -86,3 +86,19 @@
 </body>
 
 </html>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggle = document.getElementById('togglePassword');
+        const pwd = document.getElementById('password');
+        if (toggle && pwd) {
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                const isPassword = pwd.getAttribute('type') === 'password';
+                pwd.setAttribute('type', isPassword ? 'text' : 'password');
+                this.classList.toggle('fa-eye', !isPassword);
+                this.classList.toggle('fa-eye-slash', isPassword);
+            });
+        }
+    });
+</script>
