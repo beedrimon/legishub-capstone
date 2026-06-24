@@ -172,7 +172,12 @@
                                 {% if log.status == 'success' %}
                                     <span class="status-success"><i class="fa-solid fa-check-circle"></i> Success</span>
                                 {% elif log.status == 'failed' %}
-                                    <span class="status-failed"><i class="fa-solid fa-times-circle"></i> Failed</span>
+                                    <span class="status-failed" title="{{ log.error_message }}"><i class="fa-solid fa-times-circle"></i> Failed</span>
+                                    {% if log.error_message %}
+                                        <div style="font-size: 0.65rem; color: #dc3545; margin-top: 2px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="{{ log.error_message }}">
+                                            {{ log.error_message }}
+                                        </div>
+                                    {% endif %}
                                 {% elif log.status == 'in_progress' %}
                                     <span class="badge-info"><i class="fa-solid fa-spinner fa-spin"></i> In Progress</span>
                                 {% else %}

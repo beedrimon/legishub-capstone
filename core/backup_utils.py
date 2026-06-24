@@ -18,16 +18,20 @@ class SupabaseBackup:
             'password': os.getenv('SUPABASE_DB_PASSWORD', ''),
             'host': os.getenv('SUPABASE_DB_HOST', ''),
             'port': int(os.getenv('SUPABASE_DB_PORT', '6543')),
+            'sslmode': os.getenv('SUPABASE_DB_SSL_MODE', 'require'),
         }
         
         # Primary DB configuration (the source for backups, as defined in settings.py)
+        default_db = settings.DATABASES['default']
         self.primary_config = {
-            'dbname': settings.DATABASES['default']['NAME'],
-            'user': settings.DATABASES['default']['USER'],
-            'password': settings.DATABASES['default']['PASSWORD'],
-            'host': settings.DATABASES['default']['HOST'],
-            'port': settings.DATABASES['default']['PORT'],
+            'dbname': default_db.get('NAME', ''),
+            'user': default_db.get('USER', ''),
+            'password': default_db.get('PASSWORD', ''),
+            'host': default_db.get('HOST', ''),
+            'port': default_db.get('PORT', '5432'),
         }
+        if 'OPTIONS' in default_db and 'sslmode' in default_db['OPTIONS']:
+            self.primary_config['sslmode'] = default_db['OPTIONS']['sslmode']
     
     def test_backup_connection(self):
         """Test connection to the backup database."""
