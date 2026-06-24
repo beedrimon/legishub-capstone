@@ -28,6 +28,7 @@ class LegislativeDocument(models.Model):
     STATUS_CHOICES = [
         ('Active', 'Active'),
         ('Pending', 'Pending'),
+        ('Urgent', 'Urgent'),
         ('Archived', 'Archived'),
         ('Proposed Measures', 'Proposed Measures'),
         ('Endorsement', 'Endorsement'),

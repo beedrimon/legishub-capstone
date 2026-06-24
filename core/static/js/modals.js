@@ -66,6 +66,26 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    // 3.1 Download button action in the view modal (downloads currently viewed PDF)
+    const downloadBtn = document.getElementById('view-download-btn');
+    if (downloadBtn) {
+        const isArchivePage = window.location.pathname.includes('/archive/') || 
+                              window.location.pathname.includes('/ordinances/') || 
+                              window.location.pathname.includes('/resolutions/') || 
+                              window.location.pathname.includes('/confidential/');
+        if (!isArchivePage) {
+            downloadBtn.addEventListener('click', () => {
+                const viewModal = document.getElementById('viewModal');
+                const currentFileUrl = viewModal ? viewModal.getAttribute('data-current-file-url') : '';
+                if (currentFileUrl && currentFileUrl.trim() !== '' && currentFileUrl !== 'None' && currentFileUrl !== 'null') {
+                    window.open(currentFileUrl, '_blank');
+                } else {
+                    alert('No PDF file available for download.');
+                }
+            });
+        }
+    }
+
     // ==========================================
     // AUTO-SAVE DRAFTS (Upload & Edit)
     // ==========================================
@@ -1005,11 +1025,17 @@ document.addEventListener('click', function(e) {
                     pdfIframe.style.display = 'block';
                     pdfMissing.style.display = 'none';
                     console.log('PDF loaded from:', fileUrl);
+                    if (downloadBtn) {
+                        downloadBtn.style.display = 'inline-flex';
+                    }
                 } else {
                     pdfIframe.src = '';
                     pdfIframe.style.display = 'none';
                     pdfMissing.style.display = 'block';
                     pdfMissing.innerHTML = '<i class="fa-regular fa-file-pdf"></i> No PDF document attached.';
+                    if (downloadBtn) {
+                        downloadBtn.style.display = 'none';
+                    }
                 }
             }
         })
@@ -1023,11 +1049,17 @@ document.addEventListener('click', function(e) {
                     pdfIframe.style.display = 'block';
                     pdfMissing.style.display = 'none';
                     viewModal.setAttribute('data-current-file-url', mainFileUrl);
+                    if (downloadBtn) {
+                        downloadBtn.style.display = 'inline-flex';
+                    }
                 } else {
                     pdfIframe.src = '';
                     pdfIframe.style.display = 'none';
                     pdfMissing.style.display = 'block';
                     pdfMissing.innerHTML = '<i class="fa-solid fa-exclamation-triangle"></i> Failed to load PDF.';
+                    if (downloadBtn) {
+                        downloadBtn.style.display = 'none';
+                    }
                 }
             }
             // Show empty timeline
@@ -2009,12 +2041,16 @@ function showProgressDetail(btn) {
                     }
                 }
 
+                const downloadBtn = document.getElementById('view-download-btn');
                 if (pdfIframe && pdfMissing) {
                     if (fileUrl) {
                         pdfIframe.src = fileUrl + '#view=FitH';
                         pdfIframe.style.display = 'block';
                         pdfMissing.style.display = 'none';
                         console.log('PDF loaded from progress detail:', fileUrl);
+                        if (downloadBtn) {
+                            downloadBtn.style.display = 'inline-flex';
+                        }
                     } else {
                         pdfIframe.src = '';
                         pdfIframe.style.display = 'none';
@@ -2023,6 +2059,9 @@ function showProgressDetail(btn) {
                             <i class="fa-regular fa-file-pdf" style="font-size: 4rem;"></i>
                             <p style="margin-top: 10px; font-size: 0.9rem;">No file attached to this progress update.</p>
                         `;
+                        if (downloadBtn) {
+                            downloadBtn.style.display = 'none';
+                        }
                     }
                 }
             } else {
@@ -2042,6 +2081,10 @@ function showProgressDetail(btn) {
                     <i class="fa-solid fa-exclamation-triangle" style="font-size: 4rem; color: #dc3545;"></i>
                     <p style="margin-top: 10px; font-size: 0.9rem; color: #dc3545;">Error loading progress attachment.</p>
                 `;
+            }
+            const downloadBtn = document.getElementById('view-download-btn');
+            if (downloadBtn) {
+                downloadBtn.style.display = 'none';
             }
         });
 }

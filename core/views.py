@@ -2083,6 +2083,86 @@ def get_notifications(request):
         'has_more': has_more
     })
 
+
+# ==========================================
+# TRANSFER HELPER FUNCTIONS FOR ARCHIVING / VETOING
+# ==========================================
+def move_document_to_archives(doc, user):
+    with transaction.atomic():
+        archive_record = ArchivedDocument.objects.create(
+            archive_id=f"ARC-{doc.document_number}",
+            original_document_number=doc.document_number,
+            title=doc.title,
+            doc_type=doc.doc_type,
+            year=doc.year,
+            date_enacted=doc.date_enacted,
+            sponsor=doc.sponsor,
+            co_sponsors=doc.co_sponsors,
+            visibility=doc.visibility,
+            keywords=doc.keywords,
+            physical_storage=doc.physical_storage,
+            original_date_filed=doc.date_filed,
+            archived_by=user
+        )
+
+        if doc.file_attachment and doc.file_attachment.name:
+            try:
+                archive_record.file_attachment.save(
+                    doc.file_attachment.name.split('/')[-1],
+                    doc.file_attachment.file,
+                    save=True
+                )
+            except FileNotFoundError:
+                pass
+
+        # Copy progress entries
+        progress_entries = DocumentProgress.objects.filter(document=doc)
+        for prog in progress_entries:
+            ArchivedDocumentProgress.objects.create(
+                archived_document=archive_record,
+                status=prog.status,
+                update_date=prog.update_date,
+                note=prog.note,
+                file_attachment=prog.file_attachment,
+                created_by=prog.created_by
+            )
+        
+        doc.delete()
+        return archive_record
+
+
+def move_document_to_vetoed(doc, user):
+    with transaction.atomic():
+        vetoed_record = VetoedDocument.objects.create(
+            document_number=doc.document_number,
+            title=doc.title,
+            doc_type=doc.doc_type,
+            year=doc.year,
+            date_enacted=doc.date_enacted,
+            sponsor=doc.sponsor,
+            co_sponsors=doc.co_sponsors,
+            visibility=doc.visibility,
+            keywords=doc.keywords,
+            physical_storage=doc.physical_storage,
+            veto_reason=doc.veto_reason, 
+            date_filed=doc.date_filed,
+            vetoed_by=user
+        )
+
+        if doc.file_attachment and doc.file_attachment.name:
+            try:
+                vetoed_record.file_attachment.save(
+                    doc.file_attachment.name.split('/')[-1],
+                    doc.file_attachment.file,
+                    save=True
+                )
+            except FileNotFoundError:
+                pass
+
+        doc.delete()
+        return vetoed_record
+
+
 # ==========================================
 # 9. EDIT DOCUMENT VIEW (WITH SMART UPDATE)
 # ==========================================
@@ -2152,60 +2232,18 @@ def edit_document(request):
         if 'file_attachment' in request.FILES:
             doc.file_attachment = request.FILES['file_attachment']
 
-                # --- ARCHIVING LOGIC ---
+        # --- ARCHIVING LOGIC ---
         if doc.status == 'Archived':
             try:
-                with transaction.atomic():
-                    archive_record = ArchivedDocument.objects.create(
-                        archive_id=f"ARC-{doc.document_number}",
-                        original_document_number=doc.document_number,
-                        title=doc.title,
-                        doc_type=doc.doc_type,
-                        year=doc.year,
-                        date_enacted=doc.date_enacted,
-                        sponsor=doc.sponsor,
-                        co_sponsors=doc.co_sponsors,
-                        visibility=doc.visibility,
-                        keywords=doc.keywords,
-                        physical_storage=doc.physical_storage,
-                        original_date_filed=doc.date_filed,
-                        archived_by=request.user
-                    )
-
-                    if doc.file_attachment and doc.file_attachment.name:
-                        try:
-                            archive_record.file_attachment.save(
-                                doc.file_attachment.name.split('/')[-1],
-                                doc.file_attachment.file,
-                                save=True
-                            )
-                        except FileNotFoundError:
-                            pass
-
-                    # ---------- COPY PROGRESS ENTRIES ----------
-                    progress_entries = DocumentProgress.objects.filter(document=doc)
-                    for prog in progress_entries:
-                        ArchivedDocumentProgress.objects.create(
-                            archived_document=archive_record,
-                            status=prog.status,
-                            update_date=prog.update_date,
-                            note=prog.note,
-                            file_attachment=prog.file_attachment,
-                            created_by=prog.created_by
-                        )
-                    # --------------------------------------------
-
-                    deleted_doc_number = doc.document_number 
-                    doc.delete()
-
-                    AuditLog.objects.create(
-                        user=request.user,
-                        action='Edit',
-                        details=f"Changed Status to 'Archived' and transferred '{deleted_doc_number}' to Archives with progress history."
-                    )
-
-                    messages.success(request, f'Document successfully moved to Archives with progress history.')
-                    return redirect('archive')
+                deleted_doc_number = doc.document_number
+                move_document_to_archives(doc, request.user)
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='Edit',
+                    details=f"Changed Status to 'Archived' and transferred '{deleted_doc_number}' to Archives with progress history."
+                )
+                messages.success(request, f'Document successfully moved to Archives with progress history.')
+                return redirect('archive')
             except IntegrityError:
                 messages.error(request, f'An archive for {doc.document_number} already exists.')
                 referer = request.META.get('HTTP_REFERER')
@@ -2232,45 +2270,15 @@ def edit_document(request):
         # --- VETO TRANSFER LOGIC ---
         elif doc.status == 'Vetoed':
             try:
-                with transaction.atomic():
-                    vetoed_record = VetoedDocument.objects.create(
-                        document_number=doc.document_number,
-                        title=doc.title,
-                        doc_type=doc.doc_type,
-                        year=doc.year,
-                        date_enacted=doc.date_enacted,
-                        sponsor=doc.sponsor,
-                        co_sponsors=doc.co_sponsors,
-                        visibility=doc.visibility,
-                        keywords=doc.keywords,
-                        physical_storage=doc.physical_storage,
-                        veto_reason=doc.veto_reason, 
-                        date_filed=doc.date_filed,
-                        vetoed_by=request.user
-                    )
-
-                    if doc.file_attachment and doc.file_attachment.name:
-                        try:
-                            vetoed_record.file_attachment.save(
-                                doc.file_attachment.name.split('/')[-1],
-                                doc.file_attachment.file,
-                                save=True
-                            )
-                        except FileNotFoundError:
-                            pass 
-
-                    deleted_doc_number = doc.document_number 
-                    doc.delete() 
-
-                    AuditLog.objects.create(
-                        user=request.user,
-                        action='Edit',
-                        details=f"Transferred document '{deleted_doc_number}' to Vetoed Records."
-                    )
-
-                    messages.success(request, f'Document successfully moved to Vetoed Records.')
-                    return redirect('vetoed')
-                    
+                deleted_doc_number = doc.document_number
+                move_document_to_vetoed(doc, request.user)
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='Edit',
+                    details=f"Transferred document '{deleted_doc_number}' to Vetoed Records."
+                )
+                messages.success(request, f'Document successfully moved to Vetoed Records.')
+                return redirect('vetoed')
             except IntegrityError:
                 messages.error(request, f'A veto record for {doc.document_number} already exists.')
                 referer = request.META.get('HTTP_REFERER')
@@ -2811,24 +2819,61 @@ def add_document_progress(request):
     doc.status = status
     doc.save()
     
-    # Log the action
-    AuditLog.objects.create(
-        user=request.user,
-        action='Edit',
-        document=doc,
-        details=f"Added progress update for '{doc.document_number}': Status changed to '{status}'"
-    )
-    
-    messages.success(request, f'Progress status updated to "{status}" successfully!')
-    referer = request.META.get('HTTP_REFERER')
-    if referer:
-        from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
-        url_parts = list(urlparse(referer))
-        query = parse_qs(url_parts[4])
-        query['view_doc_id'] = [doc.id]
-        url_parts[4] = urlencode(query, doseq=True)
-        return redirect(urlunparse(url_parts))
-    return redirect(f"/documents/?view_doc_id={doc.id}")
+    if status == 'Archived':
+        try:
+            deleted_doc_number = doc.document_number
+            move_document_to_archives(doc, request.user)
+            AuditLog.objects.create(
+                user=request.user,
+                action='Edit',
+                details=f"Changed Status to 'Archived' and transferred '{deleted_doc_number}' to Archives with progress history."
+            )
+            messages.success(request, f'Document successfully moved to Archives with progress history.')
+            return redirect('archive')
+        except IntegrityError:
+            messages.error(request, f'An archive for {doc.document_number} already exists.')
+            return redirect('documents')
+        except Exception as e:
+            messages.error(request, f'Failed to archive: {str(e)}')
+            return redirect('documents')
+            
+    elif status == 'Vetoed':
+        try:
+            deleted_doc_number = doc.document_number
+            move_document_to_vetoed(doc, request.user)
+            AuditLog.objects.create(
+                user=request.user,
+                action='Edit',
+                details=f"Transferred document '{deleted_doc_number}' to Vetoed Records."
+            )
+            messages.success(request, f'Document successfully moved to Vetoed Records.')
+            return redirect('vetoed')
+        except IntegrityError:
+            messages.error(request, f'A veto record for {doc.document_number} already exists.')
+            return redirect('documents')
+        except Exception as e:
+            messages.error(request, f'Failed to veto document: {str(e)}')
+            return redirect('documents')
+
+    else:
+        # Log the action
+        AuditLog.objects.create(
+            user=request.user,
+            action='Edit',
+            document=doc,
+            details=f"Added progress update for '{doc.document_number}': Status changed to '{status}'"
+        )
+        
+        messages.success(request, f'Progress status updated to "{status}" successfully!')
+        referer = request.META.get('HTTP_REFERER')
+        if referer:
+            from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
+            url_parts = list(urlparse(referer))
+            query = parse_qs(url_parts[4])
+            query['view_doc_id'] = [doc.id]
+            url_parts[4] = urlencode(query, doseq=True)
+            return redirect(urlunparse(url_parts))
+        return redirect(f"/documents/?view_doc_id={doc.id}")
 
 
 # ==========================================
@@ -3023,9 +3068,9 @@ def edit_document_progress(request):
     if changes:
         progress.save()
         
-        # If this edited progress step is the latest progress step (by update_date),
+        # If this edited progress step is the latest progress step,
         # we sync/update the parent document's current status.
-        latest_progress = DocumentProgress.objects.filter(document=doc).order_by('-update_date').first()
+        latest_progress = DocumentProgress.objects.filter(document=doc).order_by('-update_date', '-id').first()
         if latest_progress and latest_progress.id == progress.id:
             if doc.status != status:
                 doc.status = status
@@ -3039,8 +3084,43 @@ def edit_document_progress(request):
             details=f"Edited progress step for '{doc.document_number}': " + ", ".join(changes)
         )
         messages.success(request, 'Progress timeline details successfully updated.')
-    else:
-        messages.info(request, 'No changes were made to the progress timeline.')
+
+        # If updated to Archived or Vetoed, perform the transfer
+        if doc.status == 'Archived':
+            try:
+                deleted_doc_number = doc.document_number
+                move_document_to_archives(doc, request.user)
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='Edit',
+                    details=f"Changed Status to 'Archived' and transferred '{deleted_doc_number}' to Archives with progress history."
+                )
+                messages.success(request, f'Document successfully moved to Archives with progress history.')
+                return redirect('archive')
+            except IntegrityError:
+                messages.error(request, f'An archive for {doc.document_number} already exists.')
+                return redirect('documents')
+            except Exception as e:
+                messages.error(request, f'Failed to archive: {str(e)}')
+                return redirect('documents')
+                
+        elif doc.status == 'Vetoed':
+            try:
+                deleted_doc_number = doc.document_number
+                move_document_to_vetoed(doc, request.user)
+                AuditLog.objects.create(
+                    user=request.user,
+                    action='Edit',
+                    details=f"Transferred document '{deleted_doc_number}' to Vetoed Records."
+                )
+                messages.success(request, f'Document successfully moved to Vetoed Records.')
+                return redirect('vetoed')
+            except IntegrityError:
+                messages.error(request, f'A veto record for {doc.document_number} already exists.')
+                return redirect('documents')
+            except Exception as e:
+                messages.error(request, f'Failed to veto document: {str(e)}')
+                return redirect('documents')
 
     referer = request.META.get('HTTP_REFERER')
     if referer:
