@@ -12,7 +12,7 @@
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #f5f0e8 0%, #e8e0d5 100%);
@@ -21,82 +21,114 @@
             align-items: center;
             justify-content: center;
         }
-        
+
         .maintenance-container {
             text-align: center;
-            padding: 40px;
-            background: white;
+            padding: 48px 40px 40px;
+            background: #ffffff;
             border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.12);
+            max-width: 480px;
+            width: 100%;
             margin: 20px;
         }
-        
-        .maintenance-icon {
-            font-size: 80px;
-            margin-bottom: 20px;
+
+        /* Decorative accent – clean, no emoji, no circle */
+        .heading-accent {
+            width: 48px;
+            height: 3px;
+            background: #8B7355;
+            margin: 0 auto 20px auto;
+            border-radius: 2px;
         }
-        
+
         h1 {
             color: #8B7355;
             font-size: 28px;
-            margin-bottom: 15px;
+            font-weight: 600;
+            letter-spacing: -0.3px;
+            margin-bottom: 16px;
         }
-        
-        p {
-            color: #666;
+
+        .subtitle {
+            color: #666666;
+            font-size: 16px;
             line-height: 1.6;
-            margin-bottom: 25px;
+            margin-bottom: 6px;
         }
-        
+
+        .subtitle + .subtitle {
+            margin-top: -2px;
+        }
+
         .maintenance-status {
             background: #fdfaf5;
             border-left: 4px solid #ff9800;
-            padding: 15px;
+            padding: 16px 20px;
             text-align: left;
             border-radius: 8px;
-            margin-top: 20px;
+            margin-top: 28px;
         }
-        
+
         .maintenance-status strong {
-            color: #ff9800;
             display: block;
-            margin-bottom: 5px;
+            font-weight: 600;
+            color: #ff9800;
+            font-size: 15px;
+            margin-bottom: 4px;
         }
-        
+
         .maintenance-status p {
-            margin-bottom: 0;
+            margin: 0;
             font-size: 14px;
+            color: #666666;
+            line-height: 1.5;
         }
-        
+
         .login-link {
             display: inline-block;
-            margin-top: 20px;
+            margin-top: 28px;
             color: #8B7355;
             text-decoration: none;
-            font-weight: 600;
+            font-weight: 500;
+            font-size: 15px;
+            transition: color 0.2s;
         }
-        
+
         .login-link:hover {
+            color: #6b5a42;
             text-decoration: underline;
+        }
+
+        @media (max-width: 480px) {
+            .maintenance-container {
+                padding: 32px 24px 32px;
+            }
+            h1 {
+                font-size: 24px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="maintenance-container">
-        <div class="maintenance-icon">
-            🔧
-        </div>
+        <!-- Clean accent bar instead of an icon -->
+        <div class="heading-accent" aria-hidden="true"></div>
+
         <h1>System Under Maintenance</h1>
-        <p>The Marikina LegisHub system is currently undergoing scheduled maintenance. We apologize for the inconvenience.</p>
-        <p>Please check back later or contact the system administrator.</p>
-        
+        <p class="subtitle">
+            The Marikina LegisHub system is currently undergoing scheduled maintenance.
+        </p>
+        <p class="subtitle">
+            We apologize for any inconvenience and appreciate your patience.
+        </p>
+
         <div class="maintenance-status">
-            <strong>⚠️ Maintenance Mode Active</strong>
-            <p>Only System Administrators can access the system during this time.</p>
+            <strong>Maintenance Mode Active</strong>
+            <p>Only system administrators can access the system during this time.</p>
         </div>
-        
-        <a href="{% url 'login' %}" class="login-link">← Return to Login</a>
+
+        <a href="{% url 'login' %}" class="login-link">Return to Login</a>
     </div>
 </body>
 </html>
