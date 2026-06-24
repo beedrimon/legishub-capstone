@@ -121,7 +121,7 @@
                 <div class="manual-sync-content" style="flex: 1; min-width: 250px;">
                     <div class="manual-sync-text">
                         <strong>Push to Cloud (Backup)</strong>
-                        <p>Push local data to Supabase cloud storage</p>
+                        <p>Push and merge local data with Supabase cloud data</p>
                     </div>
                     <button type="submit" name="manual_backup" class="sync-button">
                         <i class="fa-solid fa-cloud-upload-alt"></i> Push Now
@@ -131,9 +131,9 @@
                 <div class="manual-sync-content" style="flex: 1; min-width: 250px; border-color: #ffe0b2;">
                     <div class="manual-sync-text">
                         <strong style="color: #d97706;">Pull from Cloud (Restore)</strong>
-                        <p>Replace local data with data from Supabase</p>
+                        <p>Pull and merge Supabase cloud data into local storage</p>
                     </div>
-                    <button type="submit" name="manual_restore" class="sync-button" style="background: #f59e0b; border-color: #d97706; color: white;" onclick="return confirm('WARNING: This will replace all your local data with the cloud data. This action cannot be undone. Do you want to continue?');">
+                    <button type="submit" name="manual_restore" class="sync-button" style="background: #f59e0b; border-color: #d97706; color: white;" onclick="return confirm('This will pull and merge cloud data into your local database. Existing records with conflicting IDs will be updated. Do you want to continue?');">
                         <i class="fa-solid fa-cloud-download-alt"></i> Pull Now
                     </button>
                 </div>

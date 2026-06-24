@@ -32,6 +32,20 @@ class SupabaseBackup:
         }
         if 'OPTIONS' in default_db and 'sslmode' in default_db['OPTIONS']:
             self.primary_config['sslmode'] = default_db['OPTIONS']['sslmode']
+
+        # Synced tables list in foreign-key dependency order
+        self.tables = [
+            'auth_user',
+            'system_settings',
+            'core_archivefolder',
+            'core_legislativedocument',
+            'core_archiveddocument',
+            'core_vetoeddocument',
+            'document_progress',
+            'archived_document_progress',
+            'support_tickets',
+            'core_auditlog'
+        ]
     
     def test_backup_connection(self):
         """Test connection to the backup database."""
@@ -84,7 +98,15 @@ class SupabaseBackup:
             except Exception:
                 counts['users'] = 0
             
-            counts['total'] = counts['documents'] + counts['archives'] + counts['audit_logs'] + counts['users']
+            # Calculate total records sum dynamically from all synced tables
+            total_sum = 0
+            for table in self.tables:
+                try:
+                    cursor.execute(sql.SQL("SELECT COUNT(*) FROM {}").format(sql.Identifier(table)))
+                    total_sum += cursor.fetchone()[0]
+                except Exception:
+                    pass
+            counts['total'] = total_sum
             
             cursor.close()
             conn.close()
@@ -95,7 +117,7 @@ class SupabaseBackup:
             return {'documents': 0, 'archives': 0, 'audit_logs': 0, 'users': 0, 'total': 0}
     
     def sync_to_backup(self, backup_log_id=None):
-        """Sync all tables from the primary DB to the backup DB."""
+        """Sync all tables from the primary DB to the backup DB using a non-destructive upsert merge."""
         from core.models import BackupLog
         
         primary_conn = None
@@ -119,12 +141,11 @@ class SupabaseBackup:
             primary_cursor = primary_conn.cursor()
             backup_cursor = backup_conn.cursor()
             
-            tables = ['auth_user', 'core_legislativedocument', 'core_archiveddocument', 'core_auditlog']
             total_synced = 0
             missing_tables = []
             
             # Process each table
-            for table in tables:
+            for table in self.tables:
                 try:
                     # Check if table exists in primary DB
                     primary_cursor.execute("""
@@ -151,22 +172,39 @@ class SupabaseBackup:
                             )
                         """, (table,))
                         
-                        if backup_cursor.fetchone()[0]:
-                            backup_cursor.execute(sql.SQL("TRUNCATE TABLE {} CASCADE").format(sql.Identifier(table)))
-                        else:
+                        if not backup_cursor.fetchone()[0]:
                             missing_tables.append(table)
                             logger.warning(f"Destination table '{table}' does not exist in backup DB. Skipping sync. Please run migrations on the backup database.")
                             continue
                         
-                        # *** CRITICAL BUG FIX: This loop was previously unreachable due to wrong indentation ***
-                        for row in rows:
-                            placeholders = ','.join(['%s'] * len(row))
-                            insert_query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
+                        # Build upsert query
+                        update_cols = [col for col in col_names if col != 'id']
+                        placeholders = ','.join(['%s'] * len(col_names))
+                        
+                        if update_cols:
+                            update_set = sql.SQL(', ').join([
+                                sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
+                                for col in update_cols
+                            ])
+                            upsert_query = sql.SQL(
+                                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO UPDATE SET {}"
+                            ).format(
+                                sql.Identifier(table),
+                                sql.SQL(',').join(map(sql.Identifier, col_names)),
+                                sql.SQL(placeholders),
+                                update_set
+                            )
+                        else:
+                            upsert_query = sql.SQL(
+                                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO NOTHING"
+                            ).format(
                                 sql.Identifier(table),
                                 sql.SQL(',').join(map(sql.Identifier, col_names)),
                                 sql.SQL(placeholders)
                             )
-                            backup_cursor.execute(insert_query, row)
+                        
+                        for row in rows:
+                            backup_cursor.execute(upsert_query, row)
                         
                         # Reset sequence on backup side to prevent IntegrityError on new inserts
                         try:
@@ -218,7 +256,7 @@ class SupabaseBackup:
             if backup_conn: backup_conn.close()
 
     def restore_from_backup(self, backup_log_id=None):
-        """Restore all tables from the backup DB to the primary DB."""
+        """Restore (Pull & Merge) all tables from the backup DB to the primary DB."""
         from core.models import BackupLog
         
         primary_conn = None
@@ -230,10 +268,9 @@ class SupabaseBackup:
             backup_cursor = backup_conn.cursor()
             primary_cursor = primary_conn.cursor()
             
-            tables = ['auth_user', 'core_legislativedocument', 'core_archiveddocument', 'core_auditlog']
             total_restored = 0
             
-            for table in tables:
+            for table in self.tables:
                 try:
                     # Check if table exists in backup DB
                     backup_cursor.execute("""
@@ -260,21 +297,38 @@ class SupabaseBackup:
                             )
                         """, (table,))
                         
-                        if primary_cursor.fetchone()[0]:
-                            primary_cursor.execute(sql.SQL("TRUNCATE TABLE {} CASCADE").format(sql.Identifier(table)))
-                        else:
+                        if not primary_cursor.fetchone()[0]:
                             logger.warning(f"Destination table '{table}' does not exist in the primary DB. Skipping restore for this table.")
                             continue
                         
-                        # *** CRITICAL BUG FIX: This loop was previously unreachable due to wrong indentation ***
-                        for row in rows:
-                            placeholders = ','.join(['%s'] * len(row))
-                            insert_query = sql.SQL("INSERT INTO {} ({}) VALUES ({})").format(
+                        # Build upsert query
+                        update_cols = [col for col in col_names if col != 'id']
+                        placeholders = ','.join(['%s'] * len(col_names))
+                        
+                        if update_cols:
+                            update_set = sql.SQL(', ').join([
+                                sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
+                                for col in update_cols
+                            ])
+                            upsert_query = sql.SQL(
+                                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO UPDATE SET {}"
+                            ).format(
+                                sql.Identifier(table),
+                                sql.SQL(',').join(map(sql.Identifier, col_names)),
+                                sql.SQL(placeholders),
+                                update_set
+                            )
+                        else:
+                            upsert_query = sql.SQL(
+                                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO NOTHING"
+                            ).format(
                                 sql.Identifier(table),
                                 sql.SQL(',').join(map(sql.Identifier, col_names)),
                                 sql.SQL(placeholders)
                             )
-                            primary_cursor.execute(insert_query, row)
+                        
+                        for row in rows:
+                            primary_cursor.execute(upsert_query, row)
                         
                         # Reset primary DB sequence to prevent IntegrityError on new inserts
                         try:
