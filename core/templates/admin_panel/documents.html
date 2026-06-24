@@ -688,7 +688,11 @@
                         const note = viewModal.getAttribute('data-active-progress-note');
                         
                         document.getElementById('edit-progress-id').value = activeProgressId;
-                        document.getElementById('edit-progress-update-date').value = updateDate;
+                        const editProgressDateInput = document.getElementById('edit-progress-update-date');
+                        if (editProgressDateInput) {
+                            editProgressDateInput.value = updateDate;
+                            editProgressDateInput.dispatchEvent(new Event('change'));
+                        }
                         document.getElementById('edit-progress-status').value = status;
                         document.getElementById('edit-progress-note').value = note || '';
                         
@@ -745,7 +749,11 @@
                     document.getElementById('progressModal').style.display = 'flex';
                     
                     const today = new Date().toISOString().split('T')[0];
-                    document.getElementById('progress-update-date').value = today;
+                    const progressUpdateDateInput = document.getElementById('progress-update-date');
+                    if (progressUpdateDateInput) {
+                        progressUpdateDateInput.value = today;
+                        progressUpdateDateInput.dispatchEvent(new Event('change'));
+                    }
                     document.getElementById('progress-status').value = '';
                     document.getElementById('progress-note').value = '';
                     

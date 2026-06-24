@@ -1616,6 +1616,14 @@ td strong {
   background: white;
 }
 
+.form-group input[type="date"] {
+  color: #888;
+}
+
+.form-group input[type="date"].has-value {
+  color: var(--text-main);
+}
+
 /* Upload Area */
 .upload-area {
   margin-top: 10px;

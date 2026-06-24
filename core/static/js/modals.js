@@ -135,6 +135,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }
                     }
+                    if (typeof handleDateInputs === 'function') {
+                        handleDateInputs();
+                    }
                     return true;
                 } else {
                     localStorage.removeItem(key);
@@ -142,6 +145,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch(e) {
                 localStorage.removeItem(key);
             }
+        }
+        if (typeof handleDateInputs === 'function') {
+            handleDateInputs();
         }
         return false;
     }
@@ -178,6 +184,26 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Style date inputs like placeholders when empty
+    const handleDateInputs = () => {
+        document.querySelectorAll('input[type="date"]').forEach(input => {
+            const toggleDateColor = () => {
+                if (input.value) {
+                    input.classList.add('has-value');
+                } else {
+                    input.classList.remove('has-value');
+                }
+            };
+            if (!input.dataset.colorBound) {
+                input.addEventListener('change', toggleDateColor);
+                input.addEventListener('input', toggleDateColor);
+                input.dataset.colorBound = 'true';
+            }
+            toggleDateColor();
+        });
+    };
+    handleDateInputs();
+
     setupTrigger('.trigger-upload-new', 'uploadNew', 'uploadNewForm');
     setupTrigger('.trigger-upload-existing', 'uploadExisting', 'uploadExistingForm');
     setupTrigger('.trigger-edit', 'edit');
@@ -196,6 +222,11 @@ function clearDraftAndReset(formId) {
     
     // Reset the form to its initial state
     form.reset();
+    
+    // Reset date input colors
+    if (typeof handleDateInputs === 'function') {
+        handleDateInputs();
+    }
     
     // Reset file inputs
     const fileInputs = form.querySelectorAll('input[type="file"]');
@@ -234,6 +265,7 @@ function clearDraftAndReset(formId) {
         select.dispatchEvent(new Event('change'));
     });
 }
+window.clearDraftAndReset = clearDraftAndReset;
 
     // ==========================================
     // REVIEW UPLOAD MODAL LOGIC
