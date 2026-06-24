@@ -524,6 +524,12 @@ function showArchivedProgressDetail(btn) {
     const note = btn.dataset.note;
     const progressId = btn.dataset.progressId;
     
+    // Set active progress details on viewModal
+    const modal = document.getElementById('viewModal');
+    if (modal) {
+        modal.setAttribute('data-active-progress-id', progressId || '');
+    }
+    
     // Highlight clicked bookmark
     document.querySelectorAll('#archiveProgressTimeline .progress-bookmark').forEach(b => {
         b.style.background = '#d9c8ac';
@@ -566,6 +572,9 @@ function showArchivedProgressDetail(btn) {
                 .then(data => {
                     if (data.success && data.progress.file_attachment) {
                         const safeUrl = escapeHtmlAttribute(data.progress.file_attachment);
+                        if (modal) {
+                            modal.setAttribute('data-current-file-url', data.progress.file_attachment || '');
+                        }
                         fileContainer.innerHTML = `
                             <a href="${safeUrl}" target="_blank" style="color: var(--sidebar-bg); text-decoration: none; font-weight: 600;">
                                 <i class="fa-regular fa-file-pdf"></i> View Attached File
@@ -577,6 +586,9 @@ function showArchivedProgressDetail(btn) {
                             pdfMissing.style.display = 'none';
                         }
                     } else {
+                        if (modal) {
+                            modal.setAttribute('data-current-file-url', '');
+                        }
                         fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">No file attached.</span>`;
                         if (pdfIframe && pdfMissing) {
                             pdfIframe.src = '';
@@ -590,6 +602,9 @@ function showArchivedProgressDetail(btn) {
                     }
                 })
                 .catch(() => {
+                    if (modal) {
+                        modal.setAttribute('data-current-file-url', '');
+                    }
                     fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">Error loading file.</span>`;
                     if (pdfIframe && pdfMissing) {
                         pdfIframe.src = '';
