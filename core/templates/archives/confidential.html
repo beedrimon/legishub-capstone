@@ -109,89 +109,86 @@
 
         <div class="modal-body">
             <!-- LEFT: Metadata -->
-            <div class="meta-sidebar">
-                <div class="meta-group">
-                    <label>ARCHIVE ID</label>
-                    <p class="meta-val highlight" id="view-number"></p>
-                </div>
-                <div class="meta-group">
-                    <label>DOCUMENT TITLE / SUBJECT</label>
-                    <p class="meta-val" id="view-title"></p>
-                </div>
-                <div class="meta-row">
-                    <div class="meta-group">
-                        <label>CATEGORY</label>
-                        <p class="meta-val" id="view-type"></p>
-                    </div>
-                    <div class="meta-group">
-                        <label>REF NO.</label>
-                        <p class="meta-val" id="view-ref-no"></p>
-                    </div>
-                </div>
-                <div class="meta-row">
-                    <div class="meta-group">
-                        <label>SERIES YEAR</label>
-                        <p class="meta-val" id="view-year"></p>
-                    </div>
-                    <div class="meta-group">
-                        <label>DATE FILED</label>
-                        <p class="meta-val" id="view-date"></p>
-                    </div>
-                </div>
-                <div class="meta-group">
-                    <label>DATE ENACTED</label>
-                    <p class="meta-val" id="view-enacted"></p>
-                </div>
-                <div class="meta-group">
-                    <label>PRIMARY SPONSOR / CLIENT</label>
-                    <p class="meta-val" id="view-sponsor"></p>
-                </div>
-                <div class="meta-group">
-                    <label>ADDITIONAL SPONSORS</label>
-                    <p class="meta-val" id="view-cosponsors"></p>
-                </div>
-                <div class="meta-row">
-                    <div class="meta-group">
-                        <label>STATUS</label>
-                        <p class="meta-val" id="view-status"></p>
-                    </div>
-                    <div class="meta-group">
-                        <label>RETENTION</label>
-                        <p class="meta-val" id="view-retention"></p>
-                    </div>
-                </div>
-                <div class="meta-group">
-                    <label>PHYSICAL STORAGE</label>
-                    <p class="meta-val" id="view-storage"></p>
-                </div>
-                <div class="meta-group">
-                    <label>KEYWORDS / TAGS</label>
-                    <p class="meta-val abstract" id="view-keywords"></p>
-                </div>
+<div class="meta-sidebar">
+    <div class="meta-group">
+        <label>ARCHIVE ID</label>
+        <p class="meta-val highlight" id="view-number"></p>
+    </div>
+    <div class="meta-group">
+        <label>DOCUMENT TITLE / SUBJECT</label>
+        <p class="meta-val" id="view-title"></p>
+    </div>
+    <div class="meta-row">
+        <div class="meta-group">
+            <label>CATEGORY</label>
+            <p class="meta-val" id="view-type"></p>
+        </div>
+        <div class="meta-group">
+            <label>REF NO.</label>
+            <p class="meta-val" id="view-ref-no"></p>
+        </div>
+    </div>
+    <div class="meta-row">
+        <div class="meta-group">
+            <label>SERIES YEAR</label>
+            <p class="meta-val" id="view-year"></p>
+        </div>
+        <div class="meta-group">
+            <label>DATE FILED</label>
+            <p class="meta-val" id="view-date"></p>
+        </div>
+    </div>
+    <div class="meta-group">
+        <label>DATE ENACTED</label>
+        <p class="meta-val" id="view-enacted"></p>
+    </div>
+    <div class="meta-group">
+        <label>PRIMARY SPONSOR / CLIENT</label>
+        <p class="meta-val" id="view-sponsor"></p>
+    </div>
+    <!-- ADDITIONAL SPONSORS section removed – all sponsors now combined above -->
+    <div class="meta-row">
+        <div class="meta-group">
+            <label>STATUS</label>
+            <p class="meta-val" id="view-status"></p>
+        </div>
+        <div class="meta-group">
+            <label>RETENTION</label>
+            <p class="meta-val" id="view-retention"></p>
+        </div>
+    </div>
+    <div class="meta-group">
+        <label>PHYSICAL STORAGE</label>
+        <p class="meta-val" id="view-storage"></p>
+    </div>
+    <div class="meta-group">
+        <label>KEYWORDS / TAGS</label>
+        <p class="meta-val abstract" id="view-keywords"></p>
+    </div>
 
-                <!-- Progress detail display -->
-                <div id="progressDetailDisplay" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
-                    <p style="margin: 0; font-size: 0.55rem; font-weight: 700; color: #a0835d; text-transform: uppercase; letter-spacing: 0.5px;">PROGRESS DETAILS</p>
-                    <div style="display: flex; gap: 20px; margin-top: 4px;">
-                        <div>
-                            <p style="margin: 0; font-size: 0.5rem; font-weight: 600; color: #a0835d;">DATE</p>
-                            <p id="pd-date" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #1f2937;"></p>
-                        </div>
-                        <div>
-                            <p style="margin: 0; font-size: 0.5rem; font-weight: 600; color: #a0835d;">STATUS</p>
-                            <p id="pd-status" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #1f2937;"></p>
-                        </div>
-                    </div>
-                    <div style="margin-top: 4px;">
-                        <p style="margin: 0; font-size: 0.5rem; font-weight: 600; color: #a0835d;">NOTE</p>
-                        <p id="pd-note" style="margin: 2px 0 0 0; font-size: 0.7rem; color: #4b5563; background: #f3f4f6; padding: 4px 8px; border-radius: 4px; border-left: 3px solid var(--sidebar-bg);"></p>
-                    </div>
-                    <div style="margin-top: 4px;">
-                        <p style="margin: 0; font-size: 0.5rem; font-weight: 600; color: #a0835d;">ATTACHED FILE</p>
-                        <div id="pd-file" style="margin-top: 2px;"></div>
-                    </div>
-                </div>
+    <!-- Progress detail display (unchanged) -->
+    <div id="progressDetailDisplay" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+        <p style="margin: 0; font-size: 0.55rem; font-weight: 700; color: #a0835d; text-transform: uppercase; letter-spacing: 0.5px;">PROGRESS DETAILS</p>
+        <div style="display: flex; gap: 20px; margin-top: 4px;">
+            <div>
+                <p style="margin: 0; font-size: 0.5rem; font-weight: 600; color: #a0835d;">DATE</p>
+                <p id="pd-date" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #1f2937;"></p>
             </div>
+            <div>
+                <p style="margin: 0; font-size: 0.5rem; font-weight: 600; color: #a0835d;">STATUS</p>
+                <p id="pd-status" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #1f2937;"></p>
+            </div>
+        </div>
+        <div style="margin-top: 4px;">
+            <p style="margin: 0; font-size: 0.5rem; font-weight: 600; color: #a0835d;">NOTE</p>
+            <p id="pd-note" style="margin: 2px 0 0 0; font-size: 0.7rem; color: #4b5563; background: #f3f4f6; padding: 4px 8px; border-radius: 4px; border-left: 3px solid var(--sidebar-bg);"></p>
+        </div>
+        <div style="margin-top: 4px;">
+            <p style="margin: 0; font-size: 0.5rem; font-weight: 600; color: #a0835d;">ATTACHED FILE</p>
+            <div id="pd-file" style="margin-top: 2px;"></div>
+        </div>
+    </div>
+</div>
 
             <!-- CENTER: PDF Preview -->
             <div class="pdf-preview-container">
@@ -236,107 +233,7 @@
 // ==========================================
 // ARCHIVE VIEW MODAL HANDLER (with Progress Timeline)
 // ==========================================
-document.addEventListener('DOMContentLoaded', function() {
-    const viewButtons = document.querySelectorAll('.trigger-view');
-    
-    viewButtons.forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Read data attributes
-            const docId = this.getAttribute('data-id');
-            const docNumber = this.getAttribute('data-number');
-            const docTitle = this.getAttribute('data-title');
-            const docType = this.getAttribute('data-type');
-            const docYear = this.getAttribute('data-year');
-            const docDate = this.getAttribute('data-date');
-            const docSponsor = this.getAttribute('data-sponsor');
-            const docKeywords = this.getAttribute('data-keywords');
-            const docEnacted = this.getAttribute('data-enacted');
-            const docCosponsors = this.getAttribute('data-cosponsors');
-            const docStatus = this.getAttribute('data-status');
-            const docVisibility = this.getAttribute('data-visibility');
-            const docStorage = this.getAttribute('data-storage');
-            const fileUrl = this.getAttribute('data-file');
-            const archivedDate = this.getAttribute('data-archived-date') || '—';
-            const archivedBy = this.getAttribute('data-archived-by') || '—';
-            const retention = this.getAttribute('data-retention') || 'Permanent';
-            
-            const modal = document.getElementById('viewModal');
-            if (!modal) return;
-            
-            // Populate left metadata
-            document.getElementById('view-number').textContent = docNumber || 'N/A';
-            document.getElementById('view-title').textContent = docTitle || 'Untitled';
-            document.getElementById('view-type').textContent = docType || 'N/A';
-            document.getElementById('view-year').textContent = docYear || 'N/A';
-            document.getElementById('view-date').textContent = docDate || 'N/A';
-            document.getElementById('view-enacted').textContent = docEnacted || 'N/A';
-            document.getElementById('view-sponsor').textContent = docSponsor || 'Not specified';
-            document.getElementById('view-cosponsors').textContent = docCosponsors || 'None';
-            document.getElementById('view-storage').textContent = docStorage || 'Not specified';
-            document.getElementById('view-keywords').textContent = docKeywords || 'No keywords';
-            
-            // Status & retention
-            const statusEl = document.getElementById('view-status');
-            if (statusEl) {
-                statusEl.innerHTML = `<span class="badge archived">${docStatus || 'Archived'}</span>`;
-            }
-            document.getElementById('view-retention').textContent = retention;
-            
-            // PDF preview
-            const pdfIframe = document.getElementById('view-pdf-iframe');
-            const pdfMissing = document.getElementById('view-pdf-missing');
-            const downloadBtn = document.getElementById('view-download-btn');
-            
-            if (fileUrl && fileUrl !== 'None' && fileUrl !== 'null' && fileUrl.trim() !== '') {
-                const cacheBuster = 't=' + new Date().getTime();
-                const separator = fileUrl.includes('?') ? '&' : '?';
-                pdfIframe.src = fileUrl + separator + cacheBuster + '#view=FitH';
-                pdfIframe.style.display = 'block';
-                pdfMissing.style.display = 'none';
-                downloadBtn.style.display = 'inline-block';
-                downloadBtn.onclick = function() {
-                    window.open(fileUrl, '_blank');
-                };
-            } else {
-                pdfIframe.src = '';
-                pdfIframe.style.display = 'none';
-                pdfMissing.style.display = 'block';
-                downloadBtn.style.display = 'none';
-            }
-            
-            // Load progress timeline for archived document
-            loadArchivedProgressTimeline(docId);
-            
-            // Store details for sharing
-            modal.setAttribute('data-current-doc-id', docId || '');
-            modal.setAttribute('data-current-doc-number', docNumber || '');
-            modal.setAttribute('data-current-doc-title', docTitle || '');
-            modal.setAttribute('data-current-file-url', fileUrl || '');
-            
-            // Clear share status
-            const statusMsg = document.getElementById('share-email-status');
-            const emailInput = document.getElementById('share-recipient-email');
-            if (statusMsg) statusMsg.innerText = '';
-            if (emailInput) emailInput.value = '';
-            
-            modal.style.display = 'flex';
-        });
-    });
-    
-    window.closeModal = function(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) modal.style.display = 'none';
-    };
-    
-    document.querySelectorAll('.modal-overlay').forEach(modal => {
-        modal.addEventListener('click', function(e) {
-            if (e.target === this) this.style.display = 'none';
-        });
-    });
-});
+
 
 // ---------- Load archived progress timeline ----------
 function loadArchivedProgressTimeline(archivedId) {

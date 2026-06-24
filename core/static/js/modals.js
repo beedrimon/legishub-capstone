@@ -834,14 +834,30 @@ document.addEventListener('click', function(e) {
     const docKeywords = btn.getAttribute('data-keywords');
     const docCosponsors = btn.getAttribute('data-cosponsors');
 
+    // Combine primary sponsor and additional sponsors
+    let allSponsors = '';
+    if (docSponsor && docSponsor !== 'Not specified' && docSponsor !== 'None') {
+        allSponsors = docSponsor;
+    }
+    if (docCosponsors && docCosponsors !== 'Not specified' && docCosponsors !== 'None') {
+        if (allSponsors) {
+            allSponsors += ', ' + docCosponsors;
+        } else {
+            allSponsors = docCosponsors;
+        }
+    }
+    if (!allSponsors) {
+        allSponsors = 'Not specified';
+    }
+
     document.getElementById('view-number').textContent = docNumber || 'N/A';
     document.getElementById('view-title').textContent = docTitle || 'Untitled';
     document.getElementById('view-type').textContent = docType || 'N/A';
     document.getElementById('view-ref-no').textContent = docNumber || 'N/A';
     document.getElementById('view-year').textContent = docYear || 'N/A';
     document.getElementById('view-date').textContent = docDate || 'N/A';
-    document.getElementById('view-sponsor').textContent = docSponsor || 'Not specified';
-    document.getElementById('view-committee').textContent = docCosponsors || 'Not specified';
+    document.getElementById('view-sponsor').textContent = allSponsors;  // combined sponsors
+    // document.getElementById('view-committee') is removed
     document.getElementById('view-abstract').textContent = docKeywords || 'No abstract provided.';
 
     // ---- Store basic details for sharing ----
