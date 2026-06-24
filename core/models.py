@@ -378,60 +378,91 @@ class BackupLog(models.Model):
     def __str__(self):
         return f"{self.get_backup_type_display()} backup on {self.started_at} - {self.get_status_display()}"
 
+class PendingBroadcast(models.Model):
+    group_name = models.CharField(max_length=255, default='documents_group')
+    event_type = models.CharField(max_length=255)
+    payload = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    processed = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = 'pending_broadcasts'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.event_type} to {self.group_name}"
+
+def queue_broadcast(group_name, event_type, payload):
+    # 1. Directly attempt to broadcast to any clients connected to the current process
+    try:
+        channel_layer = get_channel_layer()
+        if channel_layer:
+            async_to_sync(channel_layer.group_send)(
+                group_name,
+                {
+                    'type': event_type,
+                    'message': payload
+                }
+            )
+    except Exception:
+        pass
+
+    # 2. Save it to PendingBroadcast database table so that other processes (like the web server) can pick it up
+    try:
+        PendingBroadcast.objects.create(
+            group_name=group_name,
+            event_type=event_type,
+            payload=payload
+        )
+    except Exception as e:
+        print(f"[PENDING BROADCAST SAVE ERROR] {e}")
+
 # ==========================================
 # WEBSOCKET BROADCAST SIGNALS
 # ==========================================
 @receiver(post_save, sender=LegislativeDocument)
 def notify_document_saved(sender, instance, created, **kwargs):
     try:
-        channel_layer = get_channel_layer()
         if created:  # Document uploaded
-            async_to_sync(channel_layer.group_send)(
+            queue_broadcast(
                 'documents_group',
+                'document_uploaded',
                 {
-                    'type': 'document_uploaded',
-                    'message': {
-                        'id': instance.id,
-                        'document_number': instance.document_number,
-                        'title': instance.title,
-                        'status': instance.status
-                    }
+                    'id': instance.id,
+                    'document_number': instance.document_number,
+                    'title': instance.title,
+                    'status': instance.status
                 }
             )
-            print(f"[SUCCESS] WebSocket broadcast sent for upload: {instance.document_number}!")
+            print(f"[SUCCESS] WebSocket broadcast queued/sent for upload: {instance.document_number}!")
         else:  # Document edited/updated
-            async_to_sync(channel_layer.group_send)(
+            queue_broadcast(
                 'documents_group',
+                'document_updated',
                 {
-                    'type': 'document_updated',
-                    'message': {
-                        'id': instance.id,
-                        'document_number': instance.document_number,
-                        'title': instance.title,
-                        'status': instance.status
-                    }
+                    'id': instance.id,
+                    'document_number': instance.document_number,
+                    'title': instance.title,
+                    'status': instance.status
                 }
             )
-            print(f"[SUCCESS] WebSocket broadcast sent for update: {instance.document_number}!")
+            print(f"[SUCCESS] WebSocket broadcast queued/sent for update: {instance.document_number}!")
     except Exception as e:
         print(f"[WEBSOCKET ERROR] Failed to broadcast document save: {e}")
 
 @receiver(post_delete, sender=LegislativeDocument)
 def notify_document_deleted(sender, instance, **kwargs):
     try:
-        channel_layer = get_channel_layer()
-        async_to_sync(channel_layer.group_send)(
+        queue_broadcast(
             'documents_group',
+            'document_deleted',
             {
-                'type': 'document_deleted',
-                'message': {
-                    'id': instance.id,
-                    'document_number': instance.document_number,
-                    'title': instance.title
-                }
+                'id': instance.id,
+                'document_number': instance.document_number,
+                'title': instance.title
             }
         )
-        print(f"[SUCCESS] WebSocket broadcast sent for delete: {instance.document_number}!")
+        print(f"[SUCCESS] WebSocket broadcast queued/sent for delete: {instance.document_number}!")
     except Exception as e:
         print(f"[WEBSOCKET ERROR] Failed to broadcast document delete: {e}")
 
@@ -439,19 +470,16 @@ def notify_document_deleted(sender, instance, **kwargs):
 def notify_system_update(sender, instance, created, **kwargs):
     if created:  # Only trigger when a new audit log is created
         try:
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
+            queue_broadcast(
                 'documents_group',
+                'system_update',
                 {
-                    'type': 'system_update',
-                    'message': {
-                        'action': instance.action,
-                        'details': instance.details,
-                        'user': instance.user.username if instance.user else 'System'
-                    }
+                    'action': instance.action,
+                    'details': instance.details,
+                    'user': instance.user.username if instance.user else 'System'
                 }
             )
-            print(f"[SUCCESS] WebSocket broadcast sent for system update: {instance.action}!")
+            print(f"[SUCCESS] WebSocket broadcast queued/sent for system update: {instance.action}!")
         except Exception as e:
             print(f"[WEBSOCKET ERROR] Failed to broadcast system update: {e}")
 
@@ -460,19 +488,16 @@ def notify_backup_update(sender, instance, created, **kwargs):
     # Broadcast when a cloud sync completes (success or failed)
     if instance.status in ['success', 'failed']:
         try:
-            channel_layer = get_channel_layer()
-            async_to_sync(channel_layer.group_send)(
+            queue_broadcast(
                 'documents_group',
+                'system_update',
                 {
-                    'type': 'system_update',
-                    'message': {
-                        'action': 'Backup',
-                        'details': f"Cloud sync ({instance.get_backup_type_display()}) completed with status: {instance.get_status_display()}.",
-                        'user': instance.triggered_by.username if instance.triggered_by else 'System'
-                    }
+                    'action': 'Backup',
+                    'details': f"Cloud sync ({instance.get_backup_type_display()}) completed with status: {instance.get_status_display()}.",
+                    'user': instance.triggered_by.username if instance.triggered_by else 'System'
                 }
             )
-            print(f"[SUCCESS] WebSocket broadcast sent for BackupLog update: {instance.id}!")
+            print(f"[SUCCESS] WebSocket broadcast queued/sent for BackupLog update: {instance.id}!")
         except Exception as e:
             print(f"[WEBSOCKET ERROR] Failed to broadcast BackupLog update: {e}")
 

@@ -344,3 +344,27 @@ class HelpCenterTicketingTestCase(TestCase):
         ticket = SupportTicket.objects.filter(user=self.user).first()
         self.assertIsNotNone(ticket)
         self.assertEqual(ticket.department, 'Custom Secretariat Office')
+
+
+class PendingBroadcastTestCase(TestCase):
+    def test_queue_broadcast_creates_pending_broadcast(self):
+        from core.models import PendingBroadcast, queue_broadcast
+        
+        # Ensure we start with no pending broadcasts
+        self.assertEqual(PendingBroadcast.objects.count(), 0)
+        
+        # Queue a broadcast message
+        queue_broadcast(
+            group_name='test_group',
+            event_type='test_event',
+            payload={'data': 'hello_world'}
+        )
+        
+        # Verify the PendingBroadcast record was created
+        self.assertEqual(PendingBroadcast.objects.count(), 1)
+        pb = PendingBroadcast.objects.first()
+        self.assertEqual(pb.group_name, 'test_group')
+        self.assertEqual(pb.event_type, 'test_event')
+        self.assertEqual(pb.payload, {'data': 'hello_world'})
+        self.assertFalse(pb.processed)
+
