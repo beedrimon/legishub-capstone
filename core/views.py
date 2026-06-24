@@ -204,8 +204,8 @@ def dashboard_view(request):
     pending_review = LegislativeDocument.objects.exclude(status__iexact='Archived').exclude(status__iexact='Vetoed').count()
     
     # 2. FETCH RECENT DOCUMENTS
-    # Get all documents, order them by newest first (the minus sign means descending), and grab the top 5
-    recent_documents = LegislativeDocument.objects.all().order_by('-id')[:5]
+    # Get all documents, order them by newest first (the minus sign means descending), and grab the top 6
+    recent_documents = LegislativeDocument.objects.all().order_by('-id')[:6]
 
     # 3. FETCH RECENT AUDIT LOGS
     # Encoders and Legislators only see their own recent logs, Admins see everyone's
@@ -611,7 +611,7 @@ def audit_logs_view(request):
     # Fetch all logs from the database, ordered by newest first
     if not request.user.is_superuser:
         # Encoders and Legislators can only see their own activity
-        logs = AuditLog.objects.filter(user=request.user).select_related('document').order_by('-timestamp')
+        logs = AuditLog.objects.filter(user=request.user).select_related('user', 'document').order_by('-timestamp')
     else:
         logs = AuditLog.objects.all().select_related('user', 'document').order_by('-timestamp')
     

@@ -81,7 +81,8 @@
                     <thead>
                         <tr>
                             <th>TIMESTAMP</th>
-                            <th>USER</th>
+                            <th>USER DETAILS</th>
+                            <th>ROLE</th>
                             <th>ACTIONS</th>
                             <th>TARGET DOCUMENT / RESOURCE</th>
                         </tr>
@@ -90,7 +91,23 @@
                         {% for log in audit_logs %}
                         <tr>
                             <td>{{ log.timestamp|date:"h:i a, M d, Y " }}</td>
-                            <td>{{ log.user.username }}</td>
+                            <td>
+                                {% if log.user %}
+                                    <strong>{{ log.user.get_full_name|default:log.user.username }}</strong><br>
+                                    <small style="color: var(--text-light);">{{ log.user.email|default:"No email provided" }}</small>
+                                {% else %}
+                                    <strong style="color: var(--text-light);">System / Deleted User</strong>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if log.user %}
+                                    <span class="role-badge {% if log.user.is_superuser %}sys-admin{% else %}staff{% endif %}">
+                                        {% if log.user.is_superuser %}SYSTEM ADMIN{% elif log.user.is_staff %}STAFF{% else %}LEGISLATOR{% endif %}
+                                    </span>
+                                {% else %}
+                                    <span class="role-badge staff">SYSTEM</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 <strong>{{ log.action }}</strong>
                                 {% if log.details %}
@@ -101,7 +118,7 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="4" style="text-align: center; padding: 20px;">No audit logs found.</td>
+                            <td colspan="5" style="text-align: center; padding: 20px;">No audit logs found.</td>
                         </tr>
                         {% endfor %}
                     </tbody>
