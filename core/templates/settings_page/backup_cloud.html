@@ -195,22 +195,32 @@
             </div>
 
             <!-- Pagination -->
-            {% if backup_logs.has_other_pages %}
             <div class="pagination">
-                <div class="total-records">
-                    Showing page {{ backup_logs.number }} of {{ backup_logs.paginator.num_pages }}
-                </div>
+                <span>
+                    {% if backup_logs.paginator.count > 0 %}
+                    Showing {{ backup_logs.start_index }} to {{ backup_logs.end_index }} of {{ backup_logs.paginator.count }} results
+                    {% else %}
+                    No results to display
+                    {% endif %}
+                </span>
                 <div class="page-numbers">
                     {% if backup_logs.has_previous %}
-                    <button type="button" onclick="window.location.href='?page={{ backup_logs.previous_page_number }}'"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button type="button" onclick="window.location.href='?page={{ backup_logs.previous_page_number }}'">&laquo; Prev</button>
                     {% endif %}
-                    <button type="button" class="active">{{ backup_logs.number }}</button>
+                    
+                    {% for num in backup_logs.paginator.page_range %}
+                    {% if backup_logs.number == num %}
+                    <button type="button" class="active">{{ num }}</button>
+                    {% else %}
+                    <button type="button" onclick="window.location.href='?page={{ num }}'">{{ num }}</button>
+                    {% endif %}
+                    {% endfor %}
+                    
                     {% if backup_logs.has_next %}
-                    <button type="button" onclick="window.location.href='?page={{ backup_logs.next_page_number }}'"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button type="button" onclick="window.location.href='?page={{ backup_logs.next_page_number }}'">Next &raquo;</button>
                     {% endif %}
                 </div>
             </div>
-            {% endif %}
 
             <div class="settings-footer">
                 <button type="submit" name="update_backup" class="btn-apply">Save Configuration</button>
