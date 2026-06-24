@@ -1207,19 +1207,25 @@ document.addEventListener('click', function(e) {
     });
 
     // ==========================================
-    // PASSWORD VISIBILITY TOGGLE
-    // ==========================================
-    const togglePassword = document.querySelector('#togglePassword');
-    const passwordInput = document.querySelector('#password');
+// PASSWORD VISIBILITY TOGGLE (Login Page)
+// ==========================================
+const togglePassword = document.querySelector('#togglePassword');
+const passwordInput = document.querySelector('#password');
 
-    if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', function () {
-            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordInput.setAttribute('type', type);
-            this.classList.toggle('fa-eye-slash');
-            this.classList.toggle('fa-eye');
-        });
-    }
+if (togglePassword && passwordInput) {
+    // Remove any existing listeners to avoid duplicates
+    togglePassword.removeEventListener('click', togglePasswordHandler);
+    togglePassword.addEventListener('click', togglePasswordHandler);
+}
+
+function togglePasswordHandler(e) {
+    e.preventDefault();
+    const isPassword = passwordInput.getAttribute('type') === 'password';
+    passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+    // Toggle the eye classes
+    togglePassword.classList.toggle('fa-eye', !isPassword);
+    togglePassword.classList.toggle('fa-eye-slash', isPassword);
+}
 
     // ==========================================
     // UNIFIED DROPDOWN UI LOGIC
