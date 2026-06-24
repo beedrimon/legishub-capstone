@@ -46,6 +46,17 @@ class SupabaseBackup:
             'support_tickets',
             'core_auditlog'
         ]
+
+        # Mapping of tables to their natural unique keys for ID alignment on conflict
+        self.unique_keys = {
+            'auth_user': 'username',
+            'system_settings': 'key',
+            'core_archivefolder': 'name',
+            'core_legislativedocument': 'document_number',
+            'core_archiveddocument': 'archive_id',
+            'core_vetoeddocument': 'document_number',
+            'support_tickets': 'ticket_number'
+        }
     
     def test_backup_connection(self):
         """Test connection to the backup database."""
@@ -143,6 +154,7 @@ class SupabaseBackup:
             
             total_synced = 0
             missing_tables = []
+            sync_errors = []
             
             # Process each table
             for table in self.tables:
@@ -203,7 +215,20 @@ class SupabaseBackup:
                                 sql.SQL(placeholders)
                             )
                         
+                        unique_col = self.unique_keys.get(table)
                         for row in rows:
+                            # If there's a unique constraint, check and delete mismatching ID on backup first
+                            if unique_col:
+                                col_idx = col_names.index(unique_col)
+                                id_idx = col_names.index('id')
+                                unique_val = row[col_idx]
+                                row_id = row[id_idx]
+                                
+                                delete_query = sql.SQL(
+                                    "DELETE FROM {} WHERE {} = %s AND id != %s"
+                                ).format(sql.Identifier(table), sql.Identifier(unique_col))
+                                backup_cursor.execute(delete_query, (unique_val, row_id))
+
                             backup_cursor.execute(upsert_query, row)
                         
                         # Reset sequence on backup side to prevent IntegrityError on new inserts
@@ -218,15 +243,21 @@ class SupabaseBackup:
 
                         total_synced += len(rows)
                         print(f"Synced {len(rows)} records from {table}")
+                    
+                    backup_conn.commit()
                 
                 except Exception as e:
-                    print(f"Error syncing table {table}: {e}")
-                    logger.error(f"Error syncing table {table}: {e}")
+                    backup_conn.rollback()
+                    err_msg = f"{table}: {e}"
+                    print(f"Error syncing table {err_msg}")
+                    logger.error(f"Error syncing table {err_msg}")
+                    sync_errors.append(err_msg)
             
             if missing_tables:
-                raise Exception(f"Backup DB is missing tables: {', '.join(missing_tables)}. Please run 'python manage.py migrate' on the backup database first.")
+                sync_errors.append(f"Backup DB is missing tables: {', '.join(missing_tables)}. Please run 'python manage.py migrate' on the backup database first.")
             
-            backup_conn.commit()
+            if sync_errors:
+                raise Exception(f"Sync failed for some tables: {' | '.join(sync_errors)}")
             
             if backup_log_id:
                 BackupLog.objects.filter(id=backup_log_id).update(
@@ -269,6 +300,7 @@ class SupabaseBackup:
             primary_cursor = primary_conn.cursor()
             
             total_restored = 0
+            restore_errors = []
             
             for table in self.tables:
                 try:
@@ -327,7 +359,20 @@ class SupabaseBackup:
                                 sql.SQL(placeholders)
                             )
                         
+                        unique_col = self.unique_keys.get(table)
                         for row in rows:
+                            # If there's a unique constraint, check and delete mismatching ID on primary first
+                            if unique_col:
+                                col_idx = col_names.index(unique_col)
+                                id_idx = col_names.index('id')
+                                unique_val = row[col_idx]
+                                row_id = row[id_idx]
+                                
+                                delete_query = sql.SQL(
+                                    "DELETE FROM {} WHERE {} = %s AND id != %s"
+                                ).format(sql.Identifier(table), sql.Identifier(unique_col))
+                                primary_cursor.execute(delete_query, (unique_val, row_id))
+
                             primary_cursor.execute(upsert_query, row)
                         
                         # Reset primary DB sequence to prevent IntegrityError on new inserts
@@ -342,12 +387,18 @@ class SupabaseBackup:
 
                         total_restored += len(rows)
                         print(f"Restored {len(rows)} records to {table}")
+                    
+                    primary_conn.commit()
 
                 except Exception as e:
-                    print(f"Error restoring table {table}: {e}")
-                    logger.error(f"Error restoring table {table}: {e}")
+                    primary_conn.rollback()
+                    err_msg = f"{table}: {e}"
+                    print(f"Error restoring table {err_msg}")
+                    logger.error(f"Error restoring table {err_msg}")
+                    restore_errors.append(err_msg)
             
-            primary_conn.commit()
+            if restore_errors:
+                raise Exception(f"Restore failed for some tables: {' | '.join(restore_errors)}")
             
             counts = self.get_primary_db_counts()
             
