@@ -110,9 +110,9 @@
                             <i class="fa-regular fa-eye trigger-view" 
                             data-id="{{ doc.id }}"
                             data-number="{{ doc.archive_id }}"
-                            data-title="{{ doc.title }}"
+                            data-title="{{ doc.title }}" 
                             data-type="{{ doc.doc_type }}"
-                            data-year="{{ doc.year }}"
+                            data-year="{{ doc.year }}" 
                             data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
                             data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
                             data-keywords="{{ doc.keywords|default:'None' }}"
@@ -121,8 +121,11 @@
                             data-status="Archived"
                             data-visibility="{{ doc.visibility }}"
                             data-storage="{{ doc.physical_storage|default:'Not specified' }}"
-                            {% if doc.file_attachment %}data-file="{{ doc.file_url }}"{% endif %}
-                            style="cursor: pointer; color: #888;"></i>
+                            data-archived-date="{{ doc.date_archived|date:'M d, Y' }}"
+                            data-archived-by="{{ doc.archived_by.username|default:'System' }}"
+                            data-retention="{{ doc.retention_policy|default:'Permanent' }}"
+                            {% if doc.file_attachment %}data-file="{{ doc.file_url }}"{% endif %}>
+                            </i>
                         </td>
                     </tr>
                     {% empty %}
@@ -143,13 +146,15 @@
 {% block modals %}
 {{ block.super }}
 
-<div id="viewModal" class="modal-overlay">
+<div id="viewModal" class="modal-overlay archive-modal">
     <div class="modal-container detail-view-container">
         <div class="modal-header">
             <h2>ARCHIVED RECORD DETAILS</h2>
             <button class="close-modal" onclick="closeModal('viewModal')">&times;</button>
         </div>
-        <div class="modal-body detail-view-body">
+
+        <div class="modal-body">
+            <!-- LEFT: Metadata -->
             <div class="meta-sidebar">
                 <div class="meta-group">
                     <label>ARCHIVE ID</label>
@@ -165,26 +170,30 @@
                         <p class="meta-val" id="view-type"></p>
                     </div>
                     <div class="meta-group">
-                        <label>SERIES YEAR</label>
-                        <p class="meta-val" id="view-year"></p>
+                        <label>REF NO.</label>
+                        <p class="meta-val" id="view-ref-no"></p>
                     </div>
                 </div>
                 <div class="meta-row">
                     <div class="meta-group">
-                        <label>ORIGINAL DATE FILED</label>
-                        <p class="meta-val" id="view-date"></p>
+                        <label>SERIES YEAR</label>
+                        <p class="meta-val" id="view-year"></p>
                     </div>
                     <div class="meta-group">
-                        <label>DATE ENACTED</label>
-                        <p class="meta-val" id="view-enacted"></p>
+                        <label>DATE FILED</label>
+                        <p class="meta-val" id="view-date"></p>
                     </div>
                 </div>
                 <div class="meta-group">
-                        <label>PRIMARY SPONSOR / CLIENT</label>
-                        <p class="meta-val" id="view-sponsor"></p>
-                    </div>
-                    <div class="meta-group">
-                        <label>ADDITIONAL SPONSOR(S) / CLIENT(S)</label>
+                    <label>DATE ENACTED</label>
+                    <p class="meta-val" id="view-enacted"></p>
+                </div>
+                <div class="meta-group">
+                    <label>PRIMARY SPONSOR / CLIENT</label>
+                    <p class="meta-val" id="view-sponsor"></p>
+                </div>
+                <div class="meta-group">
+                    <label>ADDITIONAL SPONSORS</label>
                     <p class="meta-val" id="view-cosponsors"></p>
                 </div>
                 <div class="meta-row">
@@ -193,8 +202,8 @@
                         <p class="meta-val" id="view-status"></p>
                     </div>
                     <div class="meta-group">
-                        <label>RETENTION POLICY</label>
-                        <p class="meta-val"><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></p>
+                        <label>RETENTION</label>
+                        <p class="meta-val" id="view-retention"></p>
                     </div>
                 </div>
                 <div class="meta-group">
@@ -202,38 +211,67 @@
                     <p class="meta-val" id="view-storage"></p>
                 </div>
                 <div class="meta-group">
-                    <label>KEYWORDS</label>
+                    <label>KEYWORDS / TAGS</label>
                     <p class="meta-val abstract" id="view-keywords"></p>
+                </div>
+
+                <!-- Progress detail display -->
+                <div id="progressDetailDisplay" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid #e5e7eb;">
+                    <p style="margin: 0; font-size: 0.55rem; font-weight: 700; color: #a0835d; text-transform: uppercase; letter-spacing: 0.5px;">PROGRESS DETAILS</p>
+                    <div style="display: flex; gap: 20px; margin-top: 4px;">
+                        <div>
+                            <p style="margin: 0; font-size: 0.5rem; font-weight: 600; color: #a0835d;">DATE</p>
+                            <p id="pd-date" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #1f2937;"></p>
+                        </div>
+                        <div>
+                            <p style="margin: 0; font-size: 0.5rem; font-weight: 600; color: #a0835d;">STATUS</p>
+                            <p id="pd-status" style="margin: 0; font-size: 0.75rem; font-weight: 600; color: #1f2937;"></p>
+                        </div>
+                    </div>
+                    <div style="margin-top: 4px;">
+                        <p style="margin: 0; font-size: 0.5rem; font-weight: 600; color: #a0835d;">NOTE</p>
+                        <p id="pd-note" style="margin: 2px 0 0 0; font-size: 0.7rem; color: #4b5563; background: #f3f4f6; padding: 4px 8px; border-radius: 4px; border-left: 3px solid var(--sidebar-bg);"></p>
+                    </div>
+                    <div style="margin-top: 4px;">
+                        <p style="margin: 0; font-size: 0.5rem; font-weight: 600; color: #a0835d;">ATTACHED FILE</p>
+                        <div id="pd-file" style="margin-top: 2px;"></div>
+                    </div>
                 </div>
             </div>
 
-            <div class="pdf-preview-container"
-                style="padding: 0; background-color: #525659; border-radius: 0 8px 8px 0; overflow: hidden;">
-                <iframe id="view-pdf-iframe" src="" width="100%" height="100%"
-                    style="border: none; display: none; min-height: 600px;"></iframe>
+            <!-- CENTER: PDF Preview -->
+            <div class="pdf-preview-container">
+                <iframe id="view-pdf-iframe" src=""></iframe>
+                <div id="view-pdf-missing" class="pdf-missing">
+                    <i class="fa-regular fa-file-pdf"></i>
+                    <p>No PDF document attached.</p>
+                </div>
+            </div>
 
-                <div id="view-pdf-missing"
-                    style="display: none; text-align: center; padding-top: 200px; color: #ccc;">
-                    <i class="fa-regular fa-file-pdf" style="font-size: 4rem; margin-bottom: 15px;"></i>
-                    <p>No PDF document attached to this record.</p>
+            <!-- RIGHT: Progress Timeline -->
+            <div class="right-sidebar">
+                <div class="sidebar-header">
+                    <i class="fa-solid fa-bookmark"></i> PROGRESS TIMELINE
+                </div>
+                <div id="archiveProgressTimeline">
+                    <div style="color: var(--text-light); font-size: 0.75rem; padding: 20px 10px; text-align: center;">
+                        <i class="fa-regular fa-clock"></i> No progress yet.
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="modal-footer" style="padding: 12px 25px; background: #fff; border-top: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap; border-radius: 0 0 12px 12px;">
-            <!-- Left Side: Share via Email -->
-            <div style="display: flex; align-items: center; gap: 8px; flex-grow: 1; max-width: 400px;">
+
+        <!-- FOOTER -->
+        <div class="modal-footer">
+            <div class="share-section">
                 {% csrf_token %}
-                <input type="email" id="share-recipient-email" placeholder="Share via email: recipient@example.com" style="flex: 1; padding: 8px 12px; border: 1px solid #d9c8ac; border-radius: 6px; font-size: 0.75rem; outline: none; background: #fff; box-sizing: border-box; height: 34px;">
-                <button type="button" id="btn-share-email" class="btn-add" style="padding: 8px 14px; font-size: 0.75rem; margin: 0; display: inline-flex; align-items: center; gap: 5px; height: 34px; border: none; border-radius: 6px; cursor: pointer; justify-content: center; box-sizing: border-box;">
-                    <i class="fa-solid fa-paper-plane"></i> Share
-                </button>
-                <span id="share-email-status" style="font-size: 0.7rem; font-weight: 600; margin-left: 5px; white-space: nowrap;"></span>
+                <input type="email" id="share-recipient-email" placeholder="Share via email: recipient@example.com">
+                <button type="button" id="btn-share-email" class="btn-add"><i class="fa-solid fa-paper-plane"></i> Share</button>
+                <span id="share-email-status"></span>
             </div>
-            
-            <!-- Right Side: Close/Download Buttons -->
-            <div style="display: flex; gap: 10px; align-items: center;">
-                <button type="button" class="btn-discard" onclick="closeModal('viewModal')" style="border-color: #d9c8ac; color: #333; height: 34px; padding: 0 16px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">Close View</button>
-                <button type="button" class="btn-add" id="view-download-btn" style="display: none; height: 34px; padding: 0 16px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box;">Download Archive PDF</button>
+            <div class="action-buttons">
+                <button type="button" class="btn-discard" onclick="closeModal('viewModal')">Close View</button>
+                <button type="button" class="btn-add" id="view-download-btn">Download Archive PDF</button>
             </div>
         </div>
     </div>
@@ -245,128 +283,298 @@
 <!-- ========================================== -->
 {% block extra_js %}
 <script>
-    // Close modal function
-    function closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-            modal.style.display = 'none';
-        }
-    }
-
-    // ==========================================
-    // ORDINANCES VIEW HANDLER
-    // ==========================================
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('Ordinances page loaded - View handler initializing...');
-        
-        // Handle view clicks
-        const viewButtons = document.querySelectorAll('.trigger-view');
-        console.log('View buttons found:', viewButtons.length);
-        
-        viewButtons.forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                console.log('View button clicked!');
-                
-                // Read data from the icon
-                const docNumber = this.getAttribute('data-number') || 'N/A';
-                const docTitle = this.getAttribute('data-title') || 'N/A';
-                const docType = this.getAttribute('data-type') || 'Ordinance';
-                const docYear = this.getAttribute('data-year') || 'N/A';
-                const docDate = this.getAttribute('data-date') || 'N/A';
-                const docSponsor = this.getAttribute('data-sponsor') || 'N/A';
-                const docKeywords = this.getAttribute('data-keywords') || 'N/A';
-                const docEnacted = this.getAttribute('data-enacted') || 'N/A';
-                const docCosponsors = this.getAttribute('data-cosponsors') || 'N/A';
-                const docStatus = this.getAttribute('data-status') || 'Archived';
-                const docStorage = this.getAttribute('data-storage') || 'N/A';
-                const fileUrl = this.getAttribute('data-file') || '';
-                
-                // Get modal
-                const modal = document.getElementById('viewModal');
-                if (!modal) {
-                    console.error('View modal not found!');
-                    alert('View modal not found!');
-                    return;
-                }
-                
-                // Populate fields
-                const fields = {
-                    'view-number': docNumber,
-                    'view-title': docTitle,
-                    'view-type': docType,
-                    'view-year': docYear,
-                    'view-date': docDate,
-                    'view-sponsor': docSponsor,
-                    'view-keywords': docKeywords,
-                    'view-enacted': docEnacted,
-                    'view-cosponsors': docCosponsors,
-                    'view-storage': docStorage
+// ==========================================
+// ARCHIVE VIEW MODAL HANDLER (with Progress Timeline)
+// ==========================================
+document.addEventListener('DOMContentLoaded', function() {
+    const viewButtons = document.querySelectorAll('.trigger-view');
+    
+    viewButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Read data attributes
+            const docId = this.getAttribute('data-id');
+            const docNumber = this.getAttribute('data-number');
+            const docTitle = this.getAttribute('data-title');
+            const docType = this.getAttribute('data-type');
+            const docYear = this.getAttribute('data-year');
+            const docDate = this.getAttribute('data-date');
+            const docSponsor = this.getAttribute('data-sponsor');
+            const docKeywords = this.getAttribute('data-keywords');
+            const docEnacted = this.getAttribute('data-enacted');
+            const docCosponsors = this.getAttribute('data-cosponsors');
+            const docStatus = this.getAttribute('data-status');
+            const docVisibility = this.getAttribute('data-visibility');
+            const docStorage = this.getAttribute('data-storage');
+            const fileUrl = this.getAttribute('data-file');
+            const archivedDate = this.getAttribute('data-archived-date') || '—';
+            const archivedBy = this.getAttribute('data-archived-by') || '—';
+            const retention = this.getAttribute('data-retention') || 'Permanent';
+            
+            const modal = document.getElementById('viewModal');
+            if (!modal) return;
+            
+            // Populate left metadata
+            document.getElementById('view-number').textContent = docNumber || 'N/A';
+            document.getElementById('view-title').textContent = docTitle || 'Untitled';
+            document.getElementById('view-type').textContent = docType || 'N/A';
+            document.getElementById('view-year').textContent = docYear || 'N/A';
+            document.getElementById('view-date').textContent = docDate || 'N/A';
+            document.getElementById('view-enacted').textContent = docEnacted || 'N/A';
+            document.getElementById('view-sponsor').textContent = docSponsor || 'Not specified';
+            document.getElementById('view-cosponsors').textContent = docCosponsors || 'None';
+            document.getElementById('view-storage').textContent = docStorage || 'Not specified';
+            document.getElementById('view-keywords').textContent = docKeywords || 'No keywords';
+            
+            // Status & retention
+            const statusEl = document.getElementById('view-status');
+            if (statusEl) {
+                statusEl.innerHTML = `<span class="badge archived">${docStatus || 'Archived'}</span>`;
+            }
+            document.getElementById('view-retention').textContent = retention;
+            
+            // PDF preview
+            const pdfIframe = document.getElementById('view-pdf-iframe');
+            const pdfMissing = document.getElementById('view-pdf-missing');
+            const downloadBtn = document.getElementById('view-download-btn');
+            
+            if (fileUrl && fileUrl !== 'None' && fileUrl !== 'null' && fileUrl.trim() !== '') {
+                const cacheBuster = 't=' + new Date().getTime();
+                const separator = fileUrl.includes('?') ? '&' : '?';
+                pdfIframe.src = fileUrl + separator + cacheBuster + '#view=FitH';
+                pdfIframe.style.display = 'block';
+                pdfMissing.style.display = 'none';
+                downloadBtn.style.display = 'inline-block';
+                downloadBtn.onclick = function() {
+                    window.open(fileUrl, '_blank');
                 };
-                
-                Object.keys(fields).forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        el.textContent = fields[id];
-                    }
-                });
-                
-                // Status
-                const statusEl = document.getElementById('view-status');
-                if (statusEl) {
-                    statusEl.innerHTML = `<span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">${docStatus}</span>`;
-                }
-                
-                // Handle PDF
-                const pdfIframe = document.getElementById('view-pdf-iframe');
-                const pdfMissing = document.getElementById('view-pdf-missing');
-                const downloadBtn = document.getElementById('view-download-btn');
-                
-                if (fileUrl && fileUrl !== 'None' && fileUrl !== 'null' && fileUrl.trim() !== '') {
-                    pdfIframe.src = fileUrl + '#view=FitH';
-                    pdfIframe.style.display = 'block';
-                    pdfMissing.style.display = 'none';
-                    downloadBtn.style.display = 'inline-block';
-                    downloadBtn.onclick = function() {
-                        window.open(fileUrl, '_blank');
-                    };
-                } else {
-                    pdfIframe.src = '';
-                    pdfIframe.style.display = 'none';
-                    pdfMissing.style.display = 'block';
-                    downloadBtn.style.display = 'none';
-                }
-                
-                // Store current details for sharing
-                if (modal) {
-                    modal.setAttribute('data-current-doc-id', this.getAttribute('data-id') || '');
-                    modal.setAttribute('data-current-doc-number', docNumber || '');
-                    modal.setAttribute('data-current-doc-title', docTitle || '');
-                    modal.setAttribute('data-current-file-url', fileUrl || '');
-                }
-                
-                // Clear any previous share status messages
-                const statusMsg = document.getElementById('share-email-status');
-                const emailInput = document.getElementById('share-recipient-email');
-                if (statusMsg) statusMsg.innerText = '';
-                if (emailInput) emailInput.value = '';
-                
-                // Show modal
-                modal.style.display = 'flex';
-                console.log('Modal opened for:', docNumber);
-            });
-        });
-        
-        // Close modal when clicking outside
-        document.querySelectorAll('.modal-overlay').forEach(modal => {
-            modal.addEventListener('click', function(e) {
-                if (e.target === this) {
-                    this.style.display = 'none';
-                }
-            });
+            } else {
+                pdfIframe.src = '';
+                pdfIframe.style.display = 'none';
+                pdfMissing.style.display = 'block';
+                downloadBtn.style.display = 'none';
+            }
+            
+            // Load progress timeline for archived document
+            loadArchivedProgressTimeline(docId);
+            
+            // Store details for sharing
+            modal.setAttribute('data-current-doc-id', docId || '');
+            modal.setAttribute('data-current-doc-number', docNumber || '');
+            modal.setAttribute('data-current-doc-title', docTitle || '');
+            modal.setAttribute('data-current-file-url', fileUrl || '');
+            
+            // Clear share status
+            const statusMsg = document.getElementById('share-email-status');
+            const emailInput = document.getElementById('share-recipient-email');
+            if (statusMsg) statusMsg.innerText = '';
+            if (emailInput) emailInput.value = '';
+            
+            modal.style.display = 'flex';
         });
     });
+    
+    window.closeModal = function(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) modal.style.display = 'none';
+    };
+    
+    document.querySelectorAll('.modal-overlay').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) this.style.display = 'none';
+        });
+    });
+});
+
+// ---------- Load archived progress timeline ----------
+function loadArchivedProgressTimeline(archivedId) {
+    const timeline = document.getElementById('archiveProgressTimeline');
+    const detailDisplay = document.getElementById('progressDetailDisplay');
+    if (detailDisplay) detailDisplay.style.display = 'none';
+    if (!timeline) return;
+    
+    timeline.innerHTML = `
+        <div style="color: var(--text-light); font-size: 0.75rem; padding: 20px 10px; text-align: center;">
+            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
+        </div>
+    `;
+    
+    fetch(`/api/archived-progress/?archived_id=${archivedId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.progress && data.progress.length > 0) {
+                timeline.innerHTML = '';
+                const sorted = [...data.progress].sort((a, b) => new Date(a.update_date) - new Date(b.update_date));
+                const latest = sorted[sorted.length - 1];
+                
+                const darkBrown = '#7c5c35';
+                const lightBrown = '#d9c8ac';
+                const textLight = '#6b5a4a';
+                
+                sorted.forEach((item, index) => {
+                    const isCurrent = index === sorted.length - 1;
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'bookmark-item';
+                    wrapper.style.display = 'flex';
+                    wrapper.style.alignItems = 'stretch';
+                    wrapper.style.marginBottom = '0';
+                    wrapper.style.position = 'relative';
+                    
+                    const button = document.createElement('button');
+                    button.type = 'button';
+                    button.className = 'progress-bookmark';
+                    button.dataset.progressId = item.id;
+                    button.dataset.status = item.status;
+                    button.dataset.updateDate = item.update_date;
+                    button.dataset.note = item.note;
+                    button.style.display = 'flex';
+                    button.style.flexDirection = 'column';
+                    button.style.alignItems = 'flex-start';
+                    button.style.justifyContent = 'center';
+                    button.style.background = isCurrent ? darkBrown : lightBrown;
+                    button.style.color = isCurrent ? 'white' : textLight;
+                    button.style.border = 'none';
+                    button.style.borderRadius = '4px 0 0 4px';
+                    button.style.padding = '8px 14px 8px 16px';
+                    button.style.fontSize = '0.75rem';
+                    button.style.fontWeight = isCurrent ? '700' : '600';
+                    button.style.cursor = 'pointer';
+                    button.style.transition = 'all 0.2s';
+                    button.style.width = '100%';
+                    button.style.textAlign = 'left';
+                    button.style.boxShadow = isCurrent ? '0 2px 8px rgba(124,92,53,0.25)' : 'none';
+                    button.style.position = 'relative';
+                    button.style.minHeight = '48px';
+                    button.style.flex = '1';
+                    button.style.borderRight = `3px solid ${isCurrent ? darkBrown : 'transparent'}`;
+                    
+                    const statusText = document.createElement('span');
+                    statusText.style.fontSize = '0.8rem';
+                    statusText.style.fontWeight = isCurrent ? '700' : '600';
+                    statusText.style.marginBottom = '2px';
+                    statusText.textContent = item.status.toUpperCase();
+                    button.appendChild(statusText);
+                    
+                    const dateText = document.createElement('span');
+                    dateText.style.fontSize = '0.55rem';
+                    dateText.style.opacity = '0.8';
+                    dateText.style.fontWeight = '400';
+                    dateText.textContent = item.update_date;
+                    button.appendChild(dateText);
+                    
+                    button.addEventListener('click', () => showArchivedProgressDetail(button));
+                    wrapper.appendChild(button);
+                    
+                    const marker = document.createElement('div');
+                    marker.style.width = isCurrent ? '6px' : '4px';
+                    marker.style.background = isCurrent ? darkBrown : lightBrown;
+                    marker.style.borderRadius = isCurrent ? '0 4px 4px 0' : '0 3px 3px 0';
+                    marker.style.flexShrink = '0';
+                    wrapper.appendChild(marker);
+                    
+                    timeline.appendChild(wrapper);
+                });
+                
+                // Auto‑show details of the latest progress
+                if (latest) {
+                    const detailDisplay = document.getElementById('progressDetailDisplay');
+                    if (detailDisplay) {
+                        detailDisplay.style.display = 'block';
+                        document.getElementById('pd-date').textContent = latest.update_date;
+                        document.getElementById('pd-status').textContent = latest.status.toUpperCase();
+                        document.getElementById('pd-note').textContent = latest.note || 'No note provided.';
+                        const fileContainer = document.getElementById('pd-file');
+                        if (fileContainer) {
+                            if (latest.file_attachment) {
+                                const safeUrl = escapeHtmlAttribute(latest.file_attachment);
+                                fileContainer.innerHTML = `
+                                    <a href="${safeUrl}" target="_blank" style="color: var(--sidebar-bg); text-decoration: none; font-weight: 600;">
+                                        <i class="fa-regular fa-file-pdf"></i> View Attached File
+                                    </a>
+                                `;
+                            } else {
+                                fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">No file attached.</span>`;
+                            }
+                        }
+                    }
+                }
+            } else {
+                timeline.innerHTML = `
+                    <div style="color: var(--text-light); font-size: 0.75rem; padding: 20px 10px; text-align: center;">
+                        <i class="fa-regular fa-clock"></i> No progress history available.
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading archived progress:', error);
+            timeline.innerHTML = `
+                <div style="color: #dc3545; font-size: 0.75rem; padding: 10px; text-align: center;">
+                    <i class="fa-solid fa-exclamation-triangle"></i> Failed to load progress.
+                </div>
+            `;
+        });
+}
+
+function showArchivedProgressDetail(btn) {
+    const status = btn.dataset.status;
+    const updateDate = btn.dataset.updateDate;
+    const note = btn.dataset.note;
+    const progressId = btn.dataset.progressId;
+    
+    // Highlight clicked bookmark
+    document.querySelectorAll('#archiveProgressTimeline .progress-bookmark').forEach(b => {
+        b.style.background = '#d9c8ac';
+        b.style.color = '#6b5a4a';
+        b.style.boxShadow = 'none';
+        b.style.borderRight = '3px solid transparent';
+        b.style.fontWeight = '600';
+    });
+    btn.style.background = '#7c5c35';
+    btn.style.color = 'white';
+    btn.style.boxShadow = '0 2px 8px rgba(124,92,53,0.35)';
+    btn.style.borderRight = '4px solid #5c4330';
+    btn.style.fontWeight = '700';
+    
+    const detailDisplay = document.getElementById('progressDetailDisplay');
+    if (detailDisplay) {
+        detailDisplay.style.display = 'block';
+        document.getElementById('pd-date').textContent = updateDate;
+        document.getElementById('pd-status').textContent = status.toUpperCase();
+        document.getElementById('pd-note').textContent = note || 'No note provided.';
+        const fileContainer = document.getElementById('pd-file');
+        if (fileContainer) {
+            // Fetch detail to get file URL
+            fetch(`/api/archived-progress-detail/?id=${progressId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.progress.file_attachment) {
+                        const safeUrl = escapeHtmlAttribute(data.progress.file_attachment);
+                        fileContainer.innerHTML = `
+                            <a href="${safeUrl}" target="_blank" style="color: var(--sidebar-bg); text-decoration: none; font-weight: 600;">
+                                <i class="fa-regular fa-file-pdf"></i> View Attached File
+                            </a>
+                        `;
+                    } else {
+                        fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">No file attached.</span>`;
+                    }
+                })
+                .catch(() => {
+                    fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">Error loading file.</span>`;
+                });
+        }
+    }
+}
+
+function escapeHtmlAttribute(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+}
 </script>
 {% endblock extra_js %}

@@ -310,3 +310,276 @@
 }
 
 /* Large Desktop (993px and up) - Default styles apply */
+
+/* ==========================================
+   ARCHIVE MODAL – MATCH DOCUMENT DETAIL VIEW
+   ========================================== */
+
+/* Container – full height with padding */
+.archive-modal .modal-container.detail-view-container {
+    max-width: 1200px !important;
+    width: 95% !important;
+    height: 85vh !important;
+    padding: 0;
+}
+
+/* Header – brown background, white text */
+.archive-modal .modal-header {
+    background: var(--header-brown);
+    color: white;
+    padding: 15px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 12px 12px 0 0;
+}
+
+.archive-modal .modal-header h2 {
+    margin: 0;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    color: white;
+}
+
+.archive-modal .modal-header .close-modal {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+/* Body – flex row, no padding */
+.archive-modal .modal-body {
+    display: flex !important;
+    flex-direction: row !important;
+    padding: 0 !important;
+    flex: 1;
+    overflow: hidden;
+    border-radius: 0 0 12px 12px;
+}
+
+/* Left panel – metadata */
+.archive-modal .meta-sidebar {
+    flex: 3;
+    padding: 20px 22px;
+    overflow-y: auto;
+    background: #fafafa;
+    min-width: 200px;
+}
+
+/* Center panel – PDF preview */
+.archive-modal .pdf-preview-container {
+    flex: 5;
+    background: #525659;
+    position: relative;
+    min-height: 300px;
+}
+
+.archive-modal .pdf-preview-container iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: none;
+}
+
+.archive-modal .pdf-preview-container .pdf-missing {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #d1d5db;
+    text-align: center;
+}
+
+.archive-modal .pdf-preview-container .pdf-missing i {
+    font-size: 4rem;
+}
+
+.archive-modal .pdf-preview-container .pdf-missing p {
+    margin-top: 10px;
+    font-size: 0.9rem;
+}
+
+/* Right panel – progress timeline */
+.archive-modal .right-sidebar {
+    flex: 2;
+    padding: 16px 14px 16px 18px;
+    overflow-y: auto;
+    background: #f8f6f2;
+    min-width: 140px;
+    border-left: 1px solid #e5e7eb;
+}
+
+.archive-modal .right-sidebar .sidebar-header {
+    margin: 0 0 10px 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.archive-modal .right-sidebar .sidebar-header i {
+    color: var(--sidebar-bg);
+}
+
+/* Progress timeline container */
+#archiveProgressTimeline {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-right: 3px;
+}
+
+/* Bookmark items – same as document page */
+.bookmark-item {
+    display: flex;
+    align-items: stretch;
+    margin-bottom: 0;
+    position: relative;
+}
+
+.progress-bookmark {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    background: #d9c8ac;
+    color: #6b5a4a;
+    border: none;
+    border-radius: 4px 0 0 4px;
+    padding: 8px 14px 8px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    text-align: left;
+    position: relative;
+    min-height: 48px;
+    flex: 1;
+    border-right: 3px solid transparent;
+}
+
+.progress-bookmark.current {
+    background: #7c5c35;
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(124,92,53,0.25);
+    border-right: 3px solid #5c4330;
+}
+
+.progress-bookmark span:first-child {
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.progress-bookmark .date-text {
+    font-size: 0.55rem;
+    opacity: 0.8;
+    font-weight: 400;
+}
+
+.bookmark-marker {
+    width: 4px;
+    background: #d9c8ac;
+    border-radius: 0 3px 3px 0;
+    flex-shrink: 0;
+}
+
+.bookmark-marker.current {
+    width: 6px;
+    background: #7c5c35;
+    border-radius: 0 4px 4px 0;
+}
+
+/* Footer – same as document */
+.archive-modal .modal-footer {
+    padding: 12px 25px;
+    background: #fff;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    border-radius: 0 0 12px 12px;
+}
+
+.archive-modal .modal-footer .share-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-grow: 1;
+    max-width: 400px;
+}
+
+.archive-modal .modal-footer .share-section input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #d9c8ac;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    outline: none;
+    background: #fff;
+    box-sizing: border-box;
+    height: 34px;
+}
+
+.archive-modal .modal-footer .share-section .btn-add {
+    padding: 8px 14px;
+    font-size: 0.75rem;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    height: 34px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.archive-modal .modal-footer .share-section #share-email-status {
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-left: 5px;
+    white-space: nowrap;
+}
+
+.archive-modal .modal-footer .action-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.archive-modal .modal-footer .action-buttons .btn-discard {
+    border-color: #d9c8ac;
+    color: #333;
+    height: 34px;
+    padding: 0 16px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}
+
+.archive-modal .modal-footer .action-buttons .btn-add {
+    height: 34px;
+    padding: 0 16px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+}

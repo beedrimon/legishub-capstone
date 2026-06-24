@@ -10,7 +10,7 @@ from django.contrib.auth import authenticate, login as auth_login, logout as aut
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.contrib.auth.models import User
-from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument, SystemSetting, BackupLog, DocumentProgress
+from .models import LegislativeDocument, AuditLog, ArchivedDocument, ArchiveFolder, VetoedDocument, SystemSetting, BackupLog, DocumentProgress, ArchivedDocumentProgress
 from django.core.paginator import Paginator
 from django.db.models import Q, Case, IntegerField, Value, When
 from django.db import transaction, IntegrityError
@@ -2090,7 +2090,7 @@ def edit_document(request):
         if 'file_attachment' in request.FILES:
             doc.file_attachment = request.FILES['file_attachment']
 
-        # --- ARCHIVING LOGIC ---
+                # --- ARCHIVING LOGIC ---
         if doc.status == 'Archived':
             try:
                 with transaction.atomic():
@@ -2119,19 +2119,31 @@ def edit_document(request):
                             )
                         except FileNotFoundError:
                             pass
-                    
+
+                    # ---------- COPY PROGRESS ENTRIES ----------
+                    progress_entries = DocumentProgress.objects.filter(document=doc)
+                    for prog in progress_entries:
+                        ArchivedDocumentProgress.objects.create(
+                            archived_document=archive_record,
+                            status=prog.status,
+                            update_date=prog.update_date,
+                            note=prog.note,
+                            file_attachment=prog.file_attachment,
+                            created_by=prog.created_by
+                        )
+                    # --------------------------------------------
+
                     deleted_doc_number = doc.document_number 
                     doc.delete()
 
                     AuditLog.objects.create(
                         user=request.user,
                         action='Edit',
-                        details=f"Changed Status to 'Archived' and transferred '{deleted_doc_number}' to Archives."
+                        details=f"Changed Status to 'Archived' and transferred '{deleted_doc_number}' to Archives with progress history."
                     )
 
-                    messages.success(request, f'Document successfully moved to Archives.')
+                    messages.success(request, f'Document successfully moved to Archives with progress history.')
                     return redirect('archive')
-                    
             except IntegrityError:
                 messages.error(request, f'An archive for {doc.document_number} already exists.')
                 referer = request.META.get('HTTP_REFERER')
@@ -2753,6 +2765,70 @@ def get_progress_detail(request):
     try:
         progress = DocumentProgress.objects.get(id=progress_id)
     except DocumentProgress.DoesNotExist:
+        return JsonResponse({'error': 'Progress not found'}, status=404)
+    
+    file_url = progress.file_url if progress.file_attachment else None
+    if file_url and not file_url.startswith('http'):
+        file_url = request.build_absolute_uri(file_url)
+    
+    data = {
+        'id': progress.id,
+        'status': progress.status,
+        'update_date': progress.update_date.strftime('%B %d, %Y'),
+        'note': progress.note,
+        'file_attachment': file_url,
+        'created_by': progress.created_by.username if progress.created_by else 'Unknown',
+        'created_at': progress.created_at.strftime('%Y-%m-%d %H:%M')
+    }
+    
+    return JsonResponse({'success': True, 'progress': data})
+
+
+# ==========================================
+# API: GET ARCHIVED PROGRESS
+# ==========================================
+@login_required(login_url='login')
+def get_archived_progress(request):
+    archived_id = request.GET.get('archived_id')
+    if not archived_id:
+        return JsonResponse({'error': 'Archived document ID required'}, status=400)
+    
+    try:
+        archived = ArchivedDocument.objects.get(id=archived_id)
+    except ArchivedDocument.DoesNotExist:
+        return JsonResponse({'error': 'Archived document not found'}, status=404)
+    
+    progress = ArchivedDocumentProgress.objects.filter(archived_document=archived).order_by('update_date')
+    
+    data = []
+    for p in progress:
+        file_url = p.file_url if p.file_attachment else None
+        if file_url and not file_url.startswith('http'):
+            file_url = request.build_absolute_uri(file_url)
+
+        data.append({
+            'id': p.id,
+            'status': p.status,
+            'update_date': p.update_date.strftime('%Y-%m-%d'),
+            'note': p.note,
+            'file_attachment': file_url,
+            'created_by': p.created_by.username if p.created_by else 'Unknown'
+        })
+    
+    return JsonResponse({'success': True, 'progress': data})
+
+# ==========================================
+# API: GET ARCHIVED PROGRESS DETAIL
+# ==========================================
+@login_required(login_url='login')
+def get_archived_progress_detail(request):
+    progress_id = request.GET.get('id')
+    if not progress_id:
+        return JsonResponse({'error': 'Progress ID required'}, status=400)
+    
+    try:
+        progress = ArchivedDocumentProgress.objects.get(id=progress_id)
+    except ArchivedDocumentProgress.DoesNotExist:
         return JsonResponse({'error': 'Progress not found'}, status=404)
     
     file_url = progress.file_url if progress.file_attachment else None

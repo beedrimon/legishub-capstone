@@ -511,3 +511,39 @@ class DocumentProgress(models.Model):
     
     def __str__(self):
         return f"{self.document.document_number} - {self.status} - {self.update_date}"
+    
+
+    # ==========================================
+# ARCHIVED DOCUMENT PROGRESS HISTORY MODEL
+# ==========================================
+
+class ArchivedDocumentProgress(models.Model):
+    """Track progress/status history for archived documents"""
+    archived_document = models.ForeignKey(ArchivedDocument, on_delete=models.CASCADE, related_name='progress_updates')
+    status = models.CharField(max_length=50, choices=LegislativeDocument.STATUS_CHOICES)
+    update_date = models.DateField()
+    note = models.TextField(blank=True, null=True)
+    file_attachment = models.FileField(upload_to='archived_progress_files/', null=True, blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='archived_progress_updates')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'archived_document_progress'
+        ordering = ['-update_date']
+
+    @property
+    def file_url(self):
+        if not self.file_attachment:
+            return ""
+        import hashlib
+        name_hash = hashlib.md5(self.file_attachment.name.encode('utf-8')).hexdigest()
+        cache_key = f"file_url_{self.__class__.__name__}_{self.id}_{name_hash}"
+        from django.core.cache import cache
+        url = cache.get(cache_key)
+        if not url:
+            url = self.file_attachment.url
+            cache.set(cache_key, url, 3000)
+        return url
+
+    def __str__(self):
+        return f"{self.archived_document.archive_id} - {self.status} - {self.update_date}"
