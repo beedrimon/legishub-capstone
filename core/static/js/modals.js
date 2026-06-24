@@ -851,11 +851,17 @@ document.addEventListener('click', function(e) {
             let latestWithFile = null;
 
             if (data.progress && data.progress.length > 0) {
+                // Save used statuses list on the viewModal itself!
+                const usedStatusesList = data.progress.map(p => p.status.toLowerCase().trim()).join(',');
+                viewModal.setAttribute('data-used-statuses', usedStatusesList);
+
                 // Sort by ID descending to get the most recent first
                 const sorted = [...data.progress].sort((a, b) => b.id - a.id);
                 latestProgress = sorted[0]; // the newest overall
                 // Find the first with a file attachment (for PDF)
                 latestWithFile = sorted.find(p => p.file_attachment && p.file_attachment.trim() !== '' && p.file_attachment !== 'null');
+            } else {
+                viewModal.setAttribute('data-used-statuses', '');
             }
 
             // ---- Build the timeline (bookmarks) ----
@@ -1009,6 +1015,7 @@ document.addEventListener('click', function(e) {
         })
         .catch(error => {
             console.error('Error loading progress:', error);
+            viewModal.setAttribute('data-used-statuses', '');
             // Fallback: show main PDF if progress fetch fails
             if (pdfIframe && pdfMissing) {
                 if (mainFileUrl && mainFileUrl.trim() !== '' && mainFileUrl !== 'None' && mainFileUrl !== 'null') {
@@ -1051,6 +1058,7 @@ document.addEventListener('click', function(e) {
             const docCoSponsors = btn.getAttribute('data-cosponsors');
             const docKeywords = btn.getAttribute('data-keywords');
             const docStatus = btn.getAttribute('data-status');
+            const docUsedStatuses = btn.getAttribute('data-used-statuses') || '';
             const docVisibility = btn.getAttribute('data-visibility');
             const docStorage = btn.getAttribute('data-storage');
             const fileName = btn.getAttribute('data-file');
@@ -1101,21 +1109,14 @@ document.addEventListener('click', function(e) {
                     opt.style.color = '';
                 });
 
-                fetch(`/api/document-progress/?doc_id=${docId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.progress) {
-                            const usedStatuses = data.progress.map(p => p.status.toLowerCase().trim());
-                            Array.from(editStatusSelect.options).forEach(opt => {
-                                const optValue = opt.value.toLowerCase().trim();
-                                if (optValue && opt.value !== docStatus && usedStatuses.includes(optValue)) {
-                                    opt.disabled = true;
-                                    opt.style.color = '#a0a0a0';
-                                }
-                            });
-                        }
-                    })
-                    .catch(err => console.error('Error fetching progress for edit validation:', err));
+                const usedStatuses = docUsedStatuses.split(',').map(s => s.toLowerCase().trim()).filter(Boolean);
+                Array.from(editStatusSelect.options).forEach(opt => {
+                    const optValue = opt.value.toLowerCase().trim();
+                    if (optValue && opt.value !== docStatus && usedStatuses.includes(optValue)) {
+                        opt.disabled = true;
+                        opt.style.color = '#a0a0a0';
+                    }
+                });
             }
 
             if (document.getElementById('edit-veto-reason')) {
@@ -1781,6 +1782,16 @@ function loadProgressTimeline(docId) {
         .then(data => {
             console.log('Progress list API response:', data);
             
+            const viewModal = document.getElementById('viewModal');
+            if (viewModal) {
+                if (data.progress && data.progress.length > 0) {
+                    const usedStatusesList = data.progress.map(p => p.status.toLowerCase().trim()).join(',');
+                    viewModal.setAttribute('data-used-statuses', usedStatusesList);
+                } else {
+                    viewModal.setAttribute('data-used-statuses', '');
+                }
+            }
+            
             if (data.progress && data.progress.length > 0) {
                 timeline.innerHTML = '';
 
@@ -1880,6 +1891,8 @@ function loadProgressTimeline(docId) {
         })
         .catch(error => {
             console.error('Error loading progress:', error);
+            const viewModal = document.getElementById('viewModal');
+            if (viewModal) viewModal.setAttribute('data-used-statuses', '');
             timeline.innerHTML = `
                 <div style="color: #dc3545; font-size: 0.75rem; padding: 10px; text-align: center;">
                     <i class="fa-solid fa-exclamation-triangle"></i> Failed to load.

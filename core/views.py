@@ -249,7 +249,7 @@ def dashboard_view(request):
 def documents_view(request):
     # 1. Start with ALL documents
     # Annotate with priority: 'Urgent' gets 0 (top), others get 1
-    doc_list = LegislativeDocument.objects.exclude(status__iexact='Archived').annotate(
+    doc_list = LegislativeDocument.objects.exclude(status__iexact='Archived').prefetch_related('progress_updates').annotate(
         priority=Case(
             When(status__iexact='Urgent', then=Value(0)),
             default=Value(1),

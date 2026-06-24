@@ -164,6 +164,7 @@
                                         data-status="{{ doc.status }}"
                                         data-visibility="{{ doc.visibility }}"
                                         data-storage="{{ doc.physical_storage|default:'' }}"
+                                        data-used-statuses="{% for p in doc.progress_updates.all %}{{ p.status.lower.strip }}{% if not forloop.last %},{% endif %}{% endfor %}"
                                         {% if doc.file_attachment %}data-file="{{ doc.file_attachment.name }}" {% endif %}></i>
                                     {% endif %}
 
@@ -172,7 +173,8 @@
                                         data-id="{{ doc.id }}" 
                                         data-number="{{ doc.document_number }}"
                                         data-title="{{ doc.title }}"
-                                        data-status="{{ doc.status }}"></i>
+                                        data-status="{{ doc.status }}"
+                                        data-used-statuses="{% for p in doc.progress_updates.all %}{{ p.status.lower.strip }}{% if not forloop.last %},{% endif %}{% endfor %}"></i>
 
                                     {% if doc.file_attachment %}
                                     <a href="{{ doc.file_url }}" download style="text-decoration: none; color: inherit;">
@@ -718,22 +720,15 @@
                                 opt.style.color = '';
                             });
                             
-                            const docId = viewModal.getAttribute('data-current-doc-id');
-                            fetch(`/api/document-progress/?doc_id=${docId}`)
-                                .then(response => response.json())
-                                .then(data => {
-                                    if (data.progress) {
-                                        const usedStatuses = data.progress.map(p => p.status.toLowerCase().trim());
-                                        Array.from(statusSelect.options).forEach(opt => {
-                                            const optValue = opt.value.toLowerCase().trim();
-                                            if (optValue && opt.value !== status && usedStatuses.includes(optValue)) {
-                                                opt.disabled = true;
-                                                opt.style.color = '#a0a0a0';
-                                            }
-                                        });
-                                    }
-                                })
-                                .catch(err => console.error('Error fetching progress for edit validation:', err));
+                            const usedStatusesStr = viewModal.getAttribute('data-used-statuses') || '';
+                            const usedStatuses = usedStatusesStr.split(',').map(s => s.toLowerCase().trim()).filter(Boolean);
+                            Array.from(statusSelect.options).forEach(opt => {
+                                const optValue = opt.value.toLowerCase().trim();
+                                if (optValue && opt.value !== status && usedStatuses.includes(optValue)) {
+                                    opt.disabled = true;
+                                    opt.style.color = '#a0a0a0';
+                                }
+                            });
                         }
                         
                         if (viewModal) viewModal.style.display = 'none';
@@ -749,10 +744,11 @@
                 });
             }
 
-            document.querySelectorAll('.trigger-progress').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const docId = this.getAttribute('data-id');
-                    const docNumber = this.getAttribute('data-number');
+            document.addEventListener('click', function(e) {
+                const btn = e.target.closest('.trigger-progress');
+                if (btn) {
+                    const docId = btn.getAttribute('data-id');
+                    const docNumber = btn.getAttribute('data-number');
                     
                     document.getElementById('progress-doc-id').value = docId;
                     document.getElementById('progressModal').style.display = 'flex';
@@ -780,23 +776,17 @@
                             opt.style.color = '';
                         });
 
-                        fetch(`/api/document-progress/?doc_id=${docId}`)
-                            .then(response => response.json())
-                            .then(data => {
-                                if (data.progress) {
-                                    const usedStatuses = data.progress.map(p => p.status.toLowerCase().trim());
-                                    Array.from(statusSelect.options).forEach(opt => {
-                                        const optValue = opt.value.toLowerCase().trim();
-                                        if (optValue && usedStatuses.includes(optValue)) {
-                                            opt.disabled = true;
-                                            opt.style.color = '#a0a0a0';
-                                        }
-                                    });
-                                }
-                            })
-                            .catch(err => console.error('Error fetching progress for validation:', err));
+                        const usedStatusesStr = btn.getAttribute('data-used-statuses') || '';
+                        const usedStatuses = usedStatusesStr.split(',').map(s => s.toLowerCase().trim()).filter(Boolean);
+                        Array.from(statusSelect.options).forEach(opt => {
+                            const optValue = opt.value.toLowerCase().trim();
+                            if (optValue && usedStatuses.includes(optValue)) {
+                                opt.disabled = true;
+                                opt.style.color = '#a0a0a0';
+                            }
+                        });
                     }
-                });
+                }
             });
         });
 
