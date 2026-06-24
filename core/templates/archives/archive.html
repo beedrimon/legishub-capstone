@@ -202,10 +202,14 @@
                         {% endif %}
                         
                         {% for num in archives.paginator.page_range %}
-                            {% if archives.number == num %}
-                                <button type="button" class="active">{{ num }}</button>
-                            {% else %}
-                                <button type="button" onclick="document.getElementById('page_number').value='{{ num }}'; document.getElementById('filterForm').submit();">{{ num }}</button>
+                            {% if num == 1 or num == archives.paginator.num_pages or num >= archives.number|add:-2 and num <= archives.number|add:2 %}
+                                {% if archives.number == num %}
+                                    <button type="button" class="active">{{ num }}</button>
+                                {% else %}
+                                    <button type="button" onclick="document.getElementById('page_number').value='{{ num }}'; document.getElementById('filterForm').submit();">{{ num }}</button>
+                                {% endif %}
+                            {% elif num == archives.number|add:-3 or num == archives.number|add:3 %}
+                                <span style="padding: 5px 8px; color: var(--text-light); font-size: 0.83rem;">...</span>
                             {% endif %}
                         {% endfor %}
 

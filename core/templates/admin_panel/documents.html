@@ -201,21 +201,23 @@
 
                         <div class="page-numbers">
                             {% if documents.has_previous %}
-                            <button type="button" onclick="goToPage('{{ documents.previous_page_number }}')">&laquo;
-                                Prev</button>
+                            <button type="button" onclick="goToPage('{{ documents.previous_page_number }}')">&laquo; Prev</button>
                             {% endif %}
 
                             {% for num in documents.paginator.page_range %}
+                            {% if num == 1 or num == documents.paginator.num_pages or num >= documents.number|add:-2 and num <= documents.number|add:2 %}
                             {% if documents.number == num %}
                             <button type="button" class="active">{{ num }}</button>
                             {% else %}
                             <button type="button" onclick="goToPage('{{ num }}')">{{ num }}</button>
                             {% endif %}
+                            {% elif num == documents.number|add:-3 or num == documents.number|add:3 %}
+                            <span style="padding: 5px 8px; color: var(--text-light); font-size: 0.83rem;">...</span>
+                            {% endif %}
                             {% endfor %}
 
                             {% if documents.has_next %}
-                            <button type="button" onclick="goToPage('{{ documents.next_page_number }}')">Next
-                                &raquo;</button>
+                            <button type="button" onclick="goToPage('{{ documents.next_page_number }}')">Next &raquo;</button>
                             {% endif %}
                         </div>
                     </div>

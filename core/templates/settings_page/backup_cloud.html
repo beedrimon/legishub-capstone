@@ -209,10 +209,14 @@
                     {% endif %}
                     
                     {% for num in backup_logs.paginator.page_range %}
+                    {% if num == 1 or num == backup_logs.paginator.num_pages or num >= backup_logs.number|add:-2 and num <= backup_logs.number|add:2 %}
                     {% if backup_logs.number == num %}
                     <button type="button" class="active">{{ num }}</button>
                     {% else %}
                     <button type="button" onclick="window.location.href='?page={{ num }}'">{{ num }}</button>
+                    {% endif %}
+                    {% elif num == backup_logs.number|add:-3 or num == backup_logs.number|add:3 %}
+                    <span style="padding: 5px 8px; color: var(--text-light); font-size: 0.83rem;">...</span>
                     {% endif %}
                     {% endfor %}
                     

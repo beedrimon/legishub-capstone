@@ -141,10 +141,14 @@
                         {% endif %}
 
                         {% for num in audit_logs.paginator.page_range %}
+                        {% if num == 1 or num == audit_logs.paginator.num_pages or num >= audit_logs.number|add:-2 and num <= audit_logs.number|add:2 %}
                         {% if audit_logs.number == num %}
                         <button type="button" class="active">{{ num }}</button>
                         {% else %}
                         <button type="button" onclick="goToPage('{{ num }}')">{{ num }}</button>
+                        {% endif %}
+                        {% elif num == audit_logs.number|add:-3 or num == audit_logs.number|add:3 %}
+                        <span style="padding: 5px 8px; color: var(--text-light); font-size: 0.83rem;">...</span>
                         {% endif %}
                         {% endfor %}
 
