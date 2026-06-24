@@ -189,20 +189,28 @@
                 </div>
 
                 <div class="pagination">
-                    <div class="total-records">
-                        Showing page {{ archives.number|default:1 }} of {{ archives.paginator.num_pages|default:1 }}
-                    </div>
+                    <span>
+                        {% if archives.paginator.count > 0 %}
+                        Showing {{ archives.start_index }} to {{ archives.end_index }} of {{ archives.paginator.count }} results
+                        {% else %}
+                        No results to display
+                        {% endif %}
+                    </span>
                     <div class="page-numbers">
                         {% if archives.has_previous %}
-                            <button type="button" onclick="document.getElementById('page_number').value='1'; document.getElementById('filterForm').submit();">&laquo;&laquo;</button>
-                            <button type="button" onclick="document.getElementById('page_number').value='{{ archives.previous_page_number }}'; document.getElementById('filterForm').submit();">&laquo;</button>
+                            <button type="button" onclick="document.getElementById('page_number').value='{{ archives.previous_page_number }}'; document.getElementById('filterForm').submit();">&laquo; Prev</button>
                         {% endif %}
                         
-                        <button type="button" class="active">{{ archives.number|default:1 }}</button>
+                        {% for num in archives.paginator.page_range %}
+                            {% if archives.number == num %}
+                                <button type="button" class="active">{{ num }}</button>
+                            {% else %}
+                                <button type="button" onclick="document.getElementById('page_number').value='{{ num }}'; document.getElementById('filterForm').submit();">{{ num }}</button>
+                            {% endif %}
+                        {% endfor %}
 
                         {% if archives.has_next %}
-                            <button type="button" onclick="document.getElementById('page_number').value='{{ archives.next_page_number }}'; document.getElementById('filterForm').submit();">&raquo;</button>
-                            <button type="button" onclick="document.getElementById('page_number').value='{{ archives.paginator.num_pages }}'; document.getElementById('filterForm').submit();">&raquo;&raquo;</button>
+                            <button type="button" onclick="document.getElementById('page_number').value='{{ archives.next_page_number }}'; document.getElementById('filterForm').submit();">Next &raquo;</button>
                         {% endif %}
                     </div>
                 </div>
