@@ -1663,6 +1663,8 @@ document.addEventListener('click', function(e) {
             const csrfTokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
             const csrfToken = csrfTokenInput ? csrfTokenInput.value : '';
 
+            const progressId = viewModal.getAttribute('data-active-progress-id');
+
             fetch('/api/share-document/', {
                 method: 'POST',
                 headers: {
@@ -1672,7 +1674,8 @@ document.addEventListener('click', function(e) {
                 body: JSON.stringify({
                     email: email,
                     doc_id: docId,
-                    doc_number: docNumber
+                    doc_number: docNumber,
+                    progress_id: progressId || null
                 })
             })
             .then(response => {
@@ -1973,6 +1976,9 @@ function showProgressDetail(btn) {
         .then(data => {
             if (data.success) {
                 const fileUrl = data.progress.file_attachment;
+                if (viewModal) {
+                    viewModal.setAttribute('data-current-file-url', fileUrl || '');
+                }
                 const fileContainer = document.getElementById('pd-file');
                 const pdfIframe = document.getElementById('view-pdf-iframe');
                 const pdfMissing = document.getElementById('view-pdf-missing');

@@ -49,7 +49,8 @@ class ShareDocumentTestCase(TestCase):
             'core.views.send_shared_document_email',
             'recipient@example.com',
             self.doc.id,
-            'LegislativeDocument'
+            'LegislativeDocument',
+            None
         )
         
         # Verify AuditLog entry was created
@@ -57,6 +58,51 @@ class ShareDocumentTestCase(TestCase):
         self.assertIsNotNone(audit_log)
         self.assertIn('recipient@example.com', audit_log.details)
         self.assertIn('TEST-001', audit_log.details)
+
+    @patch('django_q.tasks.async_task')
+    def test_share_document_progress_success(self, mock_async_task):
+        # Create a document progress with file attachment
+        progress_file = SimpleUploadedFile("progress_file.pdf", b"progress_content", content_type="application/pdf")
+        progress = DocumentProgress.objects.create(
+            document=self.doc,
+            status="Hearing",
+            update_date="2026-06-24",
+            note="Test note",
+            file_attachment=progress_file,
+            created_by=self.user
+        )
+        
+        url = reverse('share_document')
+        payload = {
+            'email': 'recipient@example.com',
+            'doc_id': self.doc.id,
+            'doc_number': self.doc.document_number,
+            'progress_id': progress.id
+        }
+        
+        response = self.client.post(
+            url,
+            data=json.dumps(payload),
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'success')
+        
+        # Verify async_task was called with correct arguments including progress_id
+        mock_async_task.assert_called_once_with(
+            'core.views.send_shared_document_email',
+            'recipient@example.com',
+            self.doc.id,
+            'LegislativeDocument',
+            progress.id
+        )
+        
+        # Verify AuditLog entry was created with progress status details
+        audit_log = AuditLog.objects.filter(action='Share', user=self.user).first()
+        self.assertIsNotNone(audit_log)
+        self.assertIn('Hearing', audit_log.details)
 
     def test_share_document_missing_fields(self):
         url = reverse('share_document')

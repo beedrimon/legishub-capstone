@@ -2594,6 +2594,7 @@ def share_document_by_email(request):
     email = data.get('email', '').strip()
     doc_id = data.get('doc_id')
     doc_number = data.get('doc_number')
+    progress_id = data.get('progress_id')
 
     if not email or not doc_id:
         return JsonResponse({'status': 'error', 'message': 'Missing email or document ID.'}, status=400)
@@ -2603,7 +2604,7 @@ def share_document_by_email(request):
     except ValidationError:
         return JsonResponse({'status': 'error', 'message': 'Invalid email address.'}, status=400)
 
-    from core.models import LegislativeDocument, ArchivedDocument, VetoedDocument
+    from core.models import LegislativeDocument, ArchivedDocument, VetoedDocument, DocumentProgress, ArchivedDocumentProgress
     doc = None
     model_name = 'LegislativeDocument'
 
@@ -2637,26 +2638,47 @@ def share_document_by_email(request):
     if not doc:
         return JsonResponse({'status': 'error', 'message': 'Document not found.'}, status=404)
 
-    if not doc.file_attachment or not doc.file_attachment.name:
+    # Determine the file to attach
+    attachment_file = None
+    progress_status = None
+    if progress_id:
+        if model_name == 'ArchivedDocument':
+            prog = ArchivedDocumentProgress.objects.filter(id=progress_id).first()
+            if prog and prog.file_attachment and prog.file_attachment.name:
+                attachment_file = prog.file_attachment
+                progress_status = prog.status
+        elif model_name == 'LegislativeDocument':
+            prog = DocumentProgress.objects.filter(id=progress_id).first()
+            if prog and prog.file_attachment and prog.file_attachment.name:
+                attachment_file = prog.file_attachment
+                progress_status = prog.status
+
+    # Fallback to main document attachment
+    if not attachment_file:
+        if doc.file_attachment and doc.file_attachment.name:
+            attachment_file = doc.file_attachment
+
+    if not attachment_file:
         return JsonResponse({'status': 'error', 'message': 'This document does not have a PDF file attached to it.'}, status=400)
 
     # Queue the email sending background task
     from django_q.tasks import async_task
     try:
-        async_task('core.views.send_shared_document_email', email, doc.id, model_name)
+        async_task('core.views.send_shared_document_email', email, doc.id, model_name, progress_id)
         # Log the sharing event in AuditLog
+        status_info = f" (Progress Status: {progress_status})" if progress_status else ""
         AuditLog.objects.create(
             user=request.user,
             action='Share',
             document=doc if model_name == 'LegislativeDocument' else None,
-            details=f"Shared document '{doc_number or doc.title}' via email to: {email}."
+            details=f"Shared document '{doc_number or doc.title}'{status_info} via email to: {email}."
         )
         return JsonResponse({'status': 'success', 'message': 'Email has been queued and will be sent shortly.'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'Failed to queue email: {str(e)}'}, status=500)
 
 
-def send_shared_document_email(recipient_email, doc_id, doc_model_name):
+def send_shared_document_email(recipient_email, doc_id, doc_model_name, progress_id=None):
     """Asynchronous background task to send shared documents with attachments."""
     from django.core.mail import EmailMessage
     from django.conf import settings
@@ -2672,16 +2694,43 @@ def send_shared_document_email(recipient_email, doc_id, doc_model_name):
         doc = LegislativeDocument.objects.get(id=doc_id)
         doc_number = doc.document_number
 
-    subject = f"Shared Document: {doc.title} ({doc_number}) - Marikina LegisHub"
+    # Resolve active progress file if specified and valid
+    attachment_file = None
+    progress_status = None
+    if progress_id:
+        if doc_model_name == 'ArchivedDocument':
+            from core.models import ArchivedDocumentProgress
+            prog = ArchivedDocumentProgress.objects.filter(id=progress_id).first()
+            if prog and prog.file_attachment and prog.file_attachment.name:
+                attachment_file = prog.file_attachment
+                progress_status = prog.status
+        elif doc_model_name == 'LegislativeDocument':
+            from core.models import DocumentProgress
+            prog = DocumentProgress.objects.filter(id=progress_id).first()
+            if prog and prog.file_attachment and prog.file_attachment.name:
+                attachment_file = prog.file_attachment
+                progress_status = prog.status
+
+    if not attachment_file:
+        attachment_file = doc.file_attachment
+
+    status_suffix = f" - {progress_status.upper()}" if progress_status else ""
+    subject = f"Shared Document: {doc.title} ({doc_number}{status_suffix}) - Marikina LegisHub"
+    
+    progress_info = ""
+    if progress_status:
+        progress_info = f"- Shared Version Status: {progress_status.upper()}\n"
+
     body = (
         f"Hello,\n\n"
-        f"A legislative document has been shared with you from Marikina LegisHub.\n\n"
+        f"A legislative document version has been shared with you from Marikina LegisHub.\n\n"
         f"Document Details:\n"
         f"- Reference No.: {doc_number}\n"
         f"- Title: {doc.title}\n"
         f"- Sponsor: {doc.sponsor or 'Not specified'}\n"
         f"- Category: {doc.doc_type}\n"
-        f"- Year: {doc.year}\n\n"
+        f"- Year: {doc.year}\n"
+        f"{progress_info}\n"
         f"Please find the document file attached to this email."
     )
 
@@ -2692,11 +2741,11 @@ def send_shared_document_email(recipient_email, doc_id, doc_model_name):
         to=[recipient_email]
     )
 
-    if doc.file_attachment and doc.file_attachment.name:
+    if attachment_file and attachment_file.name:
         try:
             # S3 storage backends (boto3) and Local storage can be read using .read()
-            file_name = doc.file_attachment.name.split('/')[-1]
-            email.attach(file_name, doc.file_attachment.read(), 'application/pdf')
+            file_name = attachment_file.name.split('/')[-1]
+            email.attach(file_name, attachment_file.read(), 'application/pdf')
         except Exception as e:
             print(f"Error reading and attaching PDF file: {e}")
             raise e
