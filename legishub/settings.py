@@ -274,5 +274,6 @@ Q_CLUSTER = {
     'queue_limit': 500,
     # 'cpu_affinity': 1,    # <--- REMOVE/COMMENT THIS OUT ON WINDOWS!
     'label': 'Django Q2',   # Name it will show in the Django Admin
-    'orm': 'default'        # <--- CRITICAL: Tells it to use your PostgreSQL DB!
+    'orm': 'default',       # <--- CRITICAL: Tells it to use your PostgreSQL DB!
+    'sync': os.getenv('DJANGO_Q_SYNC', 'False') == 'True'
 }
