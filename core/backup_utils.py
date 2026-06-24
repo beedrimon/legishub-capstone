@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 class SupabaseBackup:
     """Handle backup and sync to Supabase cloud"""
-    
+
     def __init__(self):
         # Backup DB configuration (the destination for backups)
         self.backup_config = {
@@ -20,8 +20,8 @@ class SupabaseBackup:
             'port': int(os.getenv('SUPABASE_DB_PORT', '6543')),
             'sslmode': os.getenv('SUPABASE_DB_SSL_MODE', 'require'),
         }
-        
-        # Primary DB configuration (the source for backups, as defined in settings.py)
+
+        # Primary DB configuration (the source for backups)
         default_db = settings.DATABASES['default']
         self.primary_config = {
             'dbname': default_db.get('NAME', ''),
@@ -33,7 +33,7 @@ class SupabaseBackup:
         if 'OPTIONS' in default_db and 'sslmode' in default_db['OPTIONS']:
             self.primary_config['sslmode'] = default_db['OPTIONS']['sslmode']
 
-        # Synced tables list in foreign-key dependency order
+        # Tables in foreign‑key dependency order (parents first)
         self.tables = [
             'auth_user',
             'system_settings',
@@ -47,7 +47,7 @@ class SupabaseBackup:
             'core_auditlog'
         ]
 
-        # Mapping of tables to their natural unique keys for ID alignment on conflict
+        # Natural unique keys – used for conflict resolution
         self.unique_keys = {
             'auth_user': 'username',
             'system_settings': 'key',
@@ -55,226 +55,324 @@ class SupabaseBackup:
             'core_legislativedocument': 'document_number',
             'core_archiveddocument': 'archive_id',
             'core_vetoeddocument': 'document_number',
-            'support_tickets': 'ticket_number'
+            'support_tickets': 'ticket_number',
         }
-    
+
+        # For each child table, define which columns are foreign keys
+        # and which parent table they reference.
+        self.foreign_key_mappings = {
+            'document_progress': {
+                'document_id': 'core_legislativedocument',
+                'created_by_id': 'auth_user',
+            },
+            'archived_document_progress': {
+                'archived_document_id': 'core_archiveddocument',
+                'created_by_id': 'auth_user',
+            },
+            'support_tickets': {
+                'user_id': 'auth_user',
+            },
+            'core_auditlog': {
+                'user_id': 'auth_user',
+                'document_id': 'core_legislativedocument',
+            },
+        }
+
     def test_backup_connection(self):
-        """Test connection to the backup database."""
         try:
             conn = psycopg2.connect(**self.backup_config)
             conn.close()
             return True, "Connected to Backup DB"
         except Exception as e:
             return False, str(e)
-    
+
     def test_primary_connection(self):
-        """Test connection to the primary database."""
         try:
             conn = psycopg2.connect(**self.primary_config)
             conn.close()
             return True, "Connected to Primary DB"
         except Exception as e:
             return False, str(e)
-    
+
     def get_primary_db_counts(self):
-        """Get record counts from the primary database."""
         try:
             conn = psycopg2.connect(**self.primary_config)
             cursor = conn.cursor()
-            
-            # Try to get counts, handle missing tables gracefully
             counts = {'documents': 0, 'archives': 0, 'audit_logs': 0, 'users': 0, 'total': 0}
-            
             try:
                 cursor.execute("SELECT COUNT(*) FROM core_legislativedocument")
                 counts['documents'] = cursor.fetchone()[0]
             except Exception:
-                counts['documents'] = 0
-                
+                pass
             try:
                 cursor.execute("SELECT COUNT(*) FROM core_archiveddocument")
                 counts['archives'] = cursor.fetchone()[0]
             except Exception:
-                counts['archives'] = 0
-                
+                pass
             try:
                 cursor.execute("SELECT COUNT(*) FROM core_auditlog")
                 counts['audit_logs'] = cursor.fetchone()[0]
             except Exception:
-                counts['audit_logs'] = 0
-                
+                pass
             try:
                 cursor.execute("SELECT COUNT(*) FROM auth_user")
                 counts['users'] = cursor.fetchone()[0]
             except Exception:
-                counts['users'] = 0
-            
-            # Calculate total records sum dynamically from all synced tables
-            total_sum = 0
+                pass
+            total = 0
             for table in self.tables:
                 try:
                     cursor.execute(sql.SQL("SELECT COUNT(*) FROM {}").format(sql.Identifier(table)))
-                    total_sum += cursor.fetchone()[0]
+                    total += cursor.fetchone()[0]
                 except Exception:
                     pass
-            counts['total'] = total_sum
-            
+            counts['total'] = total
             cursor.close()
             conn.close()
-            
             return counts
         except Exception as e:
             logger.error(f"Error getting counts: {e}")
             return {'documents': 0, 'archives': 0, 'audit_logs': 0, 'users': 0, 'total': 0}
-    
-    def sync_to_backup(self, backup_log_id=None):
-        """Sync all tables from the primary DB to the backup DB using a non-destructive upsert merge."""
+
+    def _disable_triggers(self, cursor):
+        try:
+            cursor.execute("SET session_replication_role = replica;")
+            return True
+        except Exception:
+            return False
+
+    def _enable_triggers(self, cursor):
+        try:
+            cursor.execute("SET session_replication_role = DEFAULT;")
+            return True
+        except Exception:
+            return False
+
+    def _merge_tables(self, source_conn, dest_conn, direction='push', backup_log_id=None):
+        """
+        Core merge logic: upsert from source to destination using natural keys and foreign-key mapping.
+        direction: 'push' (local -> cloud) or 'pull' (cloud -> local)
+        """
         from core.models import BackupLog
-        
+
+        source_conn.autocommit = False
+        dest_conn.autocommit = False
+        source_cursor = source_conn.cursor()
+        dest_cursor = dest_conn.cursor()
+
+        # Try to disable triggers on destination
+        self._disable_triggers(dest_cursor)
+
+        # Dictionary to map source IDs to destination IDs for parent tables
+        id_mapping = {}  # table_name -> {source_id: dest_id}
+
+        total_processed = 0
+        errors = []
+
+        for table in self.tables:
+            try:
+                # Check if table exists in source
+                source_cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables
+                        WHERE table_schema = 'public' AND table_name = %s
+                    )
+                """, (table,))
+                if not source_cursor.fetchone()[0]:
+                    continue
+
+                # Check if table exists in destination
+                dest_cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables
+                        WHERE table_schema = 'public' AND table_name = %s
+                    )
+                """, (table,))
+                if not dest_cursor.fetchone()[0]:
+                    errors.append(f"Table '{table}' missing in destination DB. Skipping.")
+                    continue
+
+                # Fetch all rows from source
+                source_cursor.execute(sql.SQL("SELECT * FROM {}").format(sql.Identifier(table)))
+                rows = source_cursor.fetchall()
+                if not rows:
+                    continue
+
+                col_names = [desc[0] for desc in source_cursor.description]
+                unique_key = self.unique_keys.get(table)
+
+                if unique_key:
+                    # Table has a natural key – upsert using that
+                    if unique_key not in col_names:
+                        errors.append(f"Unique key '{unique_key}' not in table {table}. Skipping.")
+                        continue
+
+                    update_cols = [col for col in col_names if col != unique_key and col != 'id']
+                    placeholders = ','.join(['%s'] * len(col_names))
+                    update_set = sql.SQL(', ').join([
+                        sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
+                        for col in update_cols
+                    ])
+                    upsert_query = sql.SQL(
+                        "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT ({}) DO UPDATE SET {}"
+                    ).format(
+                        sql.Identifier(table),
+                        sql.SQL(',').join(map(sql.Identifier, col_names)),
+                        sql.SQL(placeholders),
+                        sql.Identifier(unique_key),
+                        update_set
+                    )
+
+                    mapping = {}
+                    for row in rows:
+                        dest_cursor.execute(upsert_query, row)
+                        # Get the destination ID
+                        unique_val = row[col_names.index(unique_key)]
+                        dest_cursor.execute(
+                            sql.SQL("SELECT id FROM {} WHERE {} = %s").format(
+                                sql.Identifier(table), sql.Identifier(unique_key)
+                            ),
+                            (unique_val,)
+                        )
+                        dest_id = dest_cursor.fetchone()[0]
+                        src_id = row[col_names.index('id')]
+                        mapping[src_id] = dest_id
+
+                    id_mapping[table] = mapping
+                    total_processed += len(rows)
+                    dest_conn.commit()
+                    logger.info(f"{direction.capitalize()}: Upserted {len(rows)} records by {unique_key} to {table}")
+
+                else:
+                    # Child table – need to map foreign keys
+                    fk_map = self.foreign_key_mappings.get(table, {})
+                    if not fk_map:
+                        # No foreign keys – fallback to ID‑based upsert
+                        update_cols = [col for col in col_names if col != 'id']
+                        placeholders = ','.join(['%s'] * len(col_names))
+                        if update_cols:
+                            update_set = sql.SQL(', ').join([
+                                sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
+                                for col in update_cols
+                            ])
+                            upsert_query = sql.SQL(
+                                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO UPDATE SET {}"
+                            ).format(
+                                sql.Identifier(table),
+                                sql.SQL(',').join(map(sql.Identifier, col_names)),
+                                sql.SQL(placeholders),
+                                update_set
+                            )
+                        else:
+                            upsert_query = sql.SQL(
+                                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO NOTHING"
+                            ).format(
+                                sql.Identifier(table),
+                                sql.SQL(',').join(map(sql.Identifier, col_names)),
+                                sql.SQL(placeholders)
+                            )
+                        for row in rows:
+                            dest_cursor.execute(upsert_query, row)
+                        total_processed += len(rows)
+                        dest_conn.commit()
+                        logger.info(f"{direction.capitalize()}: Upserted {len(rows)} records by ID to {table}")
+                        continue
+
+                    # Rewrite foreign keys using id_mapping
+                    for row in rows:
+                        row_list = list(row)
+                        # Map each foreign key
+                        for fk_col, parent_table in fk_map.items():
+                            if parent_table not in id_mapping:
+                                # Parent not yet synced – skip this row
+                                logger.warning(f"Parent table {parent_table} not synced yet. Skipping row in {table}")
+                                continue
+                            src_fk_val = row_list[col_names.index(fk_col)]
+                            if src_fk_val is not None and src_fk_val in id_mapping[parent_table]:
+                                row_list[col_names.index(fk_col)] = id_mapping[parent_table][src_fk_val]
+                            # else: keep as is (may cause FK error if not present)
+
+                        # Upsert using ID
+                        update_cols = [col for col in col_names if col != 'id']
+                        placeholders = ','.join(['%s'] * len(col_names))
+                        if update_cols:
+                            update_set = sql.SQL(', ').join([
+                                sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
+                                for col in update_cols
+                            ])
+                            upsert_query = sql.SQL(
+                                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO UPDATE SET {}"
+                            ).format(
+                                sql.Identifier(table),
+                                sql.SQL(',').join(map(sql.Identifier, col_names)),
+                                sql.SQL(placeholders),
+                                update_set
+                            )
+                        else:
+                            upsert_query = sql.SQL(
+                                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO NOTHING"
+                            ).format(
+                                sql.Identifier(table),
+                                sql.SQL(',').join(map(sql.Identifier, col_names)),
+                                sql.SQL(placeholders)
+                            )
+                        dest_cursor.execute(upsert_query, row_list)
+                        total_processed += 1
+                    dest_conn.commit()
+                    logger.info(f"{direction.capitalize()}: Synced {len(rows)} records with FK mapping to {table}")
+
+            except Exception as e:
+                dest_conn.rollback()
+                err_msg = f"{table}: {str(e)}"
+                logger.error(err_msg)
+                errors.append(err_msg)
+
+        # Re-enable triggers
+        self._enable_triggers(dest_cursor)
+        dest_conn.commit()
+
+        if errors:
+            raise Exception(f"Sync failed for some tables: {' | '.join(errors)}")
+
+        # Get counts (for logging only)
+        counts = self.get_primary_db_counts() if direction == 'push' else {'total': total_processed}
+
+        if backup_log_id:
+            BackupLog.objects.filter(id=backup_log_id).update(
+                records_synced=total_processed,
+                documents_synced=counts.get('documents', 0),
+                archives_synced=counts.get('archives', 0),
+                audit_logs_synced=counts.get('audit_logs', 0),
+                users_synced=counts.get('users', 0),
+                status='success',
+                completed_at=timezone.now()
+            )
+
+        return True, total_processed, counts
+
+    def sync_to_backup(self, backup_log_id=None):
+        """Push: Merge local data into cloud (upsert with natural keys, map foreign keys)."""
         primary_conn = None
         backup_conn = None
-        
+
         try:
-            # Test connections first
             primary_ok, primary_msg = self.test_primary_connection()
             if not primary_ok:
                 raise Exception(f"Cannot connect to primary DB: {primary_msg}")
-            
+
             backup_ok, backup_msg = self.test_backup_connection()
             if not backup_ok:
                 raise Exception(f"Cannot connect to backup DB: {backup_msg}")
-            
-            counts = self.get_primary_db_counts()
-            
-            # Open connections once
+
             primary_conn = psycopg2.connect(**self.primary_config)
             backup_conn = psycopg2.connect(**self.backup_config)
-            primary_cursor = primary_conn.cursor()
-            backup_cursor = backup_conn.cursor()
-            
-            total_synced = 0
-            missing_tables = []
-            sync_errors = []
-            
-            # Process each table
-            for table in self.tables:
-                try:
-                    # Check if table exists in primary DB
-                    primary_cursor.execute("""
-                        SELECT EXISTS (
-                            SELECT FROM information_schema.tables 
-                            WHERE table_schema = 'public' AND table_name = %s
-                        )
-                    """, (table,))
-                    
-                    if not primary_cursor.fetchone()[0]:
-                        continue
-                    
-                    primary_cursor.execute(sql.SQL("SELECT * FROM {}").format(sql.Identifier(table)))
-                    rows = primary_cursor.fetchall()
-                    
-                    if rows:
-                        col_names = [desc[0] for desc in primary_cursor.description]
-                        
-                        # Check if table exists in backup DB
-                        backup_cursor.execute("""
-                            SELECT EXISTS (
-                                SELECT FROM information_schema.tables 
-                                WHERE table_schema = 'public' AND table_name = %s
-                            )
-                        """, (table,))
-                        
-                        if not backup_cursor.fetchone()[0]:
-                            missing_tables.append(table)
-                            logger.warning(f"Destination table '{table}' does not exist in backup DB. Skipping sync. Please run migrations on the backup database.")
-                            continue
-                        
-                        # Build upsert query
-                        update_cols = [col for col in col_names if col != 'id']
-                        placeholders = ','.join(['%s'] * len(col_names))
-                        
-                        if update_cols:
-                            update_set = sql.SQL(', ').join([
-                                sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
-                                for col in update_cols
-                            ])
-                            upsert_query = sql.SQL(
-                                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO UPDATE SET {}"
-                            ).format(
-                                sql.Identifier(table),
-                                sql.SQL(',').join(map(sql.Identifier, col_names)),
-                                sql.SQL(placeholders),
-                                update_set
-                            )
-                        else:
-                            upsert_query = sql.SQL(
-                                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO NOTHING"
-                            ).format(
-                                sql.Identifier(table),
-                                sql.SQL(',').join(map(sql.Identifier, col_names)),
-                                sql.SQL(placeholders)
-                            )
-                        
-                        unique_col = self.unique_keys.get(table)
-                        for row in rows:
-                            # If there's a unique constraint, check and delete mismatching ID on backup first
-                            if unique_col:
-                                col_idx = col_names.index(unique_col)
-                                id_idx = col_names.index('id')
-                                unique_val = row[col_idx]
-                                row_id = row[id_idx]
-                                
-                                delete_query = sql.SQL(
-                                    "DELETE FROM {} WHERE {} = %s AND id != %s"
-                                ).format(sql.Identifier(table), sql.Identifier(unique_col))
-                                backup_cursor.execute(delete_query, (unique_val, row_id))
 
-                            backup_cursor.execute(upsert_query, row)
-                        
-                        # Reset sequence on backup side to prevent IntegrityError on new inserts
-                        try:
-                            if 'id' in col_names:
-                                seq_query = sql.SQL(
-                                    "SELECT setval(pg_get_serial_sequence(%s, 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM {}"
-                                ).format(sql.Identifier(table))
-                                backup_cursor.execute(seq_query, [table])
-                        except Exception as seq_e:
-                            logger.error(f"Sequence reset failed for {table} on backup DB: {seq_e}")
+            return self._merge_tables(primary_conn, backup_conn, direction='push', backup_log_id=backup_log_id)
 
-                        total_synced += len(rows)
-                        print(f"Synced {len(rows)} records from {table}")
-                    
-                    backup_conn.commit()
-                
-                except Exception as e:
-                    backup_conn.rollback()
-                    err_msg = f"{table}: {e}"
-                    print(f"Error syncing table {err_msg}")
-                    logger.error(f"Error syncing table {err_msg}")
-                    sync_errors.append(err_msg)
-            
-            if missing_tables:
-                sync_errors.append(f"Backup DB is missing tables: {', '.join(missing_tables)}. Please run 'python manage.py migrate' on the backup database first.")
-            
-            if sync_errors:
-                raise Exception(f"Sync failed for some tables: {' | '.join(sync_errors)}")
-            
-            if backup_log_id:
-                BackupLog.objects.filter(id=backup_log_id).update(
-                    records_synced=total_synced,
-                    documents_synced=counts.get('documents', 0),
-                    archives_synced=counts.get('archives', 0),
-                    audit_logs_synced=counts.get('audit_logs', 0),
-                    users_synced=counts.get('users', 0),
-                    status='success',
-                    completed_at=timezone.now()
-                )
-            
-            return True, total_synced, counts
-            
         except Exception as e:
-            logger.error(f"Backup failed: {e}")
+            logger.error(f"Push failed: {e}")
             if backup_log_id:
+                from core.models import BackupLog
                 BackupLog.objects.filter(id=backup_log_id).update(
                     status='failed',
                     error_message=str(e),
@@ -283,148 +381,43 @@ class SupabaseBackup:
             return False, 0, {}
 
         finally:
-            if primary_conn: primary_conn.close()
-            if backup_conn: backup_conn.close()
+            if primary_conn:
+                primary_conn.close()
+            if backup_conn:
+                backup_conn.close()
 
     def restore_from_backup(self, backup_log_id=None):
-        """Restore (Pull & Merge) all tables from the backup DB to the primary DB."""
-        from core.models import BackupLog
-        
+        """Pull: Merge cloud data into local database (upsert with natural keys, map foreign keys)."""
         primary_conn = None
         backup_conn = None
 
         try:
+            backup_ok, backup_msg = self.test_backup_connection()
+            if not backup_ok:
+                raise Exception(f"Cannot connect to backup DB: {backup_msg}")
+
+            primary_ok, primary_msg = self.test_primary_connection()
+            if not primary_ok:
+                raise Exception(f"Cannot connect to primary DB: {primary_msg}")
+
             backup_conn = psycopg2.connect(**self.backup_config)
             primary_conn = psycopg2.connect(**self.primary_config)
-            backup_cursor = backup_conn.cursor()
-            primary_cursor = primary_conn.cursor()
-            
-            total_restored = 0
-            restore_errors = []
-            
-            for table in self.tables:
-                try:
-                    # Check if table exists in backup DB
-                    backup_cursor.execute("""
-                        SELECT EXISTS (
-                            SELECT FROM information_schema.tables 
-                            WHERE table_schema = 'public' AND table_name = %s
-                        )
-                    """, (table,))
-                    
-                    if not backup_cursor.fetchone()[0]:
-                        continue
-                    
-                    backup_cursor.execute(sql.SQL("SELECT * FROM {}").format(sql.Identifier(table)))
-                    rows = backup_cursor.fetchall()
-                    
-                    if rows:
-                        col_names = [desc[0] for desc in backup_cursor.description]
-                        
-                        # Check if table exists in primary DB
-                        primary_cursor.execute("""
-                            SELECT EXISTS (
-                                SELECT FROM information_schema.tables 
-                                WHERE table_schema = 'public' AND table_name = %s
-                            )
-                        """, (table,))
-                        
-                        if not primary_cursor.fetchone()[0]:
-                            logger.warning(f"Destination table '{table}' does not exist in the primary DB. Skipping restore for this table.")
-                            continue
-                        
-                        # Build upsert query
-                        update_cols = [col for col in col_names if col != 'id']
-                        placeholders = ','.join(['%s'] * len(col_names))
-                        
-                        if update_cols:
-                            update_set = sql.SQL(', ').join([
-                                sql.SQL("{} = EXCLUDED.{}").format(sql.Identifier(col), sql.Identifier(col))
-                                for col in update_cols
-                            ])
-                            upsert_query = sql.SQL(
-                                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO UPDATE SET {}"
-                            ).format(
-                                sql.Identifier(table),
-                                sql.SQL(',').join(map(sql.Identifier, col_names)),
-                                sql.SQL(placeholders),
-                                update_set
-                            )
-                        else:
-                            upsert_query = sql.SQL(
-                                "INSERT INTO {} ({}) VALUES ({}) ON CONFLICT (id) DO NOTHING"
-                            ).format(
-                                sql.Identifier(table),
-                                sql.SQL(',').join(map(sql.Identifier, col_names)),
-                                sql.SQL(placeholders)
-                            )
-                        
-                        unique_col = self.unique_keys.get(table)
-                        for row in rows:
-                            # If there's a unique constraint, check and delete mismatching ID on primary first
-                            if unique_col:
-                                col_idx = col_names.index(unique_col)
-                                id_idx = col_names.index('id')
-                                unique_val = row[col_idx]
-                                row_id = row[id_idx]
-                                
-                                delete_query = sql.SQL(
-                                    "DELETE FROM {} WHERE {} = %s AND id != %s"
-                                ).format(sql.Identifier(table), sql.Identifier(unique_col))
-                                primary_cursor.execute(delete_query, (unique_val, row_id))
 
-                            primary_cursor.execute(upsert_query, row)
-                        
-                        # Reset primary DB sequence to prevent IntegrityError on new inserts
-                        try:
-                            if 'id' in col_names:
-                                seq_query = sql.SQL(
-                                    "SELECT setval(pg_get_serial_sequence(%s, 'id'), coalesce(max(id), 1), max(id) IS NOT null) FROM {}"
-                                ).format(sql.Identifier(table))
-                                primary_cursor.execute(seq_query, [table])
-                        except Exception as seq_e:
-                            logger.error(f"Sequence reset failed for {table} on primary DB: {seq_e}")
+            return self._merge_tables(backup_conn, primary_conn, direction='pull', backup_log_id=backup_log_id)
 
-                        total_restored += len(rows)
-                        print(f"Restored {len(rows)} records to {table}")
-                    
-                    primary_conn.commit()
-
-                except Exception as e:
-                    primary_conn.rollback()
-                    err_msg = f"{table}: {e}"
-                    print(f"Error restoring table {err_msg}")
-                    logger.error(f"Error restoring table {err_msg}")
-                    restore_errors.append(err_msg)
-            
-            if restore_errors:
-                raise Exception(f"Restore failed for some tables: {' | '.join(restore_errors)}")
-            
-            counts = self.get_primary_db_counts()
-            
-            if backup_log_id:
-                BackupLog.objects.filter(id=backup_log_id).update(
-                    records_synced=total_restored,
-                    documents_synced=counts.get('documents', 0),
-                    archives_synced=counts.get('archives', 0),
-                    audit_logs_synced=counts.get('audit_logs', 0),
-                    users_synced=counts.get('users', 0),
-                    status='success',
-                    completed_at=timezone.now()
-                )
-            
-            return True, total_restored, counts
-            
         except Exception as e:
-            logger.error(f"Restore failed: {e}")
+            logger.error(f"Pull failed: {e}")
             if backup_log_id:
+                from core.models import BackupLog
                 BackupLog.objects.filter(id=backup_log_id).update(
                     status='failed',
                     error_message=str(e),
                     completed_at=timezone.now()
                 )
             return False, 0, {}
-        
+
         finally:
-            if primary_conn: primary_conn.close()
-            if backup_conn: backup_conn.close()
+            if primary_conn:
+                primary_conn.close()
+            if backup_conn:
+                backup_conn.close()
