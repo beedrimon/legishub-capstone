@@ -86,55 +86,65 @@
     <div class="archive-view-container">
         <div class="year-grid-scroll" style="padding: 0;"> 
             <table class="archive-table" style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr>
-                        <th style="padding: 15px;">No.</th>
-                        <th>ARCHIVE ID</th>
-                        <th>TITLE</th>
-                        <th>SPONSOR / CLIENT</th>
-                        <th>REF NO.</th>
-                        <th>DATE FILED</th>
-                        <th>ACTIONS</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for doc in archives %}
-                    <tr style="border-bottom: 1px solid #eee;">
-                        <td>{{ forloop.counter }}</td>
-                        <td>{{ doc.archive_id }}</td>
-                        <td>{{ doc.title }}</td>
-                        <td>{{ doc.sponsor|default:'--' }}</td>
-                        <td>{{ doc.original_document_number }}</td> 
-                        <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
-                        <td class="action-icons">
-                            <i class="fa-regular fa-eye trigger-view" 
-                            data-id="{{ doc.id }}"
-                            data-number="{{ doc.archive_id }}"
-                            data-title="{{ doc.title }}" 
-                            data-type="{{ doc.doc_type }}"
-                            data-year="{{ doc.year }}" 
-                            data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
-                            data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
-                            data-keywords="{{ doc.keywords|default:'None' }}"
-                            data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
-                            data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
-                            data-status="Archived"
-                            data-visibility="{{ doc.visibility }}"
-                            data-storage="{{ doc.physical_storage|default:'Not specified' }}"
-                            data-archived-date="{{ doc.date_archived|date:'M d, Y' }}"
-                            data-archived-by="{{ doc.archived_by.username|default:'System' }}"
-                            data-retention="{{ doc.retention_policy|default:'Permanent' }}"
-                            {% if doc.file_attachment %}data-file="{{ doc.file_url }}"{% endif %}>
-                            </i>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: 50px;">No documents found.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <thead>
+        <tr>
+            <th style="padding: 15px;">No.</th>
+            <th>TITLE &amp; TRACKING NO.</th>
+            <th>KEYWORDS</th>
+            <th>CATEGORY</th>
+            <th>DATE FILED</th>
+            <th>STATUS</th>
+            <th>ACTIONS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for doc in archives %}
+        <tr style="border-bottom: 1px solid #eee;">
+            <td>{{ forloop.counter }}</td>
+            <td class="title-cell" title="{{ doc.archive_id }}: {{ doc.title }}">
+                <strong>{{ doc.archive_id }}: {{ doc.title|truncatechars:60 }}</strong>
+                <br>
+                <small><i class="fa-regular fa-user"></i> {{ doc.sponsor|default:"No Sponsor Listed"|truncatechars:30 }}</small>
+                <br>
+                <small style="color: var(--text-light); font-size: 0.7rem;">
+                    <i class="fa-regular fa-hashtag"></i> REF-{{ doc.original_document_number }}
+                </small>
+            </td>
+            <td class="keywords-cell" title="{{ doc.keywords|default:'None' }}">
+                {{ doc.keywords|default:"None"|truncatechars:30 }}
+            </td>
+            <td>{{ doc.doc_type }}</td>
+            <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
+            <td><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></td>
+            <td class="action-icons">
+                <i class="fa-regular fa-eye trigger-view" 
+                    data-id="{{ doc.id }}"
+                    data-number="{{ doc.archive_id }}"
+                    data-title="{{ doc.title }}" 
+                    data-type="{{ doc.doc_type }}"
+                    data-year="{{ doc.year }}" 
+                    data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
+                    data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
+                    data-keywords="{{ doc.keywords|default:'None' }}"
+                    data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
+                    data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
+                    data-status="Archived"
+                    data-visibility="{{ doc.visibility }}"
+                    data-storage="{{ doc.physical_storage|default:'Not specified' }}"
+                    data-archived-date="{{ doc.date_archived|date:'M d, Y' }}"
+                    data-archived-by="{{ doc.archived_by.username|default:'System' }}"
+                    data-retention="{{ doc.retention_policy|default:'Permanent' }}"
+                    {% if doc.file_attachment %}data-file="{{ doc.file_url }}"{% endif %}>
+                </i>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7" style="text-align: center; padding: 50px;">No documents found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
         </div>
     </div>
 </div>
@@ -275,255 +285,4 @@
 </div>
 {% endblock modals %}
 
-<!-- ========================================== -->
-<!-- EXTRA JS -->
-<!-- ========================================== -->
-{% block extra_js %}
-<script>
-// ==========================================
-// ARCHIVE VIEW MODAL HANDLER (with Progress Timeline)
-// ==========================================
-
-
-// ---------- Load archived progress timeline ----------
-function loadArchivedProgressTimeline(archivedId) {
-    const timeline = document.getElementById('archiveProgressTimeline');
-    const detailDisplay = document.getElementById('progressDetailDisplay');
-    if (detailDisplay) detailDisplay.style.display = 'none';
-    if (!timeline) return;
-    
-    timeline.innerHTML = `
-        <div style="color: var(--text-light); font-size: 0.75rem; padding: 20px 10px; text-align: center;">
-            <i class="fa-solid fa-spinner fa-spin"></i> Loading...
-        </div>
-    `;
-    
-    fetch(`/api/archived-progress/?archived_id=${archivedId}`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.progress && data.progress.length > 0) {
-                timeline.innerHTML = '';
-                const sorted = [...data.progress].sort((a, b) => new Date(a.update_date) - new Date(b.update_date));
-                const latest = sorted[sorted.length - 1];
-                
-                const darkBrown = '#7c5c35';
-                const lightBrown = '#d9c8ac';
-                const textLight = '#6b5a4a';
-                
-                sorted.forEach((item, index) => {
-                    const isCurrent = index === sorted.length - 1;
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'bookmark-item';
-                    wrapper.style.display = 'flex';
-                    wrapper.style.alignItems = 'stretch';
-                    wrapper.style.marginBottom = '0';
-                    wrapper.style.position = 'relative';
-                    
-                    const button = document.createElement('button');
-                    button.type = 'button';
-                    button.className = 'progress-bookmark';
-                    button.dataset.progressId = item.id;
-                    button.dataset.status = item.status;
-                    button.dataset.updateDate = item.update_date;
-                    button.dataset.note = item.note;
-                    button.style.display = 'flex';
-                    button.style.flexDirection = 'column';
-                    button.style.alignItems = 'flex-start';
-                    button.style.justifyContent = 'center';
-                    button.style.background = isCurrent ? darkBrown : lightBrown;
-                    button.style.color = isCurrent ? 'white' : textLight;
-                    button.style.border = 'none';
-                    button.style.borderRadius = '4px 0 0 4px';
-                    button.style.padding = '8px 14px 8px 16px';
-                    button.style.fontSize = '0.75rem';
-                    button.style.fontWeight = isCurrent ? '700' : '600';
-                    button.style.cursor = 'pointer';
-                    button.style.transition = 'all 0.2s';
-                    button.style.width = '100%';
-                    button.style.textAlign = 'left';
-                    button.style.boxShadow = isCurrent ? '0 2px 8px rgba(124,92,53,0.25)' : 'none';
-                    button.style.position = 'relative';
-                    button.style.minHeight = '48px';
-                    button.style.flex = '1';
-                    button.style.borderRight = `3px solid ${isCurrent ? darkBrown : 'transparent'}`;
-                    
-                    const statusText = document.createElement('span');
-                    statusText.style.fontSize = '0.8rem';
-                    statusText.style.fontWeight = isCurrent ? '700' : '600';
-                    statusText.style.marginBottom = '2px';
-                    statusText.textContent = item.status.toUpperCase();
-                    button.appendChild(statusText);
-                    
-                    const dateText = document.createElement('span');
-                    dateText.style.fontSize = '0.55rem';
-                    dateText.style.opacity = '0.8';
-                    dateText.style.fontWeight = '400';
-                    dateText.textContent = item.update_date;
-                    button.appendChild(dateText);
-                    
-                    button.addEventListener('click', () => showArchivedProgressDetail(button));
-                    wrapper.appendChild(button);
-                    
-                    const marker = document.createElement('div');
-                    marker.style.width = isCurrent ? '6px' : '4px';
-                    marker.style.background = isCurrent ? darkBrown : lightBrown;
-                    marker.style.borderRadius = isCurrent ? '0 4px 4px 0' : '0 3px 3px 0';
-                    marker.style.flexShrink = '0';
-                    wrapper.appendChild(marker);
-                    
-                    timeline.appendChild(wrapper);
-                });
-                
-                // Auto‑show details of the latest progress
-                if (latest) {
-                    const detailDisplay = document.getElementById('progressDetailDisplay');
-                    if (detailDisplay) {
-                        detailDisplay.style.display = 'block';
-                        document.getElementById('pd-date').textContent = latest.update_date;
-                        document.getElementById('pd-status').textContent = latest.status.toUpperCase();
-                        document.getElementById('pd-note').textContent = latest.note || 'No note provided.';
-                        const fileContainer = document.getElementById('pd-file');
-                        if (fileContainer) {
-                            if (latest.file_attachment) {
-                                const safeUrl = escapeHtmlAttribute(latest.file_attachment);
-                                fileContainer.innerHTML = `
-                                    <a href="${safeUrl}" target="_blank" style="color: var(--sidebar-bg); text-decoration: none; font-weight: 600;">
-                                        <i class="fa-regular fa-file-pdf"></i> View Attached File
-                                    </a>
-                                `;
-                            } else {
-                                fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">No file attached.</span>`;
-                            }
-                        }
-                    }
-                }
-            } else {
-                timeline.innerHTML = `
-                    <div style="color: var(--text-light); font-size: 0.75rem; padding: 20px 10px; text-align: center;">
-                        <i class="fa-regular fa-clock"></i> No progress history available.
-                    </div>
-                `;
-            }
-        })
-        .catch(error => {
-            console.error('Error loading archived progress:', error);
-            timeline.innerHTML = `
-                <div style="color: #dc3545; font-size: 0.75rem; padding: 10px; text-align: center;">
-                    <i class="fa-solid fa-exclamation-triangle"></i> Failed to load progress.
-                </div>
-            `;
-        });
-}
-
-function showArchivedProgressDetail(btn) {
-    const status = btn.dataset.status;
-    const updateDate = btn.dataset.updateDate;
-    const note = btn.dataset.note;
-    const progressId = btn.dataset.progressId;
-    
-    // Set active progress details on viewModal
-    const modal = document.getElementById('viewModal');
-    if (modal) {
-        modal.setAttribute('data-active-progress-id', progressId || '');
-    }
-    
-    // Highlight clicked bookmark
-    document.querySelectorAll('#archiveProgressTimeline .progress-bookmark').forEach(b => {
-        b.style.background = '#d9c8ac';
-        b.style.color = '#6b5a4a';
-        b.style.boxShadow = 'none';
-        b.style.borderRight = '3px solid transparent';
-        b.style.fontWeight = '600';
-    });
-    btn.style.background = '#7c5c35';
-    btn.style.color = 'white';
-    btn.style.boxShadow = '0 2px 8px rgba(124,92,53,0.35)';
-    btn.style.borderRight = '4px solid #5c4330';
-    btn.style.fontWeight = '700';
-    
-    const detailDisplay = document.getElementById('progressDetailDisplay');
-    if (detailDisplay) {
-        detailDisplay.style.display = 'block';
-        document.getElementById('pd-date').textContent = updateDate;
-        document.getElementById('pd-status').textContent = status.toUpperCase();
-        document.getElementById('pd-note').textContent = note || 'No note provided.';
-        
-        const fileContainer = document.getElementById('pd-file');
-        const pdfIframe = document.getElementById('view-pdf-iframe');
-        const pdfMissing = document.getElementById('view-pdf-missing');
-        
-        if (pdfIframe && pdfMissing) {
-            pdfIframe.src = '';
-            pdfIframe.style.display = 'none';
-            pdfMissing.style.display = 'block';
-            pdfMissing.innerHTML = `
-                <i class="fa-solid fa-spinner fa-spin" style="font-size: 4rem; color: var(--sidebar-bg);"></i>
-                <p style="margin-top: 10px; font-size: 0.9rem;">Loading progress file...</p>
-            `;
-        }
-
-        if (fileContainer) {
-            // Fetch detail to get file URL
-            fetch(`/api/archived-progress-detail/?id=${progressId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success && data.progress.file_attachment) {
-                        const safeUrl = escapeHtmlAttribute(data.progress.file_attachment);
-                        if (modal) {
-                            modal.setAttribute('data-current-file-url', data.progress.file_attachment || '');
-                        }
-                        fileContainer.innerHTML = `
-                            <a href="${safeUrl}" target="_blank" style="color: var(--sidebar-bg); text-decoration: none; font-weight: 600;">
-                                <i class="fa-regular fa-file-pdf"></i> View Attached File
-                            </a>
-                        `;
-                        if (pdfIframe && pdfMissing) {
-                            pdfIframe.src = data.progress.file_attachment + '#view=FitH';
-                            pdfIframe.style.display = 'block';
-                            pdfMissing.style.display = 'none';
-                        }
-                    } else {
-                        if (modal) {
-                            modal.setAttribute('data-current-file-url', '');
-                        }
-                        fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">No file attached.</span>`;
-                        if (pdfIframe && pdfMissing) {
-                            pdfIframe.src = '';
-                            pdfIframe.style.display = 'none';
-                            pdfMissing.style.display = 'block';
-                            pdfMissing.innerHTML = `
-                                <i class="fa-regular fa-file-pdf" style="font-size: 4rem;"></i>
-                                <p style="margin-top: 10px; font-size: 0.9rem;">No file attached to this progress update.</p>
-                            `;
-                        }
-                    }
-                })
-                .catch(() => {
-                    if (modal) {
-                        modal.setAttribute('data-current-file-url', '');
-                    }
-                    fileContainer.innerHTML = `<span style="color: var(--text-light); font-style: italic;">Error loading file.</span>`;
-                    if (pdfIframe && pdfMissing) {
-                        pdfIframe.src = '';
-                        pdfIframe.style.display = 'none';
-                        pdfMissing.style.display = 'block';
-                        pdfMissing.innerHTML = `
-                            <i class="fa-solid fa-exclamation-triangle" style="font-size: 4rem; color: #dc3545;"></i>
-                            <p style="margin-top: 10px; font-size: 0.9rem; color: #dc3545;">Error loading progress attachment.</p>
-                        `;
-                    }
-                });
-        }
-    }
-}
-
-function escapeHtmlAttribute(value) {
-    return String(value || '')
-        .replace(/&/g, '&amp;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;');
-}
-</script>
-{% endblock extra_js %}
+<script src="{% static 'js/archive.js' %}"></script>

@@ -94,10 +94,12 @@
                             <tbody>
                                 {% for doc in recent_documents %}
                                 <tr>
-                                    <td>{{ doc.title }}</td>
+                                    <td class="title-cell" title="{{ doc.title }}">
+                                        {{ doc.title|truncatechars:30 }}
+                                    </td>
                                     <td>{{ doc.doc_type }}</td>
-                                    <td>{{ doc.date_filed }}</td>
-                                    <td><span class="badge {{ doc.status|lower }}">{{ doc.status }}</span></td>
+                                    <td>{{ doc.date_filed|date:"M d, Y" }}</td>
+                                    <td><span class="badge {{ doc.status|lower }}">{{ doc.status|upper }}</span></td>
                                 </tr>
                                 {% empty %}
                                 <tr>

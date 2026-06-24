@@ -134,11 +134,10 @@
                         <thead>
                             <tr>
                                 <th style="padding: 15px;">No.</th>
-                                <th>ARCHIVE ID</th>
-                                <th>DOCUMENT TITLE</th>
-                                <th>SPONSOR / CLIENT</th>
-                                <th>REFERENCE NO.</th>
-                                <th>DATE ENACTED</th>
+                                <th>TITLE &amp; TRACKING NO.</th>
+                                <th>KEYWORDS</th>
+                                <th>CATEGORY</th>
+                                <th>DATE FILED</th>
                                 <th>STATUS</th>
                                 <th>ACTIONS</th>
                             </tr>
@@ -147,13 +146,22 @@
                             {% for doc in archives %}
                             <tr data-doc-id="{{ doc.id }}" data-doc-number="{{ doc.original_document_number }}" style="border-bottom: 1px solid #eee;">
                                 <td data-label="No.">{{ forloop.counter0|add:archives.start_index }}</td>
-                                <td data-label="Archive ID">{{ doc.archive_id }}</td>
-                                <td data-label="Title">{{ doc.title }}</td>
-                                <td data-label="Sponsor">{{ doc.sponsor|default:'No Sponsor Listed' }}</td>
-                                <td data-label="Ref No.">{{ doc.original_document_number }}</td> 
-                                <td data-label="Date Filed">{{ doc.original_date_filed|date:"M d, Y" }}</td>
-                                <td data-label="Status"><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></td>
-                                <td data-label="Actions" class="action-icons">
+                                <td class="title-cell" title="{{ doc.archive_id }}: {{ doc.title }}">
+                                    <strong>{{ doc.archive_id }}: {{ doc.title|truncatechars:60 }}</strong>
+                                    <br>
+                                    <small><i class="fa-regular fa-user"></i> {{ doc.sponsor|default:"No Sponsor Listed"|truncatechars:30 }}</small>
+                                    <br>
+                                    <small style="color: var(--text-light); font-size: 0.7rem;">
+                                        <i class="fa-regular fa-hashtag"></i> REF-{{ doc.original_document_number }}
+                                    </small>
+                                </td>
+                                <td class="keywords-cell" title="{{ doc.keywords|default:'None' }}">
+                                    {{ doc.keywords|default:"None"|truncatechars:30 }}
+                                </td>
+                                <td>{{ doc.doc_type }}</td>
+                                <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
+                                <td><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></td>
+                                <td class="action-icons">
                                     <i class="fa-regular fa-eye trigger-view" 
                                         data-id="{{ doc.id }}"
                                         data-number="{{ doc.archive_id }}"

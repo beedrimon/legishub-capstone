@@ -49,7 +49,7 @@ class LegislativeDocument(models.Model):
         ('Internal Only', 'Internal Only'),
     ]
 
-    title = models.CharField(max_length=255)
+    title = models.TextField()
     document_number = models.CharField(max_length=100, unique=True)
     doc_type = models.CharField(max_length=50, choices=DOCUMENT_TYPES, db_index=True)
     year = models.IntegerField(db_index=True)
@@ -127,7 +127,7 @@ class ArchivedDocument(models.Model):
     original_document_number = models.CharField(max_length=100, null=True, blank=True, db_index=True)
     
     # 2. Mirrored Attributes from LegislativeDocument
-    title = models.CharField(max_length=255)
+    title = models.TextField()
     doc_type = models.CharField(max_length=50, choices=LegislativeDocument.DOCUMENT_TYPES, db_index=True)
     year = models.IntegerField(db_index=True)
     date_enacted = models.DateField(null=True, blank=True)
@@ -227,7 +227,7 @@ def enforce_unique_credentials(sender, instance, **kwargs):
 class VetoedDocument(models.Model):
     # Mirrors the main table so we don't lose any data
     document_number = models.CharField(max_length=100, unique=True)
-    title = models.CharField(max_length=255)
+    title = models.TextField()
     doc_type = models.CharField(max_length=50, choices=LegislativeDocument.DOCUMENT_TYPES, db_index=True)
     year = models.IntegerField(db_index=True)
     date_enacted = models.DateField(null=True, blank=True)

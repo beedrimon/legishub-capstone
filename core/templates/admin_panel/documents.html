@@ -120,8 +120,8 @@
                             {% for doc in documents %}
                             <tr data-doc-id="{{ doc.id }}" data-doc-number="{{ doc.document_number }}">
                                 <td>{{ forloop.counter }}</td>
-                                <td>
-                                    <strong>{{ doc.document_number }}: {{ doc.title }}</strong>
+                                <td class="title-cell" title="{{ doc.document_number }}: {{ doc.title }}">
+                                    <strong>{{ doc.document_number }}: {{ doc.title|truncatechars:60 }}</strong>
                                     {% if doc.status|lower == 'urgent' %}
                                         <span style="color: #d9534f; font-size: 0.7rem; margin-left: 5px;">
                                             <i class="fa-solid fa-triangle-exclamation"></i> URGENT

@@ -86,55 +86,65 @@
         <div class="archive-view-container">
             <div class="year-grid-scroll" style="padding: 0;"> 
                 <table class="archive-table" style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr>
-                            <th style="padding: 15px;">No.</th>
-                            <th>ARCHIVE ID</th>
-                            <th>TITLE</th>
-                            <th>SPONSOR / CLIENT</th>
-                            <th>REF NO.</th>
-                            <th>DATE FILED</th>
-                            <th>ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for doc in archives %}
-                        <tr style="border-bottom: 1px solid #eee;">
-                            <td>{{ forloop.counter }}</td>
-                            <td>{{ doc.archive_id }}</td>
-                            <td>{{ doc.title }}</td>
-                            <td>{{ doc.sponsor|default:'--' }}</td>
-                            <td>{{ doc.original_document_number }}</td> 
-                            <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
-                            <td class="action-icons">
-                                <i class="fa-regular fa-eye trigger-view" 
-                                    data-id="{{ doc.id }}"
-                                    data-number="{{ doc.archive_id }}"
-                                    data-title="{{ doc.title }}" 
-                                    data-type="{{ doc.doc_type }}"
-                                    data-year="{{ doc.year }}" 
-                                    data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
-                                    data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
-                                    data-keywords="{{ doc.keywords|default:'None' }}"
-                                    data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
-                                    data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
-                                    data-status="Archived"
-                                    data-visibility="{{ doc.visibility }}"
-                                    data-storage="{{ doc.physical_storage|default:'Not specified' }}"
-                                    data-archived-date="{{ doc.date_archived|date:'M d, Y' }}"
-                                    data-archived-by="{{ doc.archived_by.username|default:'System' }}"
-                                    data-retention="{{ doc.retention_policy|default:'Permanent' }}"
-                                    {% if doc.file_attachment %}data-file="{{ doc.file_url }}"{% endif %}>
-                                    </i>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="7" style="text-align: center; padding: 50px;">No documents found.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <thead>
+        <tr>
+            <th style="padding: 15px;">No.</th>
+            <th>TITLE &amp; TRACKING NO.</th>
+            <th>KEYWORDS</th>
+            <th>CATEGORY</th>
+            <th>DATE FILED</th>
+            <th>STATUS</th>
+            <th>ACTIONS</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for doc in archives %}
+        <tr style="border-bottom: 1px solid #eee;">
+            <td>{{ forloop.counter }}</td>
+            <td class="title-cell" title="{{ doc.archive_id }}: {{ doc.title }}">
+                <strong>{{ doc.archive_id }}: {{ doc.title|truncatechars:60 }}</strong>
+                <br>
+                <small><i class="fa-regular fa-user"></i> {{ doc.sponsor|default:"No Sponsor Listed"|truncatechars:30 }}</small>
+                <br>
+                <small style="color: var(--text-light); font-size: 0.7rem;">
+                    <i class="fa-regular fa-hashtag"></i> REF-{{ doc.original_document_number }}
+                </small>
+            </td>
+            <td class="keywords-cell" title="{{ doc.keywords|default:'None' }}">
+                {{ doc.keywords|default:"None"|truncatechars:30 }}
+            </td>
+            <td>{{ doc.doc_type }}</td>
+            <td>{{ doc.original_date_filed|date:"M d, Y" }}</td>
+            <td><span style="background: #E8F5E9; color: #2E7D32; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.7rem;">PERMANENT</span></td>
+            <td class="action-icons">
+                <i class="fa-regular fa-eye trigger-view" 
+                    data-id="{{ doc.id }}"
+                    data-number="{{ doc.archive_id }}"
+                    data-title="{{ doc.title }}" 
+                    data-type="{{ doc.doc_type }}"
+                    data-year="{{ doc.year }}" 
+                    data-date="{{ doc.original_date_filed|date:'M d, Y' }}"
+                    data-sponsor="{{ doc.sponsor|default:'No Sponsor Listed' }}"
+                    data-keywords="{{ doc.keywords|default:'None' }}"
+                    data-enacted="{% if doc.date_enacted %}{{ doc.date_enacted|date:'M d, Y' }}{% else %}Not specified{% endif %}"
+                    data-cosponsors="{{ doc.co_sponsors|default:'None' }}"
+                    data-status="Archived"
+                    data-visibility="{{ doc.visibility }}"
+                    data-storage="{{ doc.physical_storage|default:'Not specified' }}"
+                    data-archived-date="{{ doc.date_archived|date:'M d, Y' }}"
+                    data-archived-by="{{ doc.archived_by.username|default:'System' }}"
+                    data-retention="{{ doc.retention_policy|default:'Permanent' }}"
+                    {% if doc.file_attachment %}data-file="{{ doc.file_url }}"{% endif %}>
+                </i>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="7" style="text-align: center; padding: 50px;">No documents found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
             </div>
         </div>
     </div>
