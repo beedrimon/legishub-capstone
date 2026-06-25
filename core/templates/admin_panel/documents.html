@@ -168,13 +168,15 @@
                                         {% if doc.file_attachment %}data-file="{{ doc.file_attachment.name }}" {% endif %}></i>
                                     {% endif %}
 
-                                     <i class="fa-solid fa-plus trigger-progress" title="Add Progress/Status"
-                                        style="cursor: pointer; font-weight: 700;" 
-                                        data-id="{{ doc.id }}" 
-                                        data-number="{{ doc.document_number }}"
-                                        data-title="{{ doc.title }}"
-                                        data-status="{{ doc.status }}"
-                                        data-used-statuses="{% for p in doc.progress_updates.all %}{{ p.status.lower.strip }}{% if not forloop.last %},{% endif %}{% endfor %}"></i>
+                                     {% if not is_legislator %}
+    <i class="fa-solid fa-plus trigger-progress" title="Add Progress/Status"
+        style="cursor: pointer; font-weight: 700;" 
+        data-id="{{ doc.id }}" 
+        data-number="{{ doc.document_number }}"
+        data-title="{{ doc.title }}"
+        data-status="{{ doc.status }}"
+        data-used-statuses="{% for p in doc.progress_updates.all %}{{ p.status.lower.strip }}{% if not forloop.last %},{% endif %}{% endfor %}"></i>
+    {% endif %}
 
                                     {% if doc.file_attachment %}
                                     <a href="{{ doc.file_url }}" download style="text-decoration: none; color: inherit;">
