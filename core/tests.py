@@ -65,7 +65,7 @@ class ShareDocumentTestCase(TestCase):
         progress_file = SimpleUploadedFile("progress_file.pdf", b"progress_content", content_type="application/pdf")
         progress = DocumentProgress.objects.create(
             document=self.doc,
-            status="Hearing",
+            status="Committee Meetings",
             update_date="2026-06-24",
             note="Test note",
             file_attachment=progress_file,
@@ -102,7 +102,7 @@ class ShareDocumentTestCase(TestCase):
         # Verify AuditLog entry was created with progress status details
         audit_log = AuditLog.objects.filter(action='Share', user=self.user).first()
         self.assertIsNotNone(audit_log)
-        self.assertIn('Hearing', audit_log.details)
+        self.assertIn('Committee Meetings', audit_log.details)
 
     def test_share_document_missing_fields(self):
         url = reverse('share_document')
@@ -367,4 +367,3 @@ class PendingBroadcastTestCase(TestCase):
         self.assertEqual(pb.event_type, 'test_event')
         self.assertEqual(pb.payload, {'data': 'hello_world'})
         self.assertFalse(pb.processed)
-

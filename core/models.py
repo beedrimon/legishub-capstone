@@ -33,7 +33,7 @@ class LegislativeDocument(models.Model):
         ('Proposed Measures', 'Proposed Measures'),
         ('Endorsement', 'Endorsement'),
         ('Referral', 'Referral'),
-        ('Hearing', 'Hearing'),
+        ('Committee Meetings', 'Committee Meetings'),
         ('Committee Report', 'Committee Report'),
         ('1st reading', '1st reading'),
         ('2nd reading', '2nd reading'),
@@ -604,6 +604,9 @@ class SupportTicket(models.Model):
     resolved_at = models.DateTimeField(null=True, blank=True)
     admin_notes = models.TextField(blank=True, null=True)
 
+    def __str__(self):
+        return f"{self.ticket_number} - {self.subject}"
+
     class Meta:
         db_table = 'support_tickets'
         ordering = ['-created_at']
@@ -613,9 +616,8 @@ class SupportTicket(models.Model):
             import random
             from django.utils import timezone
             date_str = timezone.now().strftime('%Y%m%d')
+            # Generate a random 4-digit suffix
             rand_suffix = ''.join(random.choices('0123456789', k=4))
+            # Construct the unique ticket number
             self.ticket_number = f"LH-TKT-{date_str}-{rand_suffix}"
         super().save(*args, **kwargs)
-
-    def __str__(self):
-        return f"{self.ticket_number}: {self.subject} ({self.status})"
